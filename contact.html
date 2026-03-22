@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>ポートフォリオWEBサイト SkillShowcase</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -24,10 +26,11 @@
 
             <section id="contact">
                 <h2>お問い合わせ</h2>
-                <p>お問い合わせをご希望の方は、以下のリンクをご利用ください。</p>
-                <a href="mailto:meruba1234@gmail.com?subject=meruba1234へのお問い合わせ&body=お名前：%0D%0Aメールアドレス：%0D%0Aお問い合わせ内容：">
-                    メールでお問い合わせ
-                </a>
+                <p>お問い合わせをご希望の方は、以下のボタンをご利用ください。</p>
+                <a id="contact-email-link" href="#">メールでお問い合わせ</a>
+                <noscript>
+                    <p>メール送信先: meruba1234 [at] gmail.com</p>
+                </noscript>
             </section>
 
             <footer>
@@ -58,6 +61,18 @@
             e.preventDefault();
             window.scrollTo({top: 0, behavior: 'smooth'});
         });
+
+        // メールアドレスをページ描画後に組み立てる
+        (function setupContactLink() {
+            var user = 'meruba1234';
+            var domain = 'gmail.com';
+            var subject = encodeURIComponent('meruba1234へのお問い合わせ');
+            var body = encodeURIComponent('お名前：\nメールアドレス：\nお問い合わせ内容：');
+            var email = user + '@' + domain;
+            var link = document.getElementById('contact-email-link');
+
+            link.href = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
+        })();
     </script>     
 </body>
 </html>

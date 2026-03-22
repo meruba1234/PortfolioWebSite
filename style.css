@@ -1,254 +1,305 @@
-/* 基本的なスタイル設定 */
+/* 基本配色とタイポグラフィ */
+:root {
+    --bg: #f4f7fb;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #4b5563;
+    --primary: #0b84d8;
+    --primary-dark: #0865a6;
+    --header: #1f2937;
+    --border: #e5e7eb;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
-    padding: 0;
-    line-height: 1.6;
-    background-color: transparent; /* 背景色の変更 */
-    padding-bottom: 60px; /* フッターとの間に余白を確保 */
+    color: var(--text);
+    background-color: var(--bg);
+    line-height: 1.8;
 }
 
-.to-top {
-    position: fixed; /* ボタンを画面に固定 */
-    bottom: 20px; /* 下から20pxの位置に配置 */
-    right: 20px; /* 右から20pxの位置に配置 */
-    padding: 10px 15px; /* パディングを適用 */
-    background-color: #0088cc; /* 背景色 */
-    color: #ffffff; /* テキスト色 */
-    text-decoration: none; /* 下線を非表示 */
-    border-radius: 5px; /* 角を丸く */
-    font-size: 16px; /* フォントサイズ */
-    z-index: 1001; /* ヘッダーよりも上に表示 */
-}
-
-.to-top:hover {
-    background-color: #005577; /* ホバー時の背景色 */
-}
-
-/* コンテナのスタイル */
 .container {
-    display: flex;
+    display: block;
 }
 
-/* メインコンテンツのスタイル */
 .main-content {
-    flex-grow: 1; /* 利用可能なスペースをすべて使用 */
-    background-color: #fff; /* メインコンテンツの背景色を白に設定（必要に応じて変更） */
-    margin-top: 100px; /* ヘッダーの高さに合わせて上マージンを設定 */
+    max-width: 1080px;
+    margin: 110px auto 0;
+    padding: 0 18px 32px;
 }
 
-
-/* ヘッダーのスタイル */
+/* ヘッダー */
 header {
-    background: #444;
-    color: #f4f4f4;
-    padding-top: 5px; /* 上側のパディングを5pxに設定 */
-    min-height: 40px; /* 高さ*/
-    border-bottom: #0088cc 4px solid;
+    background: var(--header);
+    color: #f9fafb;
+    border-bottom: 4px solid var(--primary);
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    z-index: 1000; /* 他の要素より前面に表示 */
+    z-index: 1000;
 }
 
 header h1 {
-    margin: 0 auto; /* 中央揃えに */
-    padding: 0 20px;
-    font-size: 24px; /* フォントサイズを調整 */
+    margin: 0;
+    padding: 12px 18px 6px;
+    font-size: 1.45rem;
+    text-align: center;
 }
 
 nav {
-    margin-top: 0px; /* navの上のマージンを減らす */
+    padding: 0 10px 10px;
 }
 
-/* ドロップダウンボタンのスタイル */
-.dropbtn {
-    position: relative; /* 疑似要素の基準点 */
-    display: inline-block; /* コンテンツの幅に合わせる */
-    cursor: pointer;
-}
-
-/* 下向き三角形のスタイル */
-.dropbtn:after {
-    content: "";
-    position: absolute;
-    top: 100%; /* ボタンの下端から配置 */
-    left: 50%; /* 中央に配置 */
-    margin-left: -6px; /* 三角形の幅の半分で中央寄せの調整。サイズが大きくなったので、この値も調整します */
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent; /* 左側の透明な境界を大きく */
-    border-right: 10px solid transparent; /* 右側の透明な境界を大きく */
-    border-top: 10px solid #0088cc; /* 上向きの三角形（実際には下向きに見える）の色とサイズを変更 */
-}
-
-/* ドロップダウンコンテンツ（隠れている）のスタイル */
-.dropdown-content {
-    display: none;
-    position: absolute;
-    background-color: #f9f9f9;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
-}
-
-/* ドロップダウンリンクのスタイル */
-.dropdown-content a {
-    color: black;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
-}
-
-/* ドロップダウンリンクにカーソルを合わせると色が変わる */
-.dropdown-content a:hover {background-color: #f1f1f1}
-
-/* ドロップダウンがホバーされたときにドロップダウンメニューを表示 */
-.dropdown:hover .dropdown-content {
-    display: block;
-}
-
-/* ナビゲーションメニューのスタイル */
 nav ul {
+    margin: 0;
     padding: 0;
     list-style: none;
-    text-align: center;
-    margin-top: 0; /* ulの上のマージンをなくす */
-    padding-top: 0; /* パディングもなくす */
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 nav ul li {
-    display: inline-block; /* インラインブロックへ変更 */
-    margin: 0 0px; /* マージンを増やす */
+    display: inline-flex;
+    position: relative;
 }
 
 nav ul li a {
     text-decoration: none;
-    color: #f4f4f4;
-    padding: 0px 5px; /* パディングを増やす */
-    border-radius: 10px; /* 角の丸みを増やす */
-    transition: background-color 0.3s, transform 0.3s; /* transform効果を追加 */
+    color: #f9fafb;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 nav ul li a:hover {
-    background-color: #0088cc; /* ホバー色を変更 */
-    transform: scale(1.05); /* 少し拡大 */
+    background-color: var(--primary);
+    transform: translateY(-1px);
 }
 
-/* セクションのスタイル */
-section {
-    background: transparent;
-    padding: 20px;
-    margin: 10px auto; /* 上下マージンを均等に */
-    border-radius: 10px; /* 角の丸みを増やす */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1); /* 影の調整 */
-    max-width: 1450px; /* 最大幅を設定 */
+/* ドロップダウン */
+.dropbtn {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
 }
 
-/* フッターのスタイル */
-footer {
-    background: #444; /* 色の微調整 */
-    color: #f4f4f4;
-    text-align: center;
-    padding: 3px 0; /* 上下のパディングを調整 */
-    position: fixed;
+.dropbtn:after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -6px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 7px solid var(--primary);
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
     left: 0;
-    bottom: 0;
-    width: 100%;
+    min-width: 240px;
+    max-height: 340px;
+    overflow-y: auto;
+    background-color: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
+    z-index: 1002;
 }
 
-
-/* テーブル全体のスタイル */
-table {
-    width: 100%; /* テーブルの幅を親要素に合わせる */
-    border-collapse: collapse; /* 枠線を重ねて1本線にする */
-    margin-bottom: 20px; /* テーブル下の余白 */
+.dropdown-content a {
+    color: #111827;
+    padding: 10px 12px;
+    display: block;
+    border-radius: 0;
 }
 
-/* テーブルのセル（th、td）のスタイル */
-th, td {
-    padding: 8px; /* セル内のパディング */
-    text-align: left; /* テキストの左揃え */
-    border-bottom: 1px solid #ddd; /* 下枠線 */
+.dropdown-content a:hover {
+    background: #eef6fd;
 }
 
-/* テーブルヘッダー（th）のスタイル */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* 本文 */
+section {
+    background: var(--card);
+    margin: 14px auto;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(31, 41, 55, 0.06);
+}
+
+h2 {
+    margin-top: 0;
+    line-height: 1.4;
+    border-left: 4px solid var(--primary);
+    padding-left: 10px;
+}
+
+h3 {
+    margin-top: 1.2em;
+}
+
+p,
+li,
+td,
 th {
-    background-color: #4CAF50; /* ヘッダーの背景色 */
-    color: white; /* ヘッダーのテキスト色 */
+    color: var(--text);
 }
 
-/* テーブル行（tr）のホバースタイル */
+a {
+    color: var(--primary-dark);
+    word-break: break-word;
+}
+
+a:hover {
+    color: var(--primary);
+}
+
+/* テーブル */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px;
+    background: #fff;
+}
+
+th,
+td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid var(--border);
+    vertical-align: top;
+}
+
+th {
+    background-color: #eaf4ff;
+    color: #0f172a;
+}
+
 tr:hover {
-    background-color: #f5f5f5; /* ホバー時の背景色 */
+    background-color: #f8fbff;
 }
 
-/* 画面幅が600px以下の場合 */
-@media (max-width: 600px) {
-    body {
-        padding-bottom: 30px; /* スマホ画面ではフッターとの余白を減らす */
-    }
+/* コード表示 */
+pre {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 12px;
+    border-radius: 10px;
+    overflow-x: auto;
+}
 
-    .to-top {
-        bottom: 10px; /* ボタンを下から10pxの位置に配置 */
-        right: 10px; /* 右から10pxの位置に配置 */
-        padding: 8px 12px; /* パディングを少し小さく */
-        font-size: 14px; /* フォントサイズを小さく */
-    }
+/* 画像 */
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
 
-    header h1 {
-        font-size: 20px; /* ヘッダーのフォントサイズを小さく */
-    }
+/* フッター */
+footer {
+    margin: 20px auto 0;
+    background: #111827;
+    color: #f3f4f6;
+    text-align: center;
+    padding: 12px;
+    border-radius: 10px;
+}
 
-    .main-content {
-        margin-top: 80px; /* ヘッダーの高さに合わせて上マージンを調整 */
-    }
+/* ページトップボタン */
+.to-top {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 1001;
+    background-color: var(--primary);
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 999px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+}
 
-    nav ul li a {
-        padding: 0 3px; /* ナビゲーションリンクのパディングを減らす */
-        font-size: 14px; /* ナビゲーションリンクのフォントサイズを小さく */
-    }
-
-    .screen img {
-        width: 100%; /* 画像を画面幅に合わせて調整 */
-        max-width: 100%; /* 画像がコンテナを超えないようにする */
-    }
-    
-    section {
-        padding: 15px; /* セクションのパディングを調整 */
-    }
-
+.to-top:hover {
+    background-color: var(--primary-dark);
 }
 
 /* フローチャート */
 .flowchart-horizontal {
     display: flex;
     align-items: center;
-    justify-content: left;
-    overflow-x: auto; /* 水平方向にスクロールバーを表示 */
+    justify-content: flex-start;
+    overflow-x: auto;
     flex-wrap: nowrap;
     padding: 10px 0;
 }
 
 .screen {
-    flex: 0 0 auto; /* flexアイテムが縮小せず、基本のサイズを保持する */
-    margin: 10px; /* 各スクリーンの間隔を調整 */
+    flex: 0 0 auto;
+    margin: 10px;
     text-align: center;
 }
 
 .screen img {
-    width: 300px; /* 画像のサイズを調整 */
-    display: block; /* 画像がインライン要素のデフォルトの挙動を持たないようにする */
-    max-width: 100%; /* 画像がコンテナを超えないようにする */
-    height: auto; /* 画像の高さを自動調整 */
+    width: 300px;
+    display: block;
 }
 
 .arrow-right {
-    width: 0; 
-    height: 0; 
+    width: 0;
+    height: 0;
     border-top: 10px solid transparent;
-    border-bottom: 10px solid transparent; 
-    border-left: 20px solid black; /* 右向きの矢印 */
-    margin: 0 20px; /* 矢印の左右のマージン */
+    border-bottom: 10px solid transparent;
+    border-left: 20px solid #111827;
+    margin: 0 20px;
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+    .main-content {
+        margin-top: 120px;
+        padding: 0 12px 24px;
+    }
+
+    header h1 {
+        font-size: 1.2rem;
+    }
+
+    nav ul {
+        gap: 4px;
+    }
+
+    nav ul li a {
+        font-size: 0.9rem;
+        padding: 5px 8px;
+    }
+
+    section {
+        padding: 14px;
+    }
+
+    .screen img {
+        width: min(260px, 70vw);
+    }
+
+    .to-top {
+        right: 10px;
+        bottom: 10px;
+    }
 }
