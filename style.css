@@ -221,6 +221,11 @@ footer {
     border-radius: 10px;
 }
 
+footer p {
+    color: inherit;
+    margin: 0;
+}
+
 /* ページトップボタン */
 .to-top {
     position: fixed;
