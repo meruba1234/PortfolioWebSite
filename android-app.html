@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>ポートフォリオWEBサイト SkillShowcase</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -16,7 +18,7 @@
                         <li><a href="portfolio.html">ホーム</a></li>
                         <li><a href="itskills.html">ITスキル</a></li>
                         <li class="dropdown">
-                            <a href="javascript:void(0)" class="dropbtn">アプリ紹介</a>
+                            <a href="android-app.html#app-overview" class="dropbtn">アプリ紹介</a>
                             <div class="dropdown-content">
                                 <a href="#app-overview">アプリの概要</a>
                                 <a href="#screen-transitions">画面遷移の紹介</a>
@@ -91,16 +93,24 @@
                 <section id="download-instructions">
                     <h2>ダウンロード方法</h2>
                     <p>以下のリンクから、最新版のアプリをダウンロードできます。</p>
-                    <p><a href="QuizVoyage.apk">クリックしてダウンロード</a></p>
+                    <p><a href="QuizVoyage.apk" download>クリックしてダウンロード</a></p>
                     <p>開発中の数学用アプリに関心がある方は、下記のリンクからアクセスしてください。このバージョンでは、新しい数学の問題や機能がテスト段階で利用可能です。</p>
-                    <p><a href="QuizVoyageMath.apk">開発中の数学用アプリをダウンロード</a></p>
+                    <p><a href="QuizVoyageMath.apk" download>開発中の数学用アプリをダウンロード</a></p>
+                    <p>ダウンロード後は、<a href="SHA256SUMS.txt">SHA256ハッシュ一覧</a>でファイルの改ざんがないことを確認してください。</p>
+                    <pre><code># 例: Linux / macOS
+shasum -a 256 QuizVoyage.apk
+shasum -a 256 QuizVoyageMath.apk
+
+# 例: Windows PowerShell
+Get-FileHash .\QuizVoyage.apk -Algorithm SHA256
+Get-FileHash .\QuizVoyageMath.apk -Algorithm SHA256</code></pre>
                 </section>
 
                 <!-- ソースコード -->
                 <section id="source-code">
                     <h2>ソースコード</h2>
                     <p>プロジェクトのソースコードを閲覧するには、以下のGitHubリポジトリを訪問してください。</p>
-                    <p><a href="https://github.com/meruba1234/android-application">GitHubで見る</a></p>
+                    <p><a href="https://github.com/meruba1234/android-application" target="_blank" rel="noopener noreferrer">GitHubで見る</a></p>
                 </section>
 
                 <!-- JSONデータのこだわりと構造 -->

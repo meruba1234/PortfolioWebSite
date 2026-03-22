@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>ポートフォリオWEBサイト SkillShowcase</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -30,10 +32,8 @@
             <!-- お問い合わせフォーム -->
             <section id="contact">
                 <h2>お問い合わせ</h2>
-                <p>お問い合わせは、以下のメールアドレスまでお願いします。</p>
-                <a href="mailto:yourmail@example.com?subject=ポリテク時代に作ったAndroidアプリのお問い合わせ&body=名前：%0D%0Aメールアドレス：%0D%0Aコメント：">
-                    メールでお問い合わせ
-                </a>
+                <p>お問い合わせは、専用のお問い合わせページからお願いします。</p>
+                <a href="contact.html">お問い合わせページへ</a>
             </section>
 
             <!-- ページの先頭に戻るボタン -->
