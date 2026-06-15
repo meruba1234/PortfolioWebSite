@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+    <title>取引先A 追加返品処理 自動化 — SkillShowcase</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <header>
+                <h1>SkillShowcase</h1>
+                <nav>
+                    <ul>
+                        <li><a href="../portfolio.html">ホーム</a></li>
+                        <li><a href="../business-cases.html">業務改善実績</a></li>
+                        <li><a href="../timeline.html">経歴</a></li>
+                        <li><a href="../itskills.html">ITスキル</a></li>
+                        <li><a href="../android-app.html">アプリ紹介</a></li>
+                        <li><a href="../contact.html">お問い合わせ</a></li>
+                    </ul>
+                </nav>
+            </header>
+
+            <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+
+            <section>
+                <h2>取引先A 追加返品処理 自動化</h2>
+                <p>営業事務が毎朝1〜2時間費やしていた手作業を、Web スクレイピングと画面入力代行で完全自動化したケース。</p>
+
+                <div class="case-meta">
+                    <dl>
+                        <dt>業種</dt><dd>水産卸 (取引先A)</dd>
+                        <dt>対象部門</dt><dd>営業事務 (1名 + バックアップ1名)</dd>
+                        <dt>実装期間</dt><dd>約2.5週間</dd>
+                        <dt>本番稼働</dt><dd>2026年6月</dd>
+                        <dt>技術スタック</dt><dd>Python, Playwright, Prefect 3.x, Dr.Sum, kintone API, ChatLuck (社内チャット)</dd>
+                    </dl>
+                </div>
+            </section>
+
+            <section>
+                <h2>背景・課題</h2>
+                <p>取引先A様向けの「追加返品処理」は、店頭在庫の調整に伴う追加発注・返品データを毎朝集約して、社内システム (kintone) に登録する業務です。</p>
+                <p>従来は以下の流れで、営業事務が毎朝1〜2時間費やしていました:</p>
+                <ol>
+                    <li>BI ツール (Dr.Sum) にログインして、納品日条件で Excel をダウンロード</li>
+                    <li>Excel の明細を見て kintone「発注・調整処理」アプリへ手入力 (1件あたり数分)</li>
+                    <li>レコードごとに「追加返品確定【一括変更】」ボタンを押下して、別アプリに展開</li>
+                    <li>処理済み Excel を共有フォルダに移動</li>
+                </ol>
+                <p>件数が多い日 (30〜80件) は2時間以上かかり、入力ミス・確定漏れのリスクもありました。<strong>朝の繁忙時間と重なる</strong>ため、心理的負担も大きい状態でした。</p>
+            </section>
+
+            <section>
+                <h2>実装した解決策</h2>
+                <p>Prefect 3.x で日次ジョブを構築し、以下の処理を完全自動化しました。</p>
+                <ul class="skill-list">
+                    <li><strong>BI ツールからの自動ダウンロード</strong> — Playwright で BI ツールにログインし、納品日条件を自動設定して CSV を取得</li>
+                    <li><strong>kintone への画面入力代行</strong> — kintone API ではなく、あえて画面入力を Playwright で代行 (業務側の検算ロジックが画面側にあるため)</li>
+                    <li><strong>金額検証 + 諸口振替フォールバック</strong> — 金額不一致時は自動的に諸口扱いに振替</li>
+                    <li><strong>結果通知</strong> — 成功・失敗・スキップを社内チャット (ChatLuck) に整形して通知</li>
+                    <li><strong>当日以外スキップ機能</strong> — Phase 2 の確定処理は当日分のみ対象にして、過去データの誤確定を防ぐ</li>
+                </ul>
+                <p>当初は kintone API 経由で実装していましたが、業務側の検算ロジック (店舗コード正規化、振替コード判定など) が画面側に埋め込まれていたため、後に Playwright での画面入力代行に一本化しました。</p>
+            </section>
+
+            <section>
+                <h2>効果</h2>
+                <table class="impact-table">
+                    <thead>
+                        <tr><th>項目</th><th>Before</th><th>After</th><th>削減量</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1回あたりの作業時間</td>
+                            <td>1〜2時間/日</td>
+                            <td>5分/日 (結果確認のみ)</td>
+                            <td>約1.5時間/日</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td>月あたり残業時間</td>
+                            <td>30時間/月</td>
+                            <td>0時間/月</td>
+                            <td><strong>30時間/月</strong></td>
+                        </tr>
+                        <tr class="highlight">
+                            <td>残業代換算 (時給×1.25)</td>
+                            <td>約6.75万円/月</td>
+                            <td>0円</td>
+                            <td><strong>約 81万円/年</strong></td>
+                        </tr>
+                        <tr>
+                            <td>入力ミス・確定漏れ</td>
+                            <td>月1〜2件発生</td>
+                            <td>ゼロ件</td>
+                            <td>品質向上</td>
+                        </tr>
+                        <tr>
+                            <td>担当者休業時の業務継続</td>
+                            <td>業務停止</td>
+                            <td>自動継続</td>
+                            <td>属人化解消</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2>投資対効果 (ROI)</h2>
+                <ul class="skill-list">
+                    <li>投入工数: 約85時間 (設計10h + 実装50h + テスト15h + ドキュメント10h)</li>
+                    <li>投入工数の人件費換算: 約17万円</li>
+                    <li>初年度削減効果: 約81万円</li>
+                    <li><strong>初年度 ROI: 約4.8倍</strong></li>
+                    <li>2年目以降: ほぼ丸ごと利益 (保守は年数時間程度)</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>業務側からの声</h2>
+                <blockquote style="background:#f0f9ff;border-left:4px solid var(--primary);padding:12px 18px;margin:16px 0;border-radius:4px;">
+                    「朝のバタバタが無くなって本当に助かっています。もうこの自動化なしでは仕事できないです。」
+                    <br><span style="font-size:0.9em;color:var(--muted);">— 営業事務担当 (本番稼働1ヶ月後)</span>
+                </blockquote>
+            </section>
+
+            <section>
+                <h2>得られた学び</h2>
+                <ul>
+                    <li><strong>API より画面入力代行が正解の場面がある</strong> — 業務側の検算ロジックが画面側に埋め込まれていると、API ではバイパスしてしまう。Playwright で実際にユーザー操作と同じ経路を通すほうが安全</li>
+                    <li><strong>金額検証 + フォールバック設計の重要性</strong> — 自動化は「絶対に正しい」が前提だと脆い。検証 NG 時のリカバリ経路を設計時から組み込むべき</li>
+                    <li><strong>当日ガード機能</strong> — 過去データの再処理事故を防ぐため、処理対象日のホワイトリスト化が有効</li>
+                </ul>
+            </section>
+
+            <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+
+            <a href="#" class="to-top" style="display: none;">↑ Top</a>
+
+            <footer>
+                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+    <script>
+        function toggleToTopButton() {
+            var toTopButton = document.querySelector('.to-top');
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                toTopButton.style.display = "block";
+            } else {
+                toTopButton.style.display = "none";
+            }
+        }
+        window.onscroll = function() { toggleToTopButton(); };
+        document.querySelector('.to-top').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+    </script>
+</body>
+</html>

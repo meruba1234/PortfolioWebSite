@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+    <title>業務改善ケーススタディ — SkillShowcase</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <header>
+                <h1>SkillShowcase</h1>
+                <nav>
+                    <ul>
+                        <li><a href="portfolio.html">ホーム</a></li>
+                        <li><a href="business-cases.html">業務改善実績</a></li>
+                        <li><a href="timeline.html">経歴</a></li>
+                        <li><a href="itskills.html">ITスキル</a></li>
+                        <li><a href="android-app.html">アプリ紹介</a></li>
+                        <li><a href="contact.html">お問い合わせ</a></li>
+                    </ul>
+                </nav>
+            </header>
+
+            <section>
+                <h2>業務改善ケーススタディ</h2>
+                <p>実際の業務改善案件を、社内固有情報を伏せた上で紹介しています。
+                各ケースは「何を解決したか」「どんな技術を使ったか」「どれだけの効果があったか」を整理しています。</p>
+                <p class="note" style="background:#f0f9ff;border-left:3px solid var(--primary);padding:10px 14px;border-radius:4px;">
+                    <strong>※ 取引先名・社員氏名・社内サーバー名等はすべて匿名化しています。</strong>
+                    実数値（時間・金額）は実績ベースで記載しています。
+                </p>
+            </section>
+
+            <section>
+                <h2>掲載ケース一覧</h2>
+                <div class="case-grid">
+
+                    <div class="case-card">
+                        <span class="case-tag">業務自動化</span>
+                        <span class="case-tag">Playwright</span>
+                        <span class="case-tag">kintone</span>
+                        <h3>取引先A 追加返品処理 自動化</h3>
+                        <p>営業事務が毎朝行っていた Dr.Sum レポートの取り込みと kintone への手入力を、画面入力代行で完全自動化。</p>
+                        <div class="case-impact">
+                            残業 月30時間 → 0時間<br>
+                            年間キャッシュアウト削減 約81万円
+                        </div>
+                        <p><a href="business-cases/case-01.html">詳細を見る →</a></p>
+                    </div>
+
+                    <div class="case-card">
+                        <span class="case-tag">VBA</span>
+                        <span class="case-tag">SQL Server</span>
+                        <span class="case-tag">アルゴリズム</span>
+                        <h3>経理 入金消込処理 Excel VBA</h3>
+                        <p>経理担当者が日々行っていた入金消込作業を、SQL Server 連携の Excel VBA で自動化。4,095通りの部分和探索で整合チェックも自動化。</p>
+                        <div class="case-impact">
+                            残業 月20〜40時間削減<br>
+                            手入力ミス ゼロ化
+                        </div>
+                        <p><a href="business-cases/case-02.html">詳細を見る →</a></p>
+                    </div>
+
+                    <div class="case-card">
+                        <span class="case-tag">統計分析</span>
+                        <span class="case-tag">SQLite</span>
+                        <span class="case-tag">Flask + Vue</span>
+                        <h3>異常受注検知システム</h3>
+                        <p>受注データから異常値を自動検知し、ブラウザでカード型 UI で確認できるシステムをゼロから1週間で構築。watchdog 二段構えで運用安定化。</p>
+                        <div class="case-impact">
+                            異常受注の早期発見<br>
+                            機会損失・誤発注リスク削減
+                        </div>
+                        <p><a href="business-cases/case-03.html">詳細を見る →</a></p>
+                    </div>
+
+                </div>
+            </section>
+
+            <section>
+                <h2>方法論</h2>
+                <p>業務改善は「やりたいこと」だけでなく、「効果の数値化」と「継続的な記録」が重要だと考えています。
+                改善のたびに以下のフォーマットで記録を残し、月次・年次で集計しています。</p>
+                <ul class="skill-list">
+                    <li><strong>5W1H で業務を整理</strong> — 何を、誰が、いつ、どこで、なぜ、どうやって</li>
+                    <li><strong>自己申告 vs 実測の2段階記録</strong> — ヒアリングのズレを認識する</li>
+                    <li><strong>残業換算で効果を可視化</strong> — 時給×1.25倍で経営インパクトを示す</li>
+                    <li><strong>投入工数と ROI を計算</strong> — 自分の時間も会社のコスト</li>
+                    <li><strong>半年後・1年後の声を時系列で取得</strong> — 「使い続けてもらえている」の確認</li>
+                </ul>
+            </section>
+
+            <a href="#" class="to-top" style="display: none;">↑ Top</a>
+
+            <footer>
+                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+    <script>
+        function toggleToTopButton() {
+            var toTopButton = document.querySelector('.to-top');
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                toTopButton.style.display = "block";
+            } else {
+                toTopButton.style.display = "none";
+            }
+        }
+        window.onscroll = function() { toggleToTopButton(); };
+        document.querySelector('.to-top').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+    </script>
+</body>
+</html>

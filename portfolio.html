@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>ポートフォリオWEBサイト SkillShowcase</title>
+    <title>SkillShowcase — 業務改善ポートフォリオ</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,55 +15,94 @@
                 <h1>SkillShowcase</h1>
                 <nav>
                     <ul>
-                        <li><a href="portfolio.html">ホーム</a></li> <!-- ホームページに戻るリンク -->
+                        <li><a href="portfolio.html">ホーム</a></li>
+                        <li><a href="business-cases.html">業務改善実績</a></li>
+                        <li><a href="timeline.html">経歴</a></li>
                         <li><a href="itskills.html">ITスキル</a></li>
-                        <li><a href="android-app.html">アプリ紹介</a></li> <!-- アプリを紹介するページへのリンク -->
-                        <li><a href="contact.html">お問い合わせ</a></li> <!-- お問い合わせページへのリンク -->
+                        <li><a href="android-app.html">アプリ紹介</a></li>
+                        <li><a href="contact.html">お問い合わせ</a></li>
                     </ul>
                 </nav>
             </header>
 
-            <!-- アプリ紹介ページへのリンクを含むセクション -->
+            <section class="hero">
+                <h2>社内SE × 業務自動化 × AI 活用</h2>
+                <p class="lead">
+                    社内システム基盤の構築から日々の業務改善まで、一人で設計・実装・運用しています。
+                    AI を業務に組み込んで開発スピードを上げ、現場の「面倒くさい」を「自動」に変えるのが好きです。
+                </p>
+            </section>
+
             <section>
-                <h2>アプリ紹介</h2>
-                <p>QuizVoyageというクイズアプリを作りました。アプリの詳細については、<a href="android-app.html">こちら</a>でご確認いただけます。</p>
+                <h2>主な実績ハイライト</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">19+</div>
+                        <div class="stat-label">稼働中の自動化ジョブ</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">90〜140h</div>
+                        <div class="stat-label">月間削減時間 (社内合計)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">200万円+</div>
+                        <div class="stat-label">年間人件費削減効果 (推計)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">432</div>
+                        <div class="stat-label">直近9ヶ月の総コミット数</div>
+                    </div>
+                </div>
             </section>
 
-            <!-- お問い合わせフォーム -->
-            <section id="contact">
-                <h2>お問い合わせ</h2>
-                <p>お問い合わせは、専用のお問い合わせページからお願いします。</p>
-                <a href="contact.html">お問い合わせページへ</a>
+            <section>
+                <h2>業務改善ケーススタディ</h2>
+                <p>実際に取り組んだ業務改善案件を匿名化してご紹介しています。残業削減・コスト削減・属人化解消などの効果を、数字で記録しています。</p>
+                <p><a href="business-cases.html" class="cta-link">ケーススタディ一覧を見る →</a></p>
             </section>
 
-            <!-- ページの先頭に戻るボタン -->
+            <section>
+                <h2>得意分野</h2>
+                <ul class="skill-list">
+                    <li><strong>業務自動化基盤の構築</strong> — Prefect / Docker / Python による社内ジョブ自動化</li>
+                    <li><strong>既存システムの解読・移植</strong> — VB.NET / VBA のリバースエンジニアリングと Python 化</li>
+                    <li><strong>業務システム連携</strong> — Web スクレイピング (Playwright) / API (kintone等) / DB (SQL Server)</li>
+                    <li><strong>AI を活用した開発</strong> — Claude を業務開発の基盤に組み込み、ドキュメント・コードレビューを自動化</li>
+                    <li><strong>Excel + VBA + DB 連携</strong> — 現場が使い慣れた Excel をフロントに、裏で DB と連動</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>その他のページ</h2>
+                <ul class="page-list">
+                    <li><a href="timeline.html">経歴のあゆみ</a> — ポリテクセンターでの学習からから現在まで</li>
+                    <li><a href="itskills.html">ITスキル一覧</a> — 学習・実務で扱った技術</li>
+                    <li><a href="android-app.html">QuizVoyage</a> — 学習時に作成した Android アプリ</li>
+                    <li><a href="contact.html">お問い合わせ</a></li>
+                </ul>
+            </section>
+
             <a href="#" class="to-top" style="display: none;">↑ Top</a>
 
             <footer>
-                <p>© 2024 SkillShowcase. All rights reserved.</p>
+                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
             </footer>
         </div>
     </div>
     <script>
-        // スクロールに応じてボタンを表示または非表示にする関数
         function toggleToTopButton() {
             var toTopButton = document.querySelector('.to-top');
-            
             if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
                 toTopButton.style.display = "block";
             } else {
                 toTopButton.style.display = "none";
             }
         }
-        
-        // スクロールイベントに関数をバインド
         window.onscroll = function() { toggleToTopButton(); };
-        
-        // ボタンクリックでページの先頭にスムーススクロールする
         document.querySelector('.to-top').addEventListener('click', function(e) {
             e.preventDefault();
             window.scrollTo({top: 0, behavior: 'smooth'});
         });
-    </script>    
+    </script>
 </body>
 </html>
