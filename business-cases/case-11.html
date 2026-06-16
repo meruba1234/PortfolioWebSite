@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+    <title>商品不足管理サイト — SkillShowcase</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <header>
+                <h1>SkillShowcase</h1>
+                <nav>
+                    <ul>
+                        <li><a href="../portfolio.html">ホーム</a></li>
+                        <li><a href="../business-cases.html">業務改善実績</a></li>
+                        <li><a href="../timeline.html">経歴</a></li>
+                        <li><a href="../itskills.html">ITスキル</a></li>
+                        <li><a href="../android-app.html">アプリ紹介</a></li>
+                        <li><a href="../contact.html">お問い合わせ</a></li>
+                    </ul>
+                </nav>
+            </header>
+
+            <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+
+            <section>
+                <h2>商品不足管理サイト</h2>
+                <p>欠品予兆のある商品を Web で一覧化し、商品部・営業部が状況をリアルタイムに共有・対応できるシステム。差分10分毎 + 全件毎日6:05の自動更新で常に最新状態。</p>
+
+                <div class="case-meta">
+                    <dl>
+                        <dt>業種</dt><dd>卸売業 (社内 Web ツール)</dd>
+                        <dt>対象部門</dt><dd>商品部・営業部</dd>
+                        <dt>実装期間</dt><dd>初版〜本番稼働 約2〜3週間</dd>
+                        <dt>本番稼働</dt><dd>2026年5〜6月 (商品部レビュー中)</dd>
+                        <dt>技術スタック</dt><dd>Python (Flask), Vue.js (Alpine.js), SQLite, SQL Server (販管DB), Prefect 3.x, nginx</dd>
+                    </dl>
+                </div>
+            </section>
+
+            <section>
+                <h2>背景・課題</h2>
+                <p>卸売業では、在庫不足が発生すると以下のような問題が起こります:</p>
+                <ul>
+                    <li>取引先への納品遅延 → 信頼失墜</li>
+                    <li>営業の機会損失</li>
+                    <li>仕入れタイミング遅れによる調達コスト増</li>
+                </ul>
+                <p>従来は、商品部が販管システムを叩いて個別に確認していましたが:</p>
+                <ul>
+                    <li>確認する人によって判断基準がバラバラ</li>
+                    <li>営業部と情報共有のタイムラグ</li>
+                    <li>「見落とし」による在庫切れ事故</li>
+                </ul>
+                <p>これを「全社で同じ情報をリアルタイムに見る」仕組みが必要でした。</p>
+            </section>
+
+            <section>
+                <h2>実装した解決策</h2>
+
+                <h3>1. 差分検出 + 全件再構築のハイブリッド更新</h3>
+                <ul class="skill-list">
+                    <li><strong>差分 10分毎</strong>: 直近変動を検出して即時反映 (Prefect Flow)</li>
+                    <li><strong>全件再構築 毎日 6:05</strong>: 整合性を保つために日次でフルスキャン</li>
+                    <li>差分処理だけだと過去データの逆転を見逃すため、両方を組み合わせ</li>
+                </ul>
+
+                <h3>2. SQLite による軽量永続化</h3>
+                <ul class="skill-list">
+                    <li>販管 DB (SQL Server) は重い & 共有資源</li>
+                    <li>SQLite に集計結果を永続化することで、Web 表示は SQLite を叩くだけで完結</li>
+                    <li>SQLite ファイル本体・バックアップはストレージ整理の対象外として保護</li>
+                </ul>
+
+                <h3>3. Web UI (Vue.js + Alpine.js)</h3>
+                <ul class="skill-list">
+                    <li>商品ごとの状態をカード型 UI で表示</li>
+                    <li>担当者・状態 (注文中・確認中・欠品確定など) でフィルタリング</li>
+                    <li>商品部が状態更新 → 営業部も同じ画面で見られる</li>
+                </ul>
+
+                <h3>4. 配信基盤</h3>
+                <ul class="skill-list">
+                    <li>235 サーバー上で nginx + Flask</li>
+                    <li>URL は <code>/shortage/</code> で社内 8082 ポートから提供</li>
+                    <li>運用ジョブ (diff / full) は Prefect Deployment 登録済み</li>
+                </ul>
+
+                <h3>5. 異常検知システムへの波及</h3>
+                <ul class="skill-list">
+                    <li>本基盤の「在庫・滞留在庫」情報を、異常受注検知システム側でも表示する計画</li>
+                    <li>滞留フラグは販管側にないため、shortage_master_sync 基盤に乗せる設計を選択</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>効果</h2>
+                <table class="impact-table">
+                    <thead>
+                        <tr><th>項目</th><th>Before</th><th>After</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>不足商品の確認</td>
+                            <td>各自が販管を叩いて手作業</td>
+                            <td>Web 1 画面で全件一覧</td>
+                        </tr>
+                        <tr>
+                            <td>商品部と営業部の情報共有</td>
+                            <td>口頭・メール・タイムラグあり</td>
+                            <td>同じ画面でリアルタイム共有</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td>欠品見落としリスク</td>
+                            <td>頻発</td>
+                            <td><strong>大幅削減 (10分毎更新)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>判断基準の統一</td>
+                            <td>担当者依存</td>
+                            <td>システムで一元化</td>
+                        </tr>
+                        <tr>
+                            <td>営業の機会損失</td>
+                            <td>気づいた時には在庫切れ</td>
+                            <td>早期把握 → 早期対応</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2>得られた学び</h2>
+                <ul>
+                    <li><strong>差分処理だけでは不完全</strong> — 差分検出はリアルタイム性が高いが、過去データの遡及変更を見逃す。日次フルスキャンとの組み合わせで整合性を保証</li>
+                    <li><strong>重い DB と軽い表示用 DB の分離</strong> — 販管 SQL Server (重い) を Web 表示で叩くのは危険。SQLite に集計済みデータを置くことで Web 応答速度と DB 負荷の両立</li>
+                    <li><strong>カード型 UI の柔軟性</strong> — 状態が多次元 (商品 × 担当者 × ステータス) なデータは、テーブルよりカード型のほうが業務担当者に好まれる</li>
+                    <li><strong>業務側のレビューを挟む</strong> — 本番稼働しても「商品部レビュー」フェーズを経て、業務側の声を反映してから完成扱いにする慎重さが信頼を生む</li>
+                </ul>
+            </section>
+
+            <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+
+            <a href="#" class="to-top" style="display: none;">↑ Top</a>
+
+            <footer>
+                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+    <script>
+        function toggleToTopButton() {
+            var toTopButton = document.querySelector('.to-top');
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                toTopButton.style.display = "block";
+            } else {
+                toTopButton.style.display = "none";
+            }
+        }
+        window.onscroll = function() { toggleToTopButton(); };
+        document.querySelector('.to-top').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+    </script>
+</body>
+</html>

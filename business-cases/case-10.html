@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+    <title>業務自動化基盤の構築 (Linux + Docker + Prefect) — SkillShowcase</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <header>
+                <h1>SkillShowcase</h1>
+                <nav>
+                    <ul>
+                        <li><a href="../portfolio.html">ホーム</a></li>
+                        <li><a href="../business-cases.html">業務改善実績</a></li>
+                        <li><a href="../timeline.html">経歴</a></li>
+                        <li><a href="../itskills.html">ITスキル</a></li>
+                        <li><a href="../android-app.html">アプリ紹介</a></li>
+                        <li><a href="../contact.html">お問い合わせ</a></li>
+                    </ul>
+                </nav>
+            </header>
+
+            <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+
+            <section>
+                <h2>業務自動化基盤の構築 (Linux + Docker + Prefect)</h2>
+                <p>個別ジョブを動かすだけのツール群ではなく、社内業務全体を支える「司令塔」としての自動化基盤を、Ubuntu Linux + Docker Compose + Prefect 3.x で構築。</p>
+
+                <div class="case-meta">
+                    <dl>
+                        <dt>業種</dt><dd>卸売業 (社内インフラ)</dd>
+                        <dt>対象</dt><dd>全部門の業務システムを連携</dd>
+                        <dt>実装期間</dt><dd>計画〜本番稼働まで 約3ヶ月</dd>
+                        <dt>本番稼働</dt><dd>2026年4月 (89↔235 二重稼働 → 順次 Cutover)</dd>
+                        <dt>技術スタック</dt><dd>Ubuntu Linux, Docker Compose, Prefect 3.x, nginx, Python 3.x, SSH 鍵認証</dd>
+                    </dl>
+                </div>
+            </section>
+
+            <section>
+                <h2>背景・課題</h2>
+                <p>当初、業務自動化ジョブはすべて Windows ローカル PC (89) のタスクスケジューラで動いていました。</p>
+                <p>これには深刻な問題がありました:</p>
+                <ul>
+                    <li><strong>単一障害点</strong>: 89 PC が止まれば全業務が止まる</li>
+                    <li><strong>連鎖故障</strong>: FAX 複合機エラー → wscript 溜まり → 異常検知も失敗 → PC 再起動が必要</li>
+                    <li><strong>監視不能</strong>: ジョブの状態を集中的に見られない</li>
+                    <li><strong>属人化</strong>: 設定がローカル PC に分散</li>
+                    <li><strong>拡張性なし</strong>: 新規ジョブを追加すると PC が重くなる</li>
+                </ul>
+                <p>これらを解決するため、独立した Linux サーバー上に集中型の自動化基盤を構築することにしました。</p>
+            </section>
+
+            <section>
+                <h2>実装した解決策</h2>
+
+                <h3>1. 235 サーバー構築 (Ubuntu + Docker Compose)</h3>
+                <ul class="skill-list">
+                    <li>Ubuntu Linux サーバー (192.168.161.235) を新規構築</li>
+                    <li>Docker Compose で Prefect Server + Prefect Worker + Flask Server + nginx を一括管理</li>
+                    <li>batch-files (共通ライブラリリポジトリ) を automation-worker / fax-viewer に bind mount</li>
+                    <li>共有フォルダ (UNC) は smbprotocol で透過アクセス</li>
+                </ul>
+
+                <h3>2. Prefect 3.x による集中管理</h3>
+                <ul class="skill-list">
+                    <li>全ジョブを Prefect Flow として登録</li>
+                    <li>ジョブ間の依存関係・スケジュール・リトライを一元管理</li>
+                    <li>Web UI で実行状況・ログ・エラーを集中確認</li>
+                    <li>Secret Block / Variable で認証情報を安全管理 (.env 廃止計画)</li>
+                </ul>
+
+                <h3>3. 監視・障害対応 (watchdog 二段構え)</h3>
+                <ul class="skill-list">
+                    <li><strong>Plan A</strong>: 旧 89 PC 側で stale 15分検知 (ローカルウォッチドッグ)</li>
+                    <li><strong>Plan B</strong>: 235 サーバー側で except 通知 (リモートウォッチドッグ)</li>
+                    <li>どちらかが死んでも、もう一方で検知</li>
+                    <li>ゾンビ run 自動 Cancel の Prefect Automation 2件 (異常検知12分/全flow20分)</li>
+                </ul>
+
+                <h3>4. nginx リバースプロキシ</h3>
+                <ul class="skill-list">
+                    <li>各サービス (Prefect UI / Flask / FAX viewer / 異常検知 UI / 商品不足管理) を 1 つのドメインに集約</li>
+                    <li>BOM なし UTF-8 で設定ファイル管理 (PowerShell の Out-File 罠を回避)</li>
+                </ul>
+
+                <h3>5. 89 → 235 段階移行 (Cutover)</h3>
+                <ul class="skill-list">
+                    <li>二重稼働期間: 89 と 235 両方で動かして結果を比較</li>
+                    <li>SQLite データは完全一致を確認してから切替</li>
+                    <li>Cutover 後、89 のタスクスケジューラを全削除 (2026/5/13)</li>
+                    <li>スタートアップ vbs も Flask 5001/5002 をコメントアウト</li>
+                </ul>
+
+                <h3>6. SSH 鍵認証によるデプロイフロー</h3>
+                <ul class="skill-list">
+                    <li>89 PC git bash から 235 へ SCP / SSH で安全にデプロイ</li>
+                    <li>SSH 鍵の保管場所と PC 移行手順を文書化 (将来の引き継ぎ対応)</li>
+                </ul>
+
+                <h3>7. 設計方針ドキュメントの整備</h3>
+                <ul class="skill-list">
+                    <li>命名規則 (フォルダ英語 snake_case、JOB_NAME / Deployment 名は日本語)</li>
+                    <li>ログ実装指針 (LOG-GUIDE-FINAL-V1 / schema v1.0.0)</li>
+                    <li>クラス設計方針 (1クラス1役割)</li>
+                    <li>Prefectスキル使い分けガイド</li>
+                    <li>ファイルIO方針</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>効果</h2>
+                <table class="impact-table">
+                    <thead>
+                        <tr><th>項目</th><th>Before</th><th>After</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>運用基盤</td>
+                            <td>Windows PC タスクスケジューラ (単一障害点)</td>
+                            <td>Linux サーバー Docker Compose (基盤化)</td>
+                        </tr>
+                        <tr>
+                            <td>ジョブ管理</td>
+                            <td>分散 (各 PC のタスクスケジューラ)</td>
+                            <td>集中 (Prefect Web UI)</td>
+                        </tr>
+                        <tr>
+                            <td>監視</td>
+                            <td>気づかないと分からない</td>
+                            <td>watchdog 二段構え + ChatLuck 通知</td>
+                        </tr>
+                        <tr>
+                            <td>新規ジョブ追加コスト</td>
+                            <td>PC 設定変更が必要</td>
+                            <td>Flow 追加 + Deployment 登録のみ</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td>稼働ジョブ数 (基盤の上で動く)</td>
+                            <td>—</td>
+                            <td><strong>19本以上</strong></td>
+                        </tr>
+                        <tr>
+                            <td>連鎖故障</td>
+                            <td>複合機エラー → 全業務停止リスク</td>
+                            <td>サービス分離で影響範囲を限定</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2>得られた学び</h2>
+                <ul>
+                    <li><strong>「ツール集合」ではなく「基盤」を作る</strong> — 個別ジョブを足し算するだけでなく、共通ライブラリ・命名規則・設計方針を整えることで、19本のジョブが管理可能な規模になる</li>
+                    <li><strong>watchdog 二段構えの威力</strong> — 監視する仕組み自体が止まる可能性を想定し、独立した2系統で監視する設計が運用安定化の決定打</li>
+                    <li><strong>二重稼働期間の必要性</strong> — Cutover を一発で行うのは危険。両方動かして結果を比較してから切替えるルールを徹底</li>
+                    <li><strong>引き継ぎを前提とした設計</strong> — 自分が辞めても次の人が続けられるよう、SSH 鍵保管場所・サーバー構成・デプロイ手順を文書化</li>
+                    <li><strong>ゾンビ run 自動 Cancel</strong> — Prefect Automation で 12分・20分の閾値を設定。サーバー側で自動 Cancel することで、後続ジョブのブロックを防ぐ</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>備考: この基盤の上に乗っているジョブ</h2>
+                <p>本基盤の上で、以下のような業務改善ジョブが稼働しています:</p>
+                <ul>
+                    <li>取引先A 追加返品処理 (Playwright 画面入力代行)</li>
+                    <li>取引先B EDI発注処理 (販管DB連携)</li>
+                    <li>EOS受注 マルチサプライヤー 4社</li>
+                    <li>BIツール × 出荷目安レポート</li>
+                    <li>月次請求金額内訳レポート</li>
+                    <li>FAX 履歴ビュアー</li>
+                    <li>異常受注検知システム</li>
+                    <li>商品不足管理サイト</li>
+                    <li>セキュリティチェック</li>
+                    <li>... 他多数</li>
+                </ul>
+                <p>つまり本基盤は、上記すべての業務改善案件を支える「司令塔」として機能しています。</p>
+            </section>
+
+            <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+
+            <a href="#" class="to-top" style="display: none;">↑ Top</a>
+
+            <footer>
+                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+    <script>
+        function toggleToTopButton() {
+            var toTopButton = document.querySelector('.to-top');
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                toTopButton.style.display = "block";
+            } else {
+                toTopButton.style.display = "none";
+            }
+        }
+        window.onscroll = function() { toggleToTopButton(); };
+        document.querySelector('.to-top').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+    </script>
+</body>
+</html>

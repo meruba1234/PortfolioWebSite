@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+    <title>BI ツール × 出荷目安レポート — SkillShowcase</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <header>
+                <h1>SkillShowcase</h1>
+                <nav>
+                    <ul>
+                        <li><a href="../portfolio.html">ホーム</a></li>
+                        <li><a href="../business-cases.html">業務改善実績</a></li>
+                        <li><a href="../timeline.html">経歴</a></li>
+                        <li><a href="../itskills.html">ITスキル</a></li>
+                        <li><a href="../android-app.html">アプリ紹介</a></li>
+                        <li><a href="../contact.html">お問い合わせ</a></li>
+                    </ul>
+                </nav>
+            </header>
+
+            <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+
+            <section>
+                <h2>BIツール × 仕入先出荷目安 突合レポート</h2>
+                <p>主要仕入先からの「出荷目安数」エクセルと、社内BI (Dr.Sum) の前年同月売上を突き合わせ、課別ケース売上ベースで「どれだけ出荷可能か / 不足か」を判定するレポートを自動生成。</p>
+
+                <div class="case-meta">
+                    <dl>
+                        <dt>業種</dt><dd>包装資材卸 (仕入先: 主要メーカー)</dd>
+                        <dt>対象部門</dt><dd>営業部 (上長・課別)</dd>
+                        <dt>実装期間</dt><dd>約3週間</dd>
+                        <dt>本番稼働</dt><dd>2026年5月〜</dd>
+                        <dt>技術スタック</dt><dd>Python, Playwright (Dr.Sum 自動DL), openpyxl, SQL Server, Prefect 3.x</dd>
+                    </dl>
+                </div>
+            </section>
+
+            <section>
+                <h2>背景・課題</h2>
+                <p>毎月初、仕入先メーカーから「出荷目安数」のエクセルが届きます。
+                これを社内の前年同月売上 (Dr.Sum BIツール) と突き合わせて、各課がどれだけ出荷可能か/不足かを確認するレポートが必要でした。</p>
+
+                <p>従来の課題:</p>
+                <ul>
+                    <li>Dr.Sum から3社分 (グループ会社含む) の前年同月売上を手動ダウンロード</li>
+                    <li>福助エクセルと商品コード突合 (グループ会社で商品コード体系が異なる)</li>
+                    <li>商品マスタから換算値3 (ケース入数) を取得して、本数換算からケース換算に変換</li>
+                    <li>上記すべてを Excel で手作業 → 月初の貴重な営業時間を消費</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>実装した解決策</h2>
+
+                <h3>1. BIツール自動ダウンロード</h3>
+                <ul class="skill-list">
+                    <li>Playwright で Dr.Sum にログインし、レポート画面で条件を設定して Excel ダウンロード</li>
+                    <li>日付入力フォーマット (YYYYMMDD 区切りなし) の罠を検証 → 仕様書化</li>
+                    <li>3社分 (本社・グループA・グループB) を一気に取得</li>
+                </ul>
+
+                <h3>2. 商品コード変換 (互換コード機構)</h3>
+                <ul class="skill-list">
+                    <li>仕入先側の商品コードと自社側の商品コードを変換する「互換コード」シートを別途管理</li>
+                    <li>変換テーブルを外部ファイル (xlsx) で持ち、業務側がメンテできる設計</li>
+                    <li>グループ会社間の商品コード体系の違いも吸収</li>
+                </ul>
+
+                <h3>3. ケース換算</h3>
+                <ul class="skill-list">
+                    <li>DB の M_商品 から換算値3 (ケース入数) を取得</li>
+                    <li>本数ベースの売上をケース換算に変換して比較</li>
+                </ul>
+
+                <h3>4. 出力ファイルの工夫</h3>
+                <ul class="skill-list">
+                    <li>ファイル名に「N月分」「作成日時」を埋め込み (上書き事故防止)</li>
+                    <li>archive フォルダに処理済みエクセルを移動 (重複検出は内容ハッシュ)</li>
+                    <li>妥当性チェック結果を ChatLuck に WARNING/ERROR 通知</li>
+                </ul>
+
+                <h3>5. アーキテクチャ</h3>
+                <ul class="skill-list">
+                    <li>Flow 層 (Prefect 統合 + subprocess 起動) と Script 層 (業務ロジック) を別リポジトリに分離</li>
+                    <li>Script 層は他ジョブ (大三西澤商店レポート等) でも再利用できる設計</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>効果</h2>
+                <table class="impact-table">
+                    <thead>
+                        <tr><th>項目</th><th>Before</th><th>After</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>BIツールから売上 DL</td>
+                            <td>3社 × 手動 ≒ 30分</td>
+                            <td>自動 (約2分)</td>
+                        </tr>
+                        <tr>
+                            <td>商品コード突合</td>
+                            <td>手作業で照合</td>
+                            <td>互換コード自動変換</td>
+                        </tr>
+                        <tr>
+                            <td>ケース換算</td>
+                            <td>手計算で電卓</td>
+                            <td>DB 自動取得</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td>合計レポート作成時間</td>
+                            <td>約2時間/月</td>
+                            <td><strong>約5分/月 (DL→確認のみ)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>計算ミスリスク</td>
+                            <td>手計算でミス発生しうる</td>
+                            <td>自動化でゼロ</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2>得られた学び</h2>
+                <ul>
+                    <li><strong>業務側がメンテできる箇所を残す設計</strong> — 互換コードシートを外部ファイル化することで、商品体系の変更を業務側で対応可能に</li>
+                    <li><strong>Flow 層と Script 層の責務分離</strong> — Prefect 統合部分と業務ロジックを分けることで、他ジョブでの再利用と単体テスト容易性を確保</li>
+                    <li><strong>BIツールの入力フォーマット罠を仕様書化</strong> — YYYYMMDD 区切りなし、というハマりポイントは将来の自分のために必ず文書化</li>
+                </ul>
+            </section>
+
+            <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+
+            <a href="#" class="to-top" style="display: none;">↑ Top</a>
+
+            <footer>
+                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+    <script>
+        function toggleToTopButton() {
+            var toTopButton = document.querySelector('.to-top');
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                toTopButton.style.display = "block";
+            } else {
+                toTopButton.style.display = "none";
+            }
+        }
+        window.onscroll = function() { toggleToTopButton(); };
+        document.querySelector('.to-top').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+    </script>
+</body>
+</html>

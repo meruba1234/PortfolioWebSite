@@ -26,7 +26,7 @@
 
             <section>
                 <h2>業務改善ケーススタディ</h2>
-                <p>実際の業務改善案件を、社内固有情報を伏せた上で紹介しています。
+                <p>実際に取り組んだ業務改善案件を、社内固有情報を伏せた上で紹介しています。
                 各ケースは「何を解決したか」「どんな技術を使ったか」「どれだけの効果があったか」を整理しています。</p>
                 <p class="note" style="background:#f0f9ff;border-left:3px solid var(--primary);padding:10px 14px;border-radius:4px;">
                     <strong>※ 取引先名・社員氏名・社内サーバー名等はすべて匿名化しています。</strong>
@@ -35,7 +35,28 @@
             </section>
 
             <section>
-                <h2>掲載ケース一覧</h2>
+                <h2>カテゴリ別ケース一覧</h2>
+
+                <h3 style="margin-top:32px;">🏗️ 自動化基盤・インフラ</h3>
+                <div class="case-grid">
+
+                    <div class="case-card">
+                        <span class="case-tag">インフラ</span>
+                        <span class="case-tag">Docker</span>
+                        <span class="case-tag">Prefect</span>
+                        <span class="case-tag">Linux</span>
+                        <h3>業務自動化基盤の構築</h3>
+                        <p>Ubuntu Linux + Docker Compose + Prefect 3.x で「司令塔」となる自動化基盤を構築。19本以上のジョブを集中管理。</p>
+                        <div class="case-impact">
+                            19本のジョブの基盤<br>
+                            watchdog 二段構えで稼働率向上
+                        </div>
+                        <p><a href="business-cases/case-10.html">詳細を見る →</a></p>
+                    </div>
+
+                </div>
+
+                <h3 style="margin-top:32px;">⚡ 業務自動化 (営業事務・経理)</h3>
                 <div class="case-grid">
 
                     <div class="case-card">
@@ -64,6 +85,122 @@
                         <p><a href="business-cases/case-02.html">詳細を見る →</a></p>
                     </div>
 
+                </div>
+
+                <h3 style="margin-top:32px;">🤝 取引先連携 (EDI / EOS / Web)</h3>
+                <div class="case-grid">
+
+                    <div class="case-card">
+                        <span class="case-tag">EDI</span>
+                        <span class="case-tag">DB連携</span>
+                        <span class="case-tag">CSV</span>
+                        <h3>取引先B EDI発注処理 自動化</h3>
+                        <p>大手外食チェーンの EDI 発注 CSV を、販売管理 DB と連携して単価計算・金額算出して返送。prefetch 化で 7.3倍高速化。</p>
+                        <div class="case-impact">
+                            処理時間 40秒 → 5.6秒<br>
+                            計算ミスリスク ゼロ化
+                        </div>
+                        <p><a href="business-cases/case-04.html">詳細を見る →</a></p>
+                    </div>
+
+                    <div class="case-card">
+                        <span class="case-tag">Playwright</span>
+                        <span class="case-tag">EOS</span>
+                        <span class="case-tag">マルチサイト</span>
+                        <h3>EOS受注 マルチサプライヤー自動化</h3>
+                        <p>業態の違う 4 サプライヤーサイトから EOS 受注 CSV を自動取得 + 出荷確定アップロード。各サイトを Playwright で個別に攻略。</p>
+                        <div class="case-impact">
+                            月間削減時間 約15時間<br>
+                            時間制約からの解放
+                        </div>
+                        <p><a href="business-cases/case-08.html">詳細を見る →</a></p>
+                    </div>
+
+                </div>
+
+                <h3 style="margin-top:32px;">📊 レポート・集計</h3>
+                <div class="case-grid">
+
+                    <div class="case-card">
+                        <span class="case-tag">BI連携</span>
+                        <span class="case-tag">Dr.Sum</span>
+                        <span class="case-tag">Excel</span>
+                        <h3>BIツール × 出荷目安レポート</h3>
+                        <p>仕入先からの出荷目安エクセルと社内BI (Dr.Sum) の前年同月売上を突き合わせ、課別ケース売上ベースで判定するレポートを自動生成。</p>
+                        <div class="case-impact">
+                            月次レポート 2時間 → 5分<br>
+                            計算ミス ゼロ化
+                        </div>
+                        <p><a href="business-cases/case-05.html">詳細を見る →</a></p>
+                    </div>
+
+                    <div class="case-card">
+                        <span class="case-tag">Excel</span>
+                        <span class="case-tag">PDF</span>
+                        <span class="case-tag">SQL Server</span>
+                        <h3>取引先C 月次請求金額内訳</h3>
+                        <p>4 得意先の月次請求金額を A4 縦 1 ページの Excel + PDF で自動生成。営業事務が bat ダブルクリック + 期間入力するだけ。</p>
+                        <div class="case-impact">
+                            作成時間 1時間 → 2分<br>
+                            集計ミスリスク ゼロ化
+                        </div>
+                        <p><a href="business-cases/case-06.html">詳細を見る →</a></p>
+                    </div>
+
+                </div>
+
+                <h3 style="margin-top:32px;">🔄 既存システム解読・移植</h3>
+                <div class="case-grid">
+
+                    <div class="case-card">
+                        <span class="case-tag">VB.NET 解析</span>
+                        <span class="case-tag">Python 移植</span>
+                        <span class="case-tag">SQL Server</span>
+                        <h3>売上CSV取込システム (VB.NET → Python 移植)</h3>
+                        <p>5,489行に及ぶ VB.NET 業務ロジックを Python に完全互換実装。ベンダー依存から完全脱却。</p>
+                        <div class="case-impact">
+                            ベンダー外注費 数十万円〜<br>
+                            完全脱却で内製化
+                        </div>
+                        <p><a href="business-cases/case-07.html">詳細を見る →</a></p>
+                    </div>
+
+                </div>
+
+                <h3 style="margin-top:32px;">🖥️ 社内 Web ツール</h3>
+                <div class="case-grid">
+
+                    <div class="case-card">
+                        <span class="case-tag">Flask</span>
+                        <span class="case-tag">Playwright</span>
+                        <span class="case-tag">FAX</span>
+                        <h3>FAX 履歴ビュアー (Web ツール)</h3>
+                        <p>複合機の FAX 履歴を社内 Web から検索・閲覧できるツール。トラブル時の確認時間を10分→5秒に短縮。</p>
+                        <div class="case-impact">
+                            FAX 確認 10分 → 5秒<br>
+                            アドレス帳一元管理
+                        </div>
+                        <p><a href="business-cases/case-09.html">詳細を見る →</a></p>
+                    </div>
+
+                    <div class="case-card">
+                        <span class="case-tag">Vue.js</span>
+                        <span class="case-tag">SQLite</span>
+                        <span class="case-tag">Flask</span>
+                        <h3>商品不足管理サイト</h3>
+                        <p>欠品予兆のある商品を Web で一覧化し、商品部・営業部がリアルタイム共有・対応できるシステム。差分10分毎 + 全件日次の更新。</p>
+                        <div class="case-impact">
+                            欠品見落としリスク 大幅削減<br>
+                            部門間の情報共有を自動化
+                        </div>
+                        <p><a href="business-cases/case-11.html">詳細を見る →</a></p>
+                    </div>
+
+                </div>
+
+                <h3 style="margin-top:32px;">🚨 異常検知・分析</h3>
+                <div class="case-grid">
+
                     <div class="case-card">
                         <span class="case-tag">統計分析</span>
                         <span class="case-tag">SQLite</span>
@@ -78,6 +215,20 @@
                     </div>
 
                 </div>
+
+            </section>
+
+            <section>
+                <h2>これら以外のケース</h2>
+                <p>上記の他にも、以下のような業務改善案件を担当しています:</p>
+                <ul class="skill-list">
+                    <li><strong>ダイイチアリオ店日別実績</strong> — POS データ自動取得 + Excel テンプレ + desknetsNeo メール下書き</li>
+                    <li><strong>HELP 欠品データ出力</strong> — 販管 YEDI51 F3 キー機能を Python で完全自動化 (毎日 10:30, 14:30)</li>
+                    <li><strong>セキュリティチェック</strong> — サプライチェーン攻撃対策の毎朝自動スキャン</li>
+                    <li><strong>up_search (社内検索)</strong> — 社内ドキュメント横断検索ツール</li>
+                    <li><strong>infomart_uriage_check</strong> — 売上照合・要確認分類ツール</li>
+                </ul>
+                <p style="color: var(--muted); font-size: 0.95em;">※ 順次ケーススタディとして整理予定</p>
             </section>
 
             <section>
