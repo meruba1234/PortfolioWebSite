@@ -1,172 +1,163 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
-    <title>売上CSV取込システム (VB.NET → Python 移植) — SkillShowcase</title>
-    <link rel="stylesheet" href="../style.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<title>売上CSV取込システム (VB.NET → Python 移植) — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+    
+
+    <meta content="website" property="og:type"/>
+    
+
+    <meta content="売上CSV取込システム (VB.NET → Python 移植) — SkillShowcase" property="og:title"/>
+    
+
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    
+
+    <meta content="SkillShowcase" property="og:site_name"/>
+    
+
+    <meta content="summary" name="twitter:card"/>
+    
+
+    <meta content="#0b84d8" name="theme-color"/>
+    <script defer="" src="../main.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="main-content">
-            <header>
-                <h1>SkillShowcase</h1>
-                <nav>
-                    <ul>
-                        <li><a href="../portfolio.html">ホーム</a></li>
-                        <li><a href="../business-cases.html">業務改善実績</a></li>
-                        <li><a href="../timeline.html">経歴</a></li>
-                        <li><a href="../itskills.html">ITスキル</a></li>
-                        <li><a href="../android-app.html">アプリ紹介</a></li>
-                        <li><a href="../contact.html">お問い合わせ</a></li>
-                    </ul>
-                </nav>
-            </header>
-
-            <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <section>
-                <h2>売上CSV取込システム (VB.NET → Python 移植)</h2>
-                <p>5,489 行に及ぶ販売管理システムの VB.NET 業務ロジックを解読し、Python に移植して Prefect 上で運用。10分間隔ポーリングで自動取り込み。</p>
-
-                <div class="case-meta">
-                    <dl>
-                        <dt>業種</dt><dd>卸売業 (社内基幹システム)</dd>
-                        <dt>対象部門</dt><dd>営業事務・受注処理担当</dd>
-                        <dt>実装期間</dt><dd>VB.NET 解析 + Python 移植 = 数ヶ月 (継続中)</dd>
-                        <dt>本番稼働</dt><dd>2026年5月 (235サーバー移行 Phase 1-2 完了)</dd>
-                        <dt>技術スタック</dt><dd>Python (csv_to_db_v3.py, 5,489行), VB.NET 解析 (frmMain.vb), SQL Server (pyodbc), Prefect 3.x</dd>
-                    </dl>
-                </div>
-            </section>
-
-            <section>
-                <h2>背景・課題</h2>
-                <p>受注 CSV を販売管理 DB に登録する処理は、長年「振分け表エクセル (VBA)」と「frmMain.vb」の2つのシステムに依存していました。</p>
-                <ul>
-                    <li>VBA: 5,000行超のマクロで CSV を整形</li>
-                    <li>frmMain.vb: 整形後のデータを DB に登録 (金額計算ロジック含む)</li>
-                </ul>
-                <p>このまま運用を続けると:</p>
-                <ul>
-                    <li>VB.NET / VBA を読める人が社内にいなくなる → ベンダー依存</li>
-                    <li>業務ルール変更の度に高額な改修費用</li>
-                    <li>古いOSのサポート切れリスク</li>
-                </ul>
-                <p>これを Python に移植して、社内で自由に改修できる体制を構築する必要がありました。</p>
-            </section>
-
-            <section>
-                <h2>実装した解決策</h2>
-
-                <h3>1. VB.NET ソースコードの解読 (リバースエンジニアリング)</h3>
-                <ul class="skill-list">
-                    <li>frmMain.vb (約5,000行) を逐次解読</li>
-                    <li>商品マスタ・得意先マスタ・単価マスタ・EOS 換算・税率の参照ロジックを整理</li>
-                    <li>金額計算式 (単価 × 数量、内税・外税、軽減税率対応など) を抽出</li>
-                    <li>業務ルール (得意先別の特殊処理、商品別のEOS振り分け) を仕様書化</li>
-                </ul>
-
-                <h3>2. Python 互換実装 (csv_to_db_v3.py)</h3>
-                <ul class="skill-list">
-                    <li>5,489 行の Python コードで VB.NET ロジックを完全互換実装</li>
-                    <li>ReadonlyDb + Repository パターンで読み取りと書き込みを分離</li>
-                    <li>得意先 / 商品 / 単価 / EOS換算 / 税率 を Repository クラスで管理</li>
-                    <li>frmMain.vb の金額計算ロジックを Python に移植 (税抜・税込・軽減税率・割戻すべて対応)</li>
-                </ul>
-
-                <h3>3. Prefect への組み込み</h3>
-                <ul class="skill-list">
-                    <li>10分間隔で処理前フォルダをポーリング</li>
-                    <li>多重起動防止 (concurrency_limit=1)</li>
-                    <li>共有フォルダ (UNC) からの読み取りを batch-files/common/shared_fs.py で透過化</li>
-                </ul>
-
-                <h3>4. 段階移行 (89 → 235 サーバー)</h3>
-                <ul class="skill-list">
-                    <li>Phase 1: ローカル Windows PC で動作確認</li>
-                    <li>Phase 2: 235 Linux サーバーで試験運用 (195行 → 42伝票の試験データで3回連続 Completed 確認)</li>
-                    <li>Phase 3: 旧コードからの完全移行 (継続中)</li>
-                </ul>
-
-                <h3>5. 設定の Variable / Secret 化</h3>
-                <ul class="skill-list">
-                    <li>DB 接続情報を Prefect Secret Block で管理</li>
-                    <li>サーバー / DB 名を Prefect Variable で管理</li>
-                    <li>共有 .env からの脱却計画</li>
-                </ul>
-            </section>
-
-            <section>
-                <h2>効果</h2>
-                <table class="impact-table">
-                    <thead>
-                        <tr><th>項目</th><th>Before</th><th>After</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>業務ロジック改修</td>
-                            <td>ベンダー依頼 (数十万円〜)</td>
-                            <td>社内で完結</td>
-                        </tr>
-                        <tr>
-                            <td>処理基盤</td>
-                            <td>Windows PC 上の VB.NET / VBA</td>
-                            <td>Linux Docker 上の Python (Prefect)</td>
-                        </tr>
-                        <tr>
-                            <td>保守性</td>
-                            <td>古い OS とコードに依存</td>
-                            <td>モダンスタック (Python 3.x)</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td>ベンダー依存度</td>
-                            <td>改修の度に高額見積もり</td>
-                            <td><strong>完全脱却</strong></td>
-                        </tr>
-                        <tr>
-                            <td>処理速度</td>
-                            <td>遅い (VB.NET の同期処理)</td>
-                            <td>高速化済み (pyodbc + 一括処理)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <section>
-                <h2>得られた学び</h2>
-                <ul>
-                    <li><strong>VB.NET / VBA の解読力は希少価値</strong> — レガシーシステムを読める人が減っている今、解読してモダン言語に移植できる人材は社内外で重宝される</li>
-                    <li><strong>段階移行の厳格な検証</strong> — 195行 → 42伝票のサンプルで3回連続 Completed を確認してから本番投入。「動いた、終わり」ではなく「同じ結果が出ることを証明」</li>
-                    <li><strong>Repository パターンでドメインを整理</strong> — 商品 / 得意先 / 単価 / EOS / 税率を Repository クラスで分離することで、他ジョブからも再利用可能に</li>
-                    <li><strong>業務ロジックの仕様書化</strong> — 5,489行の Python コードを書くだけでなく、業務ルールを別途文書化することで、将来の改修者を支援</li>
-                </ul>
-            </section>
-
-            <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <a href="#" class="to-top" style="display: none;">↑ Top</a>
-
-            <footer>
-                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
-            </footer>
-        </div>
-    </div>
-    <script>
-        function toggleToTopButton() {
-            var toTopButton = document.querySelector('.to-top');
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                toTopButton.style.display = "block";
-            } else {
-                toTopButton.style.display = "none";
-            }
-        }
-        window.onscroll = function() { toggleToTopButton(); };
-        document.querySelector('.to-top').addEventListener('click', function(e) {
-            e.preventDefault();
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        });
-    </script>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<section>
+<h2>売上CSV取込システム (VB.NET → Python 移植)</h2>
+<p>5,489 行に及ぶ販売管理システムの VB.NET 業務ロジックを解読し、Python に移植して Prefect 上で運用。10分間隔ポーリングで自動取り込み。</p>
+<div class="case-meta">
+<dl>
+<dt>業種</dt><dd>卸売業 (社内基幹システム)</dd>
+<dt>対象部門</dt><dd>営業事務・受注処理担当</dd>
+<dt>実装期間</dt><dd>VB.NET 解析 + Python 移植 = 数ヶ月 (継続中)</dd>
+<dt>本番稼働</dt><dd>2026年5月 (235サーバー移行 Phase 1-2 完了)</dd>
+<dt>技術スタック</dt><dd>Python (csv_to_db_v3.py, 5,489行), VB.NET 解析 (frmMain.vb), SQL Server (pyodbc), Prefect 3.x</dd>
+</dl>
+</div>
+</section>
+<section>
+<h2>背景・課題</h2>
+<p>受注 CSV を販売管理 DB に登録する処理は、長年「振分け表エクセル (VBA)」と「frmMain.vb」の2つのシステムに依存していました。</p>
+<ul>
+<li>VBA: 5,000行超のマクロで CSV を整形</li>
+<li>frmMain.vb: 整形後のデータを DB に登録 (金額計算ロジック含む)</li>
+</ul>
+<p>このまま運用を続けると:</p>
+<ul>
+<li>VB.NET / VBA を読める人が社内にいなくなる → ベンダー依存</li>
+<li>業務ルール変更の度に高額な改修費用</li>
+<li>古いOSのサポート切れリスク</li>
+</ul>
+<p>これを Python に移植して、社内で自由に改修できる体制を構築する必要がありました。</p>
+</section>
+<section>
+<h2>実装した解決策</h2>
+<h3>1. VB.NET ソースコードの解読 (リバースエンジニアリング)</h3>
+<ul class="skill-list">
+<li>frmMain.vb (約5,000行) を逐次解読</li>
+<li>商品マスタ・得意先マスタ・単価マスタ・EOS 換算・税率の参照ロジックを整理</li>
+<li>金額計算式 (単価 × 数量、内税・外税、軽減税率対応など) を抽出</li>
+<li>業務ルール (得意先別の特殊処理、商品別のEOS振り分け) を仕様書化</li>
+</ul>
+<h3>2. Python 互換実装 (csv_to_db_v3.py)</h3>
+<ul class="skill-list">
+<li>5,489 行の Python コードで VB.NET ロジックを完全互換実装</li>
+<li>ReadonlyDb + Repository パターンで読み取りと書き込みを分離</li>
+<li>得意先 / 商品 / 単価 / EOS換算 / 税率 を Repository クラスで管理</li>
+<li>frmMain.vb の金額計算ロジックを Python に移植 (税抜・税込・軽減税率・割戻すべて対応)</li>
+</ul>
+<h3>3. Prefect への組み込み</h3>
+<ul class="skill-list">
+<li>10分間隔で処理前フォルダをポーリング</li>
+<li>多重起動防止 (concurrency_limit=1)</li>
+<li>共有フォルダ (UNC) からの読み取りを batch-files/common/shared_fs.py で透過化</li>
+</ul>
+<h3>4. 段階移行 (89 → 235 サーバー)</h3>
+<ul class="skill-list">
+<li>Phase 1: ローカル Windows PC で動作確認</li>
+<li>Phase 2: 235 Linux サーバーで試験運用 (195行 → 42伝票の試験データで3回連続 Completed 確認)</li>
+<li>Phase 3: 旧コードからの完全移行 (継続中)</li>
+</ul>
+<h3>5. 設定の Variable / Secret 化</h3>
+<ul class="skill-list">
+<li>DB 接続情報を Prefect Secret Block で管理</li>
+<li>サーバー / DB 名を Prefect Variable で管理</li>
+<li>共有 .env からの脱却計画</li>
+</ul>
+</section>
+<section>
+<h2>効果</h2>
+<table class="impact-table">
+<thead>
+<tr><th>項目</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>業務ロジック改修</td>
+<td>ベンダー依頼 (数十万円〜)</td>
+<td>社内で完結</td>
+</tr>
+<tr>
+<td>処理基盤</td>
+<td>Windows PC 上の VB.NET / VBA</td>
+<td>Linux Docker 上の Python (Prefect)</td>
+</tr>
+<tr>
+<td>保守性</td>
+<td>古い OS とコードに依存</td>
+<td>モダンスタック (Python 3.x)</td>
+</tr>
+<tr class="highlight">
+<td>ベンダー依存度</td>
+<td>改修の度に高額見積もり</td>
+<td><strong>完全脱却</strong></td>
+</tr>
+<tr>
+<td>処理速度</td>
+<td>遅い (VB.NET の同期処理)</td>
+<td>高速化済み (pyodbc + 一括処理)</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2>得られた学び</h2>
+<ul>
+<li><strong>VB.NET / VBA の解読力は希少価値</strong> — レガシーシステムを読める人が減っている今、解読してモダン言語に移植できる人材は社内外で重宝される</li>
+<li><strong>段階移行の厳格な検証</strong> — 195行 → 42伝票のサンプルで3回連続 Completed を確認してから本番投入。「動いた、終わり」ではなく「同じ結果が出ることを証明」</li>
+<li><strong>Repository パターンでドメインを整理</strong> — 商品 / 得意先 / 単価 / EOS / 税率を Repository クラスで分離することで、他ジョブからも再利用可能に</li>
+<li><strong>業務ロジックの仕様書化</strong> — 5,489行の Python コードを書くだけでなく、業務ルールを別途文書化することで、将来の改修者を支援</li>
+</ul>
+</section>
+<p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
 </body>
 </html>

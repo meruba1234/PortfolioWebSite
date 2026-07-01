@@ -1,164 +1,155 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
-    <title>EOS受注 マルチサプライヤー自動化 — SkillShowcase</title>
-    <link rel="stylesheet" href="../style.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<title>EOS受注 マルチサプライヤー自動化 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+    
+
+    <meta content="website" property="og:type"/>
+    
+
+    <meta content="EOS受注 マルチサプライヤー自動化 — SkillShowcase" property="og:title"/>
+    
+
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    
+
+    <meta content="SkillShowcase" property="og:site_name"/>
+    
+
+    <meta content="summary" name="twitter:card"/>
+    
+
+    <meta content="#0b84d8" name="theme-color"/>
+    <script defer="" src="../main.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="main-content">
-            <header>
-                <h1>SkillShowcase</h1>
-                <nav>
-                    <ul>
-                        <li><a href="../portfolio.html">ホーム</a></li>
-                        <li><a href="../business-cases.html">業務改善実績</a></li>
-                        <li><a href="../timeline.html">経歴</a></li>
-                        <li><a href="../itskills.html">ITスキル</a></li>
-                        <li><a href="../android-app.html">アプリ紹介</a></li>
-                        <li><a href="../contact.html">お問い合わせ</a></li>
-                    </ul>
-                </nav>
-            </header>
-
-            <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <section>
-                <h2>EOS受注 マルチサプライヤー自動化 (4社一括)</h2>
-                <p>業態の違う 4 サプライヤーサイトから EOS 受注 CSV を自動取得 + 出荷確定 CSV を自動アップロード。各サイトごとに異なる Web UI を Playwright で個別に攻略。</p>
-
-                <div class="case-meta">
-                    <dl>
-                        <dt>業種</dt><dd>外食・小売・水産など複数業態</dd>
-                        <dt>対象部門</dt><dd>営業事務</dd>
-                        <dt>実装期間</dt><dd>各サイトあたり 1〜2週間 × 4社</dd>
-                        <dt>本番稼働</dt><dd>2026年4月〜6月 (順次)</dd>
-                        <dt>技術スタック</dt><dd>Python, Playwright, smbprotocol (Linux→SMB共有), Prefect 3.x, ChatLuck通知</dd>
-                    </dl>
-                </div>
-            </section>
-
-            <section>
-                <h2>背景・課題</h2>
-                <p>大手取引先各社は EOS (電子発注システム) を採用しており、毎週決まった曜日に受注確認・出荷確定のための Web 画面操作が必要でした。</p>
-                <ul>
-                    <li>取引先 D (水産): 月水金 09:30 にサプライヤーサイトから受注 CSV ダウンロード</li>
-                    <li>取引先 E (グループA): 月金 11:00 に EOS データを取り込み、DB の M_EOS* マスタに登録</li>
-                    <li>取引先 F + 取引先 G (グループ会社、ベーカリー系): 火曜 09:00 にグループ一括配信の受注 CSV をダウンロード、火曜 11:30 に出荷確定 CSV アップロード</li>
-                </ul>
-                <p>すべて手動運用だと、担当者が時間に縛られ、休めない・ミスると取引先トラブルというストレスフルな状況でした。</p>
-            </section>
-
-            <section>
-                <h2>実装した解決策</h2>
-
-                <h3>1. 各サイトを個別に Playwright で攻略</h3>
-                <p>各サプライヤーサイトは UI も認証もまったく異なるため、それぞれ個別に Playwright スクリプトを設計。</p>
-                <ul class="skill-list">
-                    <li><strong>取引先 D (水産)</strong> — シンプルなログイン後、月水金 09:30 のスケジュール実行</li>
-                    <li><strong>取引先 E (グループA)</strong> — 既存ツール (MasterMainte.exe) の代替として、DB の M_EOS業者変換 / M_EOS商品変換 / M_EOS数量換算 に自動追加登録</li>
-                    <li><strong>取引先 F + G</strong> — グループ一括配信のため 1ジョブで両社分一度に取得 (受注 + 出荷確定の2 Flow に分離)</li>
-                </ul>
-
-                <h3>2. 共通の検出ロジック</h3>
-                <ul class="skill-list">
-                    <li>Setcomb (検索条件自動入力) 完了を expect_response で待機</li>
-                    <li>0件判定を CSV 出力ボタンの enabled 状態で判定 (最大20秒ポーリング)</li>
-                    <li>重複検知時は order/CSV を smbclient で自動削除 + Prefect リトライ無効化</li>
-                </ul>
-
-                <h3>3. Linux サーバーからの UNC アクセス</h3>
-                <ul class="skill-list">
-                    <li>smbprotocol で UNC 共有フォルダへ直接アクセス</li>
-                    <li>UNC パスは Prefect Variable で管理 (forward slash 形式)</li>
-                </ul>
-
-                <h3>4. 出荷確定処理 (アップロード系)</h3>
-                <ul class="skill-list">
-                    <li>codegen 自動生成だった dialog.dismiss() が Cancel 扱いになる罠を発見・修正</li>
-                    <li>確認 dialog は accept(OK) に変更</li>
-                    <li>取込実行後の待機を 8秒に延長して安定化</li>
-                </ul>
-
-                <h3>5. 通知設計</h3>
-                <ul class="skill-list">
-                    <li>成功・失敗・重複検知をすべて ChatLuck に整形通知</li>
-                    <li>失敗時の WARNING は件数のみ通知 (詳細は Prefect UI で確認)</li>
-                </ul>
-            </section>
-
-            <section>
-                <h2>効果</h2>
-                <table class="impact-table">
-                    <thead>
-                        <tr><th>項目</th><th>Before</th><th>After</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>担当者のサイト操作時間</td>
-                            <td>4社 × 15〜30分 × 週2〜3回</td>
-                            <td>ゼロ (確認のみ)</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td>月間削減時間</td>
-                            <td>—</td>
-                            <td><strong>約15時間/月</strong></td>
-                        </tr>
-                        <tr>
-                            <td>時間制約</td>
-                            <td>決まった時間に必ず PC 前にいる必要</td>
-                            <td>スケジュール実行で解放</td>
-                        </tr>
-                        <tr>
-                            <td>担当者休暇時の業務継続</td>
-                            <td>引き継ぎ必須・ミスリスク</td>
-                            <td>自動継続</td>
-                        </tr>
-                        <tr>
-                            <td>取引先トラブルリスク</td>
-                            <td>処理漏れ・遅延あり</td>
-                            <td>スケジュール厳守で大幅削減</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <section>
-                <h2>得られた学び</h2>
-                <ul>
-                    <li><strong>Web 自動化は UI 仕様の罠との闘い</strong> — Playwright codegen で自動生成したコードが正解とは限らない。dialog.dismiss が Cancel 扱いになるなど、運用してから初めてわかる罠がある</li>
-                    <li><strong>サイトごとに最適な待機戦略</strong> — sleep 固定、expect_response、ボタン enabled ポーリングなど、サイト特性に応じて使い分ける</li>
-                    <li><strong>Linux からの UNC アクセスは smbprotocol が決定打</strong> — smbclient 直叩きより安定する</li>
-                    <li><strong>EOS 名人 (既存ツール) を残しつつ Prefect で前処理</strong> — 既存運用を尊重した上で、その前段だけ自動化することで業務側の混乱を最小化</li>
-                </ul>
-            </section>
-
-            <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <a href="#" class="to-top" style="display: none;">↑ Top</a>
-
-            <footer>
-                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
-            </footer>
-        </div>
-    </div>
-    <script>
-        function toggleToTopButton() {
-            var toTopButton = document.querySelector('.to-top');
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                toTopButton.style.display = "block";
-            } else {
-                toTopButton.style.display = "none";
-            }
-        }
-        window.onscroll = function() { toggleToTopButton(); };
-        document.querySelector('.to-top').addEventListener('click', function(e) {
-            e.preventDefault();
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        });
-    </script>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<section>
+<h2>EOS受注 マルチサプライヤー自動化 (4社一括)</h2>
+<p>業態の違う 4 サプライヤーサイトから EOS 受注 CSV を自動取得 + 出荷確定 CSV を自動アップロード。各サイトごとに異なる Web UI を Playwright で個別に攻略。</p>
+<div class="case-meta">
+<dl>
+<dt>業種</dt><dd>外食・小売・水産など複数業態</dd>
+<dt>対象部門</dt><dd>営業事務</dd>
+<dt>実装期間</dt><dd>各サイトあたり 1〜2週間 × 4社</dd>
+<dt>本番稼働</dt><dd>2026年4月〜6月 (順次)</dd>
+<dt>技術スタック</dt><dd>Python, Playwright, smbprotocol (Linux→SMB共有), Prefect 3.x, ChatLuck通知</dd>
+</dl>
+</div>
+</section>
+<section>
+<h2>背景・課題</h2>
+<p>大手取引先各社は EOS (電子発注システム) を採用しており、毎週決まった曜日に受注確認・出荷確定のための Web 画面操作が必要でした。</p>
+<ul>
+<li>取引先 D (水産): 月水金 09:30 にサプライヤーサイトから受注 CSV ダウンロード</li>
+<li>取引先 E (グループA): 月金 11:00 に EOS データを取り込み、DB の M_EOS* マスタに登録</li>
+<li>取引先 F + 取引先 G (グループ会社、ベーカリー系): 火曜 09:00 にグループ一括配信の受注 CSV をダウンロード、火曜 11:30 に出荷確定 CSV アップロード</li>
+</ul>
+<p>すべて手動運用だと、担当者が時間に縛られ、休めない・ミスると取引先トラブルというストレスフルな状況でした。</p>
+</section>
+<section>
+<h2>実装した解決策</h2>
+<h3>1. 各サイトを個別に Playwright で攻略</h3>
+<p>各サプライヤーサイトは UI も認証もまったく異なるため、それぞれ個別に Playwright スクリプトを設計。</p>
+<ul class="skill-list">
+<li><strong>取引先 D (水産)</strong> — シンプルなログイン後、月水金 09:30 のスケジュール実行</li>
+<li><strong>取引先 E (グループA)</strong> — 既存ツール (MasterMainte.exe) の代替として、DB の M_EOS業者変換 / M_EOS商品変換 / M_EOS数量換算 に自動追加登録</li>
+<li><strong>取引先 F + G</strong> — グループ一括配信のため 1ジョブで両社分一度に取得 (受注 + 出荷確定の2 Flow に分離)</li>
+</ul>
+<h3>2. 共通の検出ロジック</h3>
+<ul class="skill-list">
+<li>Setcomb (検索条件自動入力) 完了を expect_response で待機</li>
+<li>0件判定を CSV 出力ボタンの enabled 状態で判定 (最大20秒ポーリング)</li>
+<li>重複検知時は order/CSV を smbclient で自動削除 + Prefect リトライ無効化</li>
+</ul>
+<h3>3. Linux サーバーからの UNC アクセス</h3>
+<ul class="skill-list">
+<li>smbprotocol で UNC 共有フォルダへ直接アクセス</li>
+<li>UNC パスは Prefect Variable で管理 (forward slash 形式)</li>
+</ul>
+<h3>4. 出荷確定処理 (アップロード系)</h3>
+<ul class="skill-list">
+<li>codegen 自動生成だった dialog.dismiss() が Cancel 扱いになる罠を発見・修正</li>
+<li>確認 dialog は accept(OK) に変更</li>
+<li>取込実行後の待機を 8秒に延長して安定化</li>
+</ul>
+<h3>5. 通知設計</h3>
+<ul class="skill-list">
+<li>成功・失敗・重複検知をすべて ChatLuck に整形通知</li>
+<li>失敗時の WARNING は件数のみ通知 (詳細は Prefect UI で確認)</li>
+</ul>
+</section>
+<section>
+<h2>効果</h2>
+<table class="impact-table">
+<thead>
+<tr><th>項目</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>担当者のサイト操作時間</td>
+<td>4社 × 15〜30分 × 週2〜3回</td>
+<td>ゼロ (確認のみ)</td>
+</tr>
+<tr class="highlight">
+<td>月間削減時間</td>
+<td>—</td>
+<td><strong>約15時間/月</strong></td>
+</tr>
+<tr>
+<td>時間制約</td>
+<td>決まった時間に必ず PC 前にいる必要</td>
+<td>スケジュール実行で解放</td>
+</tr>
+<tr>
+<td>担当者休暇時の業務継続</td>
+<td>引き継ぎ必須・ミスリスク</td>
+<td>自動継続</td>
+</tr>
+<tr>
+<td>取引先トラブルリスク</td>
+<td>処理漏れ・遅延あり</td>
+<td>スケジュール厳守で大幅削減</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2>得られた学び</h2>
+<ul>
+<li><strong>Web 自動化は UI 仕様の罠との闘い</strong> — Playwright codegen で自動生成したコードが正解とは限らない。dialog.dismiss が Cancel 扱いになるなど、運用してから初めてわかる罠がある</li>
+<li><strong>サイトごとに最適な待機戦略</strong> — sleep 固定、expect_response、ボタン enabled ポーリングなど、サイト特性に応じて使い分ける</li>
+<li><strong>Linux からの UNC アクセスは smbprotocol が決定打</strong> — smbclient 直叩きより安定する</li>
+<li><strong>EOS 名人 (既存ツール) を残しつつ Prefect で前処理</strong> — 既存運用を尊重した上で、その前段だけ自動化することで業務側の混乱を最小化</li>
+</ul>
+</section>
+<p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
 </body>
 </html>

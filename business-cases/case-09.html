@@ -1,160 +1,151 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
-    <title>FAX 履歴ビュアー (Web) — SkillShowcase</title>
-    <link rel="stylesheet" href="../style.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<title>FAX 履歴ビュアー (Web) — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+    
+
+    <meta content="website" property="og:type"/>
+    
+
+    <meta content="FAX 履歴ビュアー (Web) — SkillShowcase" property="og:title"/>
+    
+
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    
+
+    <meta content="SkillShowcase" property="og:site_name"/>
+    
+
+    <meta content="summary" name="twitter:card"/>
+    
+
+    <meta content="#0b84d8" name="theme-color"/>
+    <script defer="" src="../main.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="main-content">
-            <header>
-                <h1>SkillShowcase</h1>
-                <nav>
-                    <ul>
-                        <li><a href="../portfolio.html">ホーム</a></li>
-                        <li><a href="../business-cases.html">業務改善実績</a></li>
-                        <li><a href="../timeline.html">経歴</a></li>
-                        <li><a href="../itskills.html">ITスキル</a></li>
-                        <li><a href="../android-app.html">アプリ紹介</a></li>
-                        <li><a href="../contact.html">お問い合わせ</a></li>
-                    </ul>
-                </nav>
-            </header>
-
-            <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <section>
-                <h2>FAX 履歴ビュアー (Web ツール)</h2>
-                <p>複合機の FAX 履歴を社内 Web から検索・閲覧できるツール。複合機側は直近データしか保持しないため、定期 DL して日付別に蓄積。トラブル時の追跡が一瞬で完了する。</p>
-
-                <div class="case-meta">
-                    <dl>
-                        <dt>業種</dt><dd>卸売業 (社内インフラ)</dd>
-                        <dt>対象部門</dt><dd>全社 (営業・営業事務・情シス)</dd>
-                        <dt>実装期間</dt><dd>初期版 + 89→235 移植 = 数ヶ月</dd>
-                        <dt>本番稼働</dt><dd>2026年4月 (235 サーバー Cutover完了 2026年5月)</dd>
-                        <dt>技術スタック</dt><dd>Python (Flask), Playwright (複合機Web管理), Prefect 3.x, Docker, nginx, タスクスケジューラ (旧)</dd>
-                    </dl>
-                </div>
-            </section>
-
-            <section>
-                <h2>背景・課題</h2>
-                <p>FAX 送信履歴は複合機の Web 管理画面でしか確認できず、直近データしか保持されません。</p>
-                <p>トラブル発生時 (取引先から「FAX 届いてない」と連絡があった等) には、過去の送信状況をすぐ確認したいが:</p>
-                <ul>
-                    <li>複合機にログインしないと見られない</li>
-                    <li>直近データのみ → 過去のトラブル追跡が困難</li>
-                    <li>営業がそれぞれ覚えていない</li>
-                </ul>
-                <p>「過去 FAX を一発で検索したい」というニーズが恒常的にありました。</p>
-            </section>
-
-            <section>
-                <h2>実装した解決策</h2>
-
-                <h3>1. 履歴ジョブ (Prefect 側)</h3>
-                <ul class="skill-list">
-                    <li>タスクスケジューラから 1 分おきに pythonw.exe で起動 (月〜土 7:00〜24:00)</li>
-                    <li>Playwright で複合機 Web 管理画面にログインし、ジョブ履歴 CSV をダウンロード</li>
-                    <li>日付別・カテゴリ別に CSV として共有フォルダに蓄積</li>
-                    <li>前回実行中の場合は IgnoreNew でスキップ</li>
-                </ul>
-
-                <h3>2. Web ビュアー (Flask)</h3>
-                <ul class="skill-list">
-                    <li>蓄積した CSV をブラウザから検索・閲覧</li>
-                    <li>日付指定・送信先指定・キーワード検索</li>
-                    <li>nginx リバースプロキシで社内 URL から提供</li>
-                </ul>
-
-                <h3>3. FAX アドレス帳同期 (関連ジョブ)</h3>
-                <ul class="skill-list">
-                    <li>マスター複合機の宛先表 CSV を定期取得</li>
-                    <li>合体版アドレス帳 abook_merged.csv を生成して共有フォルダに配布</li>
-                    <li>各 PC のプリンタアドレス帳を統一</li>
-                </ul>
-
-                <h3>4. 89 → 235 サーバー Cutover</h3>
-                <ul class="skill-list">
-                    <li>当初は 89 ローカル PC で運用 (タスクスケジューラ + viewer 一体型)</li>
-                    <li>2026年5月、Ubuntu Linux サーバー (235) に Cutover</li>
-                    <li>責務分離: Prefect Flow が CSV 取得・マージ、Flask Server が UI 提供</li>
-                    <li>旧 URL 8080 リダイレクトは 2026/6/1 で廃止</li>
-                </ul>
-
-                <h3>5. UI 改善 (継続中)</h3>
-                <ul class="skill-list">
-                    <li>アドレス帳変更ボタンを直リンク化 (将来計画: ワンクリックで宛先表編集画面まで)</li>
-                </ul>
-            </section>
-
-            <section>
-                <h2>効果</h2>
-                <table class="impact-table">
-                    <thead>
-                        <tr><th>項目</th><th>Before</th><th>After</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>過去 FAX の確認</td>
-                            <td>複合機ログイン必要・直近データのみ</td>
-                            <td>Web ブラウザで全期間検索</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td>FAX トラブル時の確認時間</td>
-                            <td>10〜30分/件</td>
-                            <td><strong>5秒/件</strong></td>
-                        </tr>
-                        <tr>
-                            <td>各 PC のアドレス帳</td>
-                            <td>個別管理・古い宛先が残る</td>
-                            <td>マスター複合機から自動配布</td>
-                        </tr>
-                        <tr>
-                            <td>運用基盤</td>
-                            <td>89 ローカル PC (単一障害点)</td>
-                            <td>235 サーバー Docker (冗長化基盤の上)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <section>
-                <h2>得られた学び</h2>
-                <ul>
-                    <li><strong>「いつでも見られる」は大きな価値</strong> — トラブル時に5秒で確認できる体制は、業務の心理的な安心感を圧倒的に上げる</li>
-                    <li><strong>89→235 Cutover の段階移行</strong> — ローカル PC 運用から Linux サーバーへの移行は、責務分離 + 二重稼働期間 + 旧 URL リダイレクトの3段構えで安全に実施</li>
-                    <li><strong>Web UI と バックエンドの責務分離</strong> — Prefect (バッチ) と Flask (UI) を分離することで、それぞれ独立して進化させられる</li>
-                </ul>
-            </section>
-
-            <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <a href="#" class="to-top" style="display: none;">↑ Top</a>
-
-            <footer>
-                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
-            </footer>
-        </div>
-    </div>
-    <script>
-        function toggleToTopButton() {
-            var toTopButton = document.querySelector('.to-top');
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                toTopButton.style.display = "block";
-            } else {
-                toTopButton.style.display = "none";
-            }
-        }
-        window.onscroll = function() { toggleToTopButton(); };
-        document.querySelector('.to-top').addEventListener('click', function(e) {
-            e.preventDefault();
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        });
-    </script>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<section>
+<h2>FAX 履歴ビュアー (Web ツール)</h2>
+<p>複合機の FAX 履歴を社内 Web から検索・閲覧できるツール。複合機側は直近データしか保持しないため、定期 DL して日付別に蓄積。トラブル時の追跡が一瞬で完了する。</p>
+<div class="case-meta">
+<dl>
+<dt>業種</dt><dd>卸売業 (社内インフラ)</dd>
+<dt>対象部門</dt><dd>全社 (営業・営業事務・情シス)</dd>
+<dt>実装期間</dt><dd>初期版 + 89→235 移植 = 数ヶ月</dd>
+<dt>本番稼働</dt><dd>2026年4月 (235 サーバー Cutover完了 2026年5月)</dd>
+<dt>技術スタック</dt><dd>Python (Flask), Playwright (複合機Web管理), Prefect 3.x, Docker, nginx, タスクスケジューラ (旧)</dd>
+</dl>
+</div>
+</section>
+<section>
+<h2>背景・課題</h2>
+<p>FAX 送信履歴は複合機の Web 管理画面でしか確認できず、直近データしか保持されません。</p>
+<p>トラブル発生時 (取引先から「FAX 届いてない」と連絡があった等) には、過去の送信状況をすぐ確認したいが:</p>
+<ul>
+<li>複合機にログインしないと見られない</li>
+<li>直近データのみ → 過去のトラブル追跡が困難</li>
+<li>営業がそれぞれ覚えていない</li>
+</ul>
+<p>「過去 FAX を一発で検索したい」というニーズが恒常的にありました。</p>
+</section>
+<section>
+<h2>実装した解決策</h2>
+<h3>1. 履歴ジョブ (Prefect 側)</h3>
+<ul class="skill-list">
+<li>タスクスケジューラから 1 分おきに pythonw.exe で起動 (月〜土 7:00〜24:00)</li>
+<li>Playwright で複合機 Web 管理画面にログインし、ジョブ履歴 CSV をダウンロード</li>
+<li>日付別・カテゴリ別に CSV として共有フォルダに蓄積</li>
+<li>前回実行中の場合は IgnoreNew でスキップ</li>
+</ul>
+<h3>2. Web ビュアー (Flask)</h3>
+<ul class="skill-list">
+<li>蓄積した CSV をブラウザから検索・閲覧</li>
+<li>日付指定・送信先指定・キーワード検索</li>
+<li>nginx リバースプロキシで社内 URL から提供</li>
+</ul>
+<h3>3. FAX アドレス帳同期 (関連ジョブ)</h3>
+<ul class="skill-list">
+<li>マスター複合機の宛先表 CSV を定期取得</li>
+<li>合体版アドレス帳 abook_merged.csv を生成して共有フォルダに配布</li>
+<li>各 PC のプリンタアドレス帳を統一</li>
+</ul>
+<h3>4. 89 → 235 サーバー Cutover</h3>
+<ul class="skill-list">
+<li>当初は 89 ローカル PC で運用 (タスクスケジューラ + viewer 一体型)</li>
+<li>2026年5月、Ubuntu Linux サーバー (235) に Cutover</li>
+<li>責務分離: Prefect Flow が CSV 取得・マージ、Flask Server が UI 提供</li>
+<li>旧 URL 8080 リダイレクトは 2026/6/1 で廃止</li>
+</ul>
+<h3>5. UI 改善 (継続中)</h3>
+<ul class="skill-list">
+<li>アドレス帳変更ボタンを直リンク化 (将来計画: ワンクリックで宛先表編集画面まで)</li>
+</ul>
+</section>
+<section>
+<h2>効果</h2>
+<table class="impact-table">
+<thead>
+<tr><th>項目</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>過去 FAX の確認</td>
+<td>複合機ログイン必要・直近データのみ</td>
+<td>Web ブラウザで全期間検索</td>
+</tr>
+<tr class="highlight">
+<td>FAX トラブル時の確認時間</td>
+<td>10〜30分/件</td>
+<td><strong>5秒/件</strong></td>
+</tr>
+<tr>
+<td>各 PC のアドレス帳</td>
+<td>個別管理・古い宛先が残る</td>
+<td>マスター複合機から自動配布</td>
+</tr>
+<tr>
+<td>運用基盤</td>
+<td>89 ローカル PC (単一障害点)</td>
+<td>235 サーバー Docker (冗長化基盤の上)</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2>得られた学び</h2>
+<ul>
+<li><strong>「いつでも見られる」は大きな価値</strong> — トラブル時に5秒で確認できる体制は、業務の心理的な安心感を圧倒的に上げる</li>
+<li><strong>89→235 Cutover の段階移行</strong> — ローカル PC 運用から Linux サーバーへの移行は、責務分離 + 二重稼働期間 + 旧 URL リダイレクトの3段構えで安全に実施</li>
+<li><strong>Web UI と バックエンドの責務分離</strong> — Prefect (バッチ) と Flask (UI) を分離することで、それぞれ独立して進化させられる</li>
+</ul>
+</section>
+<p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
 </body>
 </html>

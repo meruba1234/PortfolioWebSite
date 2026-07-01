@@ -1,167 +1,158 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
-    <title>取引先B EDI発注処理 自動化 — SkillShowcase</title>
-    <link rel="stylesheet" href="../style.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<title>取引先B EDI発注処理 自動化 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+    
+
+    <meta content="website" property="og:type"/>
+    
+
+    <meta content="取引先B EDI発注処理 自動化 — SkillShowcase" property="og:title"/>
+    
+
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    
+
+    <meta content="SkillShowcase" property="og:site_name"/>
+    
+
+    <meta content="summary" name="twitter:card"/>
+    
+
+    <meta content="#0b84d8" name="theme-color"/>
+    <script defer="" src="../main.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="main-content">
-            <header>
-                <h1>SkillShowcase</h1>
-                <nav>
-                    <ul>
-                        <li><a href="../portfolio.html">ホーム</a></li>
-                        <li><a href="../business-cases.html">業務改善実績</a></li>
-                        <li><a href="../timeline.html">経歴</a></li>
-                        <li><a href="../itskills.html">ITスキル</a></li>
-                        <li><a href="../android-app.html">アプリ紹介</a></li>
-                        <li><a href="../contact.html">お問い合わせ</a></li>
-                    </ul>
-                </nav>
-            </header>
-
-            <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <section>
-                <h2>取引先B EDI発注処理 自動化</h2>
-                <p>大手外食チェーン取引先から契約3社経由で送られてくる EDI 発注 CSV (単価・金額未入力) を読み取り、自社販売管理 DB から単価を決定して金額計算し、CSV を返送するジョブ。</p>
-
-                <div class="case-meta">
-                    <dl>
-                        <dt>業種</dt><dd>外食チェーン (取引先B、契約3社経由)</dd>
-                        <dt>対象部門</dt><dd>営業事務 (旧手動運用)</dd>
-                        <dt>実装期間</dt><dd>約2週間</dd>
-                        <dt>本番稼働</dt><dd>2026年6月 (毎週火曜・土曜 10:05前後)</dd>
-                        <dt>技術スタック</dt><dd>Python, Prefect 3.x, SQL Server (pyodbc), Linux, .bat 連携</dd>
-                    </dl>
-                </div>
-            </section>
-
-            <section>
-                <h2>背景・課題</h2>
-                <p>取引先B (大手外食チェーン) は、契約3社の中間業者経由で「単価・金額が空欄の発注 CSV」を週2回 (火・土) 送ってきます。受け手は:</p>
-                <ol>
-                    <li>CSV を受領</li>
-                    <li>各明細について、社内の販売管理 DB から「本体売価 × EOS 換算数量」を計算して単価を決定</li>
-                    <li>単価 × 数量 で金額を計算</li>
-                    <li>CSV に書き戻して返送</li>
-                </ol>
-                <p>これを手動でやると、明細数百行 × 週2回 = 営業事務さんの作業時間として無視できないボリュームでした。
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<section>
+<h2>取引先B EDI発注処理 自動化</h2>
+<p>大手外食チェーン取引先から契約3社経由で送られてくる EDI 発注 CSV (単価・金額未入力) を読み取り、自社販売管理 DB から単価を決定して金額計算し、CSV を返送するジョブ。</p>
+<div class="case-meta">
+<dl>
+<dt>業種</dt><dd>外食チェーン (取引先B、契約3社経由)</dd>
+<dt>対象部門</dt><dd>営業事務 (旧手動運用)</dd>
+<dt>実装期間</dt><dd>約2週間</dd>
+<dt>本番稼働</dt><dd>2026年6月 (毎週火曜・土曜 10:05前後)</dd>
+<dt>技術スタック</dt><dd>Python, Prefect 3.x, SQL Server (pyodbc), Linux, .bat 連携</dd>
+</dl>
+</div>
+</section>
+<section>
+<h2>背景・課題</h2>
+<p>取引先B (大手外食チェーン) は、契約3社の中間業者経由で「単価・金額が空欄の発注 CSV」を週2回 (火・土) 送ってきます。受け手は:</p>
+<ol>
+<li>CSV を受領</li>
+<li>各明細について、社内の販売管理 DB から「本体売価 × EOS 換算数量」を計算して単価を決定</li>
+<li>単価 × 数量 で金額を計算</li>
+<li>CSV に書き戻して返送</li>
+</ol>
+<p>これを手動でやると、明細数百行 × 週2回 = 営業事務さんの作業時間として無視できないボリュームでした。
                 さらに、計算ロジック (本体売価 × EOS換算) が複雑で、ルール変更の度に営業事務さんを教育する負担もありました。</p>
-            </section>
-
-            <section>
-                <h2>実装した解決策</h2>
-
-                <h3>1. 既存システムのロジック移植</h3>
-                <p>販売管理システム (VB.NET) 内の「csv_to_db_v3.py / YNJTM32」の EOS 振り分け正規ルールを解読し、Python で完全互換実装。</p>
-                <ul class="skill-list">
-                    <li>本体売価 × EOS 換算数量 (税区分問わず)</li>
-                    <li>D_売上_D 登録用の内税数量計算 (本ジョブでは数量列を書き換えないため不要、と検証で確認)</li>
-                    <li><strong>書き換えるのは「単価 (列26)」と「金額 (列27)」の2列のみ</strong>。数量列はノータッチ</li>
-                </ul>
-
-                <h3>2. 起動経路の最適化</h3>
-                <ul class="skill-list">
-                    <li>当初は Cron 10分毎ポーリングで設計</li>
-                    <li>実運用で EOS 名人 (社内 EDI 取込ツール) からの .bat 起動経由に一本化</li>
-                    <li>Prefect API を .bat から呼ぶことで、社内オペレーターは EOS 名人を使い続けられる</li>
-                </ul>
-
-                <h3>3. データ整合性と運用安定化</h3>
-                <ul class="skill-list">
-                    <li>厳格モード (1件でも単価未決定があれば全体エラー)</li>
-                    <li>括弧付きファイル ((1)(2)) の自動リネーム + ChatLuck WARNING 通知</li>
-                    <li>失敗 CSV は隔離フォルダに自動退避、inbox/order 分離設計</li>
-                    <li>リトライ無効化 (retries=0) — 中途半端な再試行で Completed に化けるバグを回避</li>
-                </ul>
-
-                <h3>4. 性能最適化</h3>
-                <ul class="skill-list">
-                    <li>prefetch 化により <strong>40.58 秒 → 5.59 秒 (7.3倍高速化)</strong></li>
-                    <li>本番 DB で結果完全一致を検証してから切り替え</li>
-                </ul>
-
-                <h3>5. 認証情報の安全管理</h3>
-                <ul class="skill-list">
-                    <li>共有 .env から Prefect Variable / Secret に統一</li>
-                    <li>実行環境表示も Variable 化</li>
-                </ul>
-            </section>
-
-            <section>
-                <h2>効果</h2>
-                <table class="impact-table">
-                    <thead>
-                        <tr><th>項目</th><th>Before</th><th>After</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>処理時間</td>
-                            <td>営業事務手作業 (数十分〜)</td>
-                            <td>自動 (約 5.6 秒)</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td>処理速度 (最適化後)</td>
-                            <td>40.58 秒 (初版)</td>
-                            <td><strong>5.59 秒 (prefetch化)</strong></td>
-                        </tr>
-                        <tr>
-                            <td>計算ミスリスク</td>
-                            <td>手計算で発生しうる</td>
-                            <td>ゼロ (DB 自動連携)</td>
-                        </tr>
-                        <tr>
-                            <td>オペレーターの教育負担</td>
-                            <td>計算ルール変更の度に再教育</td>
-                            <td>不要 (コード側で吸収)</td>
-                        </tr>
-                        <tr>
-                            <td>受発注処理の信頼性</td>
-                            <td>送信ミス・遅延リスクあり</td>
-                            <td>週2回 (火・土) 確実に処理</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <section>
-                <h2>得られた学び</h2>
-                <ul>
-                    <li><strong>既存システムのソースコードを必ず読む</strong> — 「だいたい同じ計算」では事故る。csv_to_db_v3.py / YNJTM32 と突き合わせて検証することで、誤認していたルールを修正できた</li>
-                    <li><strong>書き換える列を仕様書に明示</strong> — 「数量列はノータッチ、単価・金額のみ書き換え」を仕様書冒頭に明記。後から見直すときに混乱を防ぐ</li>
-                    <li><strong>運用側の慣習を尊重</strong> — EOS 名人 (既存 EDI ツール) を残しつつ、その中から Prefect を呼ぶ設計にしたことで、オペレーターは何も変えずに済む</li>
-                    <li><strong>パフォーマンス改善は実測で判断</strong> — 7.3倍の高速化を「速くなった気がする」ではなく、本番 DB での結果完全一致 + ベンチマークで検証</li>
-                </ul>
-            </section>
-
-            <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <a href="#" class="to-top" style="display: none;">↑ Top</a>
-
-            <footer>
-                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
-            </footer>
-        </div>
-    </div>
-    <script>
-        function toggleToTopButton() {
-            var toTopButton = document.querySelector('.to-top');
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                toTopButton.style.display = "block";
-            } else {
-                toTopButton.style.display = "none";
-            }
-        }
-        window.onscroll = function() { toggleToTopButton(); };
-        document.querySelector('.to-top').addEventListener('click', function(e) {
-            e.preventDefault();
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        });
-    </script>
+</section>
+<section>
+<h2>実装した解決策</h2>
+<h3>1. 既存システムのロジック移植</h3>
+<p>販売管理システム (VB.NET) 内の「csv_to_db_v3.py / YNJTM32」の EOS 振り分け正規ルールを解読し、Python で完全互換実装。</p>
+<ul class="skill-list">
+<li>本体売価 × EOS 換算数量 (税区分問わず)</li>
+<li>D_売上_D 登録用の内税数量計算 (本ジョブでは数量列を書き換えないため不要、と検証で確認)</li>
+<li><strong>書き換えるのは「単価 (列26)」と「金額 (列27)」の2列のみ</strong>。数量列はノータッチ</li>
+</ul>
+<h3>2. 起動経路の最適化</h3>
+<ul class="skill-list">
+<li>当初は Cron 10分毎ポーリングで設計</li>
+<li>実運用で EOS 名人 (社内 EDI 取込ツール) からの .bat 起動経由に一本化</li>
+<li>Prefect API を .bat から呼ぶことで、社内オペレーターは EOS 名人を使い続けられる</li>
+</ul>
+<h3>3. データ整合性と運用安定化</h3>
+<ul class="skill-list">
+<li>厳格モード (1件でも単価未決定があれば全体エラー)</li>
+<li>括弧付きファイル ((1)(2)) の自動リネーム + ChatLuck WARNING 通知</li>
+<li>失敗 CSV は隔離フォルダに自動退避、inbox/order 分離設計</li>
+<li>リトライ無効化 (retries=0) — 中途半端な再試行で Completed に化けるバグを回避</li>
+</ul>
+<h3>4. 性能最適化</h3>
+<ul class="skill-list">
+<li>prefetch 化により <strong>40.58 秒 → 5.59 秒 (7.3倍高速化)</strong></li>
+<li>本番 DB で結果完全一致を検証してから切り替え</li>
+</ul>
+<h3>5. 認証情報の安全管理</h3>
+<ul class="skill-list">
+<li>共有 .env から Prefect Variable / Secret に統一</li>
+<li>実行環境表示も Variable 化</li>
+</ul>
+</section>
+<section>
+<h2>効果</h2>
+<table class="impact-table">
+<thead>
+<tr><th>項目</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>処理時間</td>
+<td>営業事務手作業 (数十分〜)</td>
+<td>自動 (約 5.6 秒)</td>
+</tr>
+<tr class="highlight">
+<td>処理速度 (最適化後)</td>
+<td>40.58 秒 (初版)</td>
+<td><strong>5.59 秒 (prefetch化)</strong></td>
+</tr>
+<tr>
+<td>計算ミスリスク</td>
+<td>手計算で発生しうる</td>
+<td>ゼロ (DB 自動連携)</td>
+</tr>
+<tr>
+<td>オペレーターの教育負担</td>
+<td>計算ルール変更の度に再教育</td>
+<td>不要 (コード側で吸収)</td>
+</tr>
+<tr>
+<td>受発注処理の信頼性</td>
+<td>送信ミス・遅延リスクあり</td>
+<td>週2回 (火・土) 確実に処理</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2>得られた学び</h2>
+<ul>
+<li><strong>既存システムのソースコードを必ず読む</strong> — 「だいたい同じ計算」では事故る。csv_to_db_v3.py / YNJTM32 と突き合わせて検証することで、誤認していたルールを修正できた</li>
+<li><strong>書き換える列を仕様書に明示</strong> — 「数量列はノータッチ、単価・金額のみ書き換え」を仕様書冒頭に明記。後から見直すときに混乱を防ぐ</li>
+<li><strong>運用側の慣習を尊重</strong> — EOS 名人 (既存 EDI ツール) を残しつつ、その中から Prefect を呼ぶ設計にしたことで、オペレーターは何も変えずに済む</li>
+<li><strong>パフォーマンス改善は実測で判断</strong> — 7.3倍の高速化を「速くなった気がする」ではなく、本番 DB での結果完全一致 + ベンチマークで検証</li>
+</ul>
+</section>
+<p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
 </body>
 </html>

@@ -1,169 +1,160 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
-    <title>異常受注検知システム — SkillShowcase</title>
-    <link rel="stylesheet" href="../style.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<title>異常受注検知システム — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+    
+
+    <meta content="website" property="og:type"/>
+    
+
+    <meta content="異常受注検知システム — SkillShowcase" property="og:title"/>
+    
+
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    
+
+    <meta content="SkillShowcase" property="og:site_name"/>
+    
+
+    <meta content="summary" name="twitter:card"/>
+    
+
+    <meta content="#0b84d8" name="theme-color"/>
+    <script defer="" src="../main.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="main-content">
-            <header>
-                <h1>SkillShowcase</h1>
-                <nav>
-                    <ul>
-                        <li><a href="../portfolio.html">ホーム</a></li>
-                        <li><a href="../business-cases.html">業務改善実績</a></li>
-                        <li><a href="../timeline.html">経歴</a></li>
-                        <li><a href="../itskills.html">ITスキル</a></li>
-                        <li><a href="../android-app.html">アプリ紹介</a></li>
-                        <li><a href="../contact.html">お問い合わせ</a></li>
-                    </ul>
-                </nav>
-            </header>
-
-            <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <section>
-                <h2>異常受注検知システム</h2>
-                <p>受注データから異常値を自動検知し、業務担当者がブラウザで確認・対応できるシステム。ゼロから1週間で初期版をリリースし、その後5ヶ月にわたり改良を継続中。</p>
-
-                <div class="case-meta">
-                    <dl>
-                        <dt>業種</dt><dd>卸売業 (社内システム)</dd>
-                        <dt>対象部門</dt><dd>営業部・営業事務部</dd>
-                        <dt>実装期間</dt><dd>初期版: 1週間 / 改良継続: 5ヶ月以上</dd>
-                        <dt>本番稼働</dt><dd>2026年1月 (初版) / 2026年4月 (Linux 移行版)</dd>
-                        <dt>技術スタック</dt><dd>Python, Flask, Vue.js (Alpine.js), SQLite, Docker, Prefect 3.x, 統計分析</dd>
-                    </dl>
-                </div>
-            </section>
-
-            <section>
-                <h2>背景・課題</h2>
-                <p>受注データの中には、まれに「通常の取引量と大きくかけ離れた発注」が含まれます。例えば:</p>
-                <ul>
-                    <li>通常 月1ケースの取引先から、突然 50ケースの注文</li>
-                    <li>新規取引なのに、いきなり大口発注</li>
-                    <li>担当者の入力ミスによる桁違いの数量</li>
-                </ul>
-                <p>これらを放置すると、誤発注による在庫過多、機会損失、取引先トラブルにつながります。一方、すべての受注を人の目で確認するのは非現実的でした。</p>
-                <p>そこで「自動的に異常値を検知して、担当者にアラートを出す」仕組みを構築することにしました。</p>
-            </section>
-
-            <section>
-                <h2>実装した解決策</h2>
-
-                <h3>1. 統計分析による異常検知</h3>
-                <ul class="skill-list">
-                    <li>過去の取引データから、得意先×商品ペアごとの「通常範囲」を統計的に算出</li>
-                    <li>直近平均と比較して、3倍以上の乖離があれば「異常」として検知</li>
-                    <li>新規取引 (履歴ゼロのペア) は「袋入数 × N」を基準値に設定 (Phase 1)、将来は加重中央値方式へ移行予定 (Phase 2)</li>
-                    <li>基準日 (baseline_cutoff) を業務イベント (石油供給ひっ迫前) で区切り、特殊期を除外</li>
-                </ul>
-
-                <h3>2. ブラウザ UI (カード型)</h3>
-                <ul class="skill-list">
-                    <li>Flask + Vue.js (Alpine.js) で軽量な SPA を構築</li>
-                    <li>検知された受注を「カード」として表示、業務担当者がクリックして「確認済み」「対応済み」を記録</li>
-                    <li>確認済みカードは絶対に再修正しない設計 (業務データの一貫性を守る)</li>
-                </ul>
-
-                <h3>3. データ永続化の段階移行</h3>
-                <ul class="skill-list">
-                    <li>初版: Markdown ファイルベース (実装スピード優先)</li>
-                    <li>Phase 1: SQLite 移行 (整合性・検索性向上)</li>
-                    <li>段階移行時、新旧両方で並行計算し、結果が完全一致するまで切り替えない</li>
-                </ul>
-
-                <h3>4. 運用安定化 (watchdog 二段構え)</h3>
-                <ul class="skill-list">
-                    <li><strong>Plan A</strong>: 旧 PC 側で stale 15分検知 → 通知</li>
-                    <li><strong>Plan B</strong>: 新サーバー側で例外発生 → 通知</li>
-                    <li>どちらか一方が動かなくなっても、もう片方で検知できる二重防御</li>
-                    <li>ゾンビ run 自動 Cancel の Prefect Automation も併設</li>
-                </ul>
-
-                <h3>5. 89 ↔ 235 のサーバー移行</h3>
-                <ul class="skill-list">
-                    <li>Windows PC ローカル運用 → Ubuntu Linux サーバー (Docker Compose) へ移行</li>
-                    <li>二重稼働期間を設けて、結果が完全一致することを確認してから Cutover</li>
-                    <li>移行後の 89 側のクリーンアップ (スタートアップ vbs のコメントアウト、タスクスケジューラ削除) まで責任を持って実施</li>
-                </ul>
-            </section>
-
-            <section>
-                <h2>効果</h2>
-                <table class="impact-table">
-                    <thead>
-                        <tr><th>項目</th><th>Before</th><th>After</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>異常受注の発見</td>
-                            <td>後工程で発覚 (出荷後・請求後)</td>
-                            <td>受注直後に自動検知</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td>機会損失リスク</td>
-                            <td>大ロット誤受注で在庫圧迫</td>
-                            <td>事前確認で誤受注を防止</td>
-                        </tr>
-                        <tr>
-                            <td>営業担当者の負担</td>
-                            <td>全受注を目視確認</td>
-                            <td>異常分のみ確認 (大幅削減)</td>
-                        </tr>
-                        <tr>
-                            <td>新規取引の検知</td>
-                            <td>埋もれて気づかない</td>
-                            <td>専用カードで可視化</td>
-                        </tr>
-                        <tr>
-                            <td>運用安定性</td>
-                            <td>(該当なし、新規構築)</td>
-                            <td>watchdog 二段構えで障害検知</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <section>
-                <h2>得られた学び</h2>
-                <ul>
-                    <li><strong>1週間でリリースし、5ヶ月かけて改善</strong> — 初版は完璧でなくていい。早くリリースして現場の反応を見ながら改良するほうが結果的に良いものになる</li>
-                    <li><strong>業務イベントを基準値に組み込む</strong> — 「石油供給ひっ迫前」のような業務側の出来事を統計の基準日にすることで、純粋な統計値より業務実態に合った検知になる</li>
-                    <li><strong>段階移行時の並行検証</strong> — 新旧両方を動かして結果が完全一致するまで切り替えないルールにすることで、移行時の事故をゼロにできる</li>
-                    <li><strong>watchdog の二段構え</strong> — 「監視する仕組み自体が止まる」リスクを想定し、独立した2系統で監視することで信頼性を確保</li>
-                    <li><strong>確認済みデータは触らない</strong> — 業務データの一貫性を守るため、「自動処理が確認済みカードを再修正しない」原則を厳守</li>
-                </ul>
-            </section>
-
-            <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
-
-            <a href="#" class="to-top" style="display: none;">↑ Top</a>
-
-            <footer>
-                <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
-            </footer>
-        </div>
-    </div>
-    <script>
-        function toggleToTopButton() {
-            var toTopButton = document.querySelector('.to-top');
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                toTopButton.style.display = "block";
-            } else {
-                toTopButton.style.display = "none";
-            }
-        }
-        window.onscroll = function() { toggleToTopButton(); };
-        document.querySelector('.to-top').addEventListener('click', function(e) {
-            e.preventDefault();
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        });
-    </script>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<section>
+<h2>異常受注検知システム</h2>
+<p>受注データから異常値を自動検知し、業務担当者がブラウザで確認・対応できるシステム。ゼロから1週間で初期版をリリースし、その後5ヶ月にわたり改良を継続中。</p>
+<div class="case-meta">
+<dl>
+<dt>業種</dt><dd>卸売業 (社内システム)</dd>
+<dt>対象部門</dt><dd>営業部・営業事務部</dd>
+<dt>実装期間</dt><dd>初期版: 1週間 / 改良継続: 5ヶ月以上</dd>
+<dt>本番稼働</dt><dd>2026年1月 (初版) / 2026年4月 (Linux 移行版)</dd>
+<dt>技術スタック</dt><dd>Python, Flask, Vue.js (Alpine.js), SQLite, Docker, Prefect 3.x, 統計分析</dd>
+</dl>
+</div>
+</section>
+<section>
+<h2>背景・課題</h2>
+<p>受注データの中には、まれに「通常の取引量と大きくかけ離れた発注」が含まれます。例えば:</p>
+<ul>
+<li>通常 月1ケースの取引先から、突然 50ケースの注文</li>
+<li>新規取引なのに、いきなり大口発注</li>
+<li>担当者の入力ミスによる桁違いの数量</li>
+</ul>
+<p>これらを放置すると、誤発注による在庫過多、機会損失、取引先トラブルにつながります。一方、すべての受注を人の目で確認するのは非現実的でした。</p>
+<p>そこで「自動的に異常値を検知して、担当者にアラートを出す」仕組みを構築することにしました。</p>
+</section>
+<section>
+<h2>実装した解決策</h2>
+<h3>1. 統計分析による異常検知</h3>
+<ul class="skill-list">
+<li>過去の取引データから、得意先×商品ペアごとの「通常範囲」を統計的に算出</li>
+<li>直近平均と比較して、3倍以上の乖離があれば「異常」として検知</li>
+<li>新規取引 (履歴ゼロのペア) は「袋入数 × N」を基準値に設定 (Phase 1)、将来は加重中央値方式へ移行予定 (Phase 2)</li>
+<li>基準日 (baseline_cutoff) を業務イベント (石油供給ひっ迫前) で区切り、特殊期を除外</li>
+</ul>
+<h3>2. ブラウザ UI (カード型)</h3>
+<ul class="skill-list">
+<li>Flask + Vue.js (Alpine.js) で軽量な SPA を構築</li>
+<li>検知された受注を「カード」として表示、業務担当者がクリックして「確認済み」「対応済み」を記録</li>
+<li>確認済みカードは絶対に再修正しない設計 (業務データの一貫性を守る)</li>
+</ul>
+<h3>3. データ永続化の段階移行</h3>
+<ul class="skill-list">
+<li>初版: Markdown ファイルベース (実装スピード優先)</li>
+<li>Phase 1: SQLite 移行 (整合性・検索性向上)</li>
+<li>段階移行時、新旧両方で並行計算し、結果が完全一致するまで切り替えない</li>
+</ul>
+<h3>4. 運用安定化 (watchdog 二段構え)</h3>
+<ul class="skill-list">
+<li><strong>Plan A</strong>: 旧 PC 側で stale 15分検知 → 通知</li>
+<li><strong>Plan B</strong>: 新サーバー側で例外発生 → 通知</li>
+<li>どちらか一方が動かなくなっても、もう片方で検知できる二重防御</li>
+<li>ゾンビ run 自動 Cancel の Prefect Automation も併設</li>
+</ul>
+<h3>5. 89 ↔ 235 のサーバー移行</h3>
+<ul class="skill-list">
+<li>Windows PC ローカル運用 → Ubuntu Linux サーバー (Docker Compose) へ移行</li>
+<li>二重稼働期間を設けて、結果が完全一致することを確認してから Cutover</li>
+<li>移行後の 89 側のクリーンアップ (スタートアップ vbs のコメントアウト、タスクスケジューラ削除) まで責任を持って実施</li>
+</ul>
+</section>
+<section>
+<h2>効果</h2>
+<table class="impact-table">
+<thead>
+<tr><th>項目</th><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>異常受注の発見</td>
+<td>後工程で発覚 (出荷後・請求後)</td>
+<td>受注直後に自動検知</td>
+</tr>
+<tr class="highlight">
+<td>機会損失リスク</td>
+<td>大ロット誤受注で在庫圧迫</td>
+<td>事前確認で誤受注を防止</td>
+</tr>
+<tr>
+<td>営業担当者の負担</td>
+<td>全受注を目視確認</td>
+<td>異常分のみ確認 (大幅削減)</td>
+</tr>
+<tr>
+<td>新規取引の検知</td>
+<td>埋もれて気づかない</td>
+<td>専用カードで可視化</td>
+</tr>
+<tr>
+<td>運用安定性</td>
+<td>(該当なし、新規構築)</td>
+<td>watchdog 二段構えで障害検知</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2>得られた学び</h2>
+<ul>
+<li><strong>1週間でリリースし、5ヶ月かけて改善</strong> — 初版は完璧でなくていい。早くリリースして現場の反応を見ながら改良するほうが結果的に良いものになる</li>
+<li><strong>業務イベントを基準値に組み込む</strong> — 「石油供給ひっ迫前」のような業務側の出来事を統計の基準日にすることで、純粋な統計値より業務実態に合った検知になる</li>
+<li><strong>段階移行時の並行検証</strong> — 新旧両方を動かして結果が完全一致するまで切り替えないルールにすることで、移行時の事故をゼロにできる</li>
+<li><strong>watchdog の二段構え</strong> — 「監視する仕組み自体が止まる」リスクを想定し、独立した2系統で監視することで信頼性を確保</li>
+<li><strong>確認済みデータは触らない</strong> — 業務データの一貫性を守るため、「自動処理が確認済みカードを再修正しない」原則を厳守</li>
+</ul>
+</section>
+<p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
 </body>
 </html>

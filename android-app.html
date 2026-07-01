@@ -1,125 +1,123 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>ポートフォリオWEBサイト SkillShowcase</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>ポートフォリオWEBサイト SkillShowcase</title>
+<link href="style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+    
+
+    <meta content="website" property="og:type"/>
+    
+
+    <meta content="ポートフォリオWEBサイト SkillShowcase" property="og:title"/>
+    
+
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    
+
+    <meta content="SkillShowcase" property="og:site_name"/>
+    
+
+    <meta content="summary" name="twitter:card"/>
+    
+
+    <meta content="#0b84d8" name="theme-color"/>
+    <script defer="" src="main.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="main-content">
-            <header>
-                <h1>SkillShowcase</h1>
-                <nav>
-                    <ul>
-                        <li><a href="portfolio.html">ホーム</a></li>
-                        <li><a href="business-cases.html">業務改善実績</a></li>
-                        <li><a href="timeline.html">経歴</a></li>
-                        <li><a href="itskills.html">ITスキル</a></li>
-                        <li class="dropdown">
-                            <a href="android-app.html#app-overview" class="dropbtn">アプリ紹介</a>
-                            <div class="dropdown-content">
-                                <a href="#app-overview">アプリの概要</a>
-                                <a href="#screen-transitions">画面遷移の紹介</a>
-                                <a href="#download-instructions">アプリダウンロード</a>
-                                <a href="#source-code">ソースコード</a>
-                                <a href="#json-details">JSONデータ</a>
-                                <a href="#er-diagram">ER図</a>
-                                <a href="#table-description">テーブルの説明</a>
-                                <a href="#quiz-questions-operations">quiz_questionsテーブルの操作</a>
-                                <a href="#statistics-operations">statisticsテーブルの操作</a>
-                                <a href="#network-configuration">ネットワーク構成図(未実装)</a>
-                                <a href="#admin-site">管理者サイト(未実装)</a>
-                            </div>
-                        </li>
-                        <li><a href="contact.html">お問い合わせ</a></li> 
-                    </ul>
-                </nav>
-            </header>
-
-            <main>
-                <!-- アプリの概要 -->
-                <section id="app-overview">
-                    <h2>アプリの概要</h2>
-                    <p>　本アプリは、「指をあまり動かさずに楽しめるクイズアプリ」を目指して開発されました。4択の選択肢から指をあまり動かさずに利用できる操作性にこだわりました。</p>
-                    <p>　主な機能として、4択クイズ、カウントダウンタイマー、経過時間と正解数を記録し、グラフで集計する機能を備えています。クイズは学習の確認や暇つぶしに最適であり、カウントダウンタイマーは緊張感を得るためのものです。経過時間と正解数のグラフ集計機能により、ユーザーは自分の学習進捗を視覚的に確認できます。</p>
-                    <p>　開発背景として、多くのクイズアプリが存在する中で、よりサクサクと回答できるアプリを作りたいという思いから、このアプリを開発しました。</p>
-                    <p>　このアプリは、通勤中や休憩時間などの短い時間での使用を想定しています。簡単な操作で素早くクイズを解き、自分の知識を試すことができます。また、長期的に使用することで、学習の進捗をグラフで確認し、モチベーションの維持にも役立ちます。</p>
-                    <p>　現在、同じようなUIで、Texを使った数学用のクイズアプリを作成中です。この数学クイズアプリでは、数式の表示に最適化されたTeX形式を採用しており、より専門的な学習ニーズにも応えられるように設計しています。ユーザーは数学の問題を解くことで、数学の知識を楽しく学ぶことができます。</p>
-
-                    <!-- 機能と機能概要の表 -->
-                    <table>
-                        <tr>
-                            <th>機能</th>
-                            <th>機能概要</th>
-                        </tr>
-                        <tr>
-                            <td>4択クイズ</td>
-                            <td>ユーザーは4つの選択肢から1つを選んで回答します。</td>
-                        </tr>
-                        <tr>
-                            <td>カウントダウンタイマー</td>
-                            <td>各クイズには15秒の時間制限があり、緊張感を高めます。</td>
-                        </tr>
-                        <tr>
-                            <td>経過時間と正解数の記録</td>
-                            <td>ユーザーのクイズ解答時間と正解数を記録し、グラフで進捗を可視化します。</td>
-                        </tr>
-                    </table>
-                    <!-- 4択クイズ機能の詳細な説明 -->
-                    <h3>4択クイズ機能について</h3>
-                    <p>　本アプリの4択クイズ機能では、ユーザーが提供された4つの選択肢の中から1つを選んで回答します。選択は以下のルールに従って処理されます：</p>
-                    <ol>
-                        <li><strong>初回クリック：</strong>ユーザーが最初に選択した回答が正解か不正解かを判断し、この結果はデータベースに記録されます。この初回のクリックがユーザーの回答としてカウントされ、クイズの成績に影響します。</li>
-                        <li><strong>2回目以降のクリック：</strong>初回の回答後、ユーザーが他の選択肢をクリックしても、これらのクリックは成績の計算には関与しません。これにより、ユーザーは自分の選んだ回答に自信が持てない場合に、他の選択肢を試してみることができますが、成績には影響しません。</li>
-                        <li><strong>問題の進行：</strong>ユーザーが正解の選択肢をクリックした後、さらに任意の選択肢をクリックすることで次の問題へと進むことができます。正解を確認しないと次の問題に進めないため、正しい知識の習得に役立ちます。</li>
-                    </ol>
-
-                    <p>　このシステムにより、ユーザーは自分の知識をテストしつつ、学習の進捗をリアルタイムで確認することができます。</p>
-
-                </section>
-
-                <!-- 画面遷移の紹介 -->
-                <section id="screen-transitions">   
-
-                    <h2>画面遷移の紹介</h2>
-                    <p>　アプリ内の主な画面遷移を下記のリンク先で掲載します。各画面の概要と、その画面でできることを簡単に説明します。</p>
-                    <!-- 画面遷移マップページへのリンク -->
-                    <a href="screen-transition-map.html">画面遷移マップを見る</a>
-                </section>    
-
-                <!-- ダウンロード方法 -->
-                <section id="download-instructions">
-                    <h2>ダウンロード方法</h2>
-                    <p>以下のリンクから、最新版のアプリをダウンロードできます。</p>
-                    <p><a href="QuizVoyage.apk" download>クリックしてダウンロード</a></p>
-                    <p>開発中の数学用アプリに関心がある方は、下記のリンクからアクセスしてください。このバージョンでは、新しい数学の問題や機能がテスト段階で利用可能です。</p>
-                    <p><a href="QuizVoyageMath.apk" download>開発中の数学用アプリをダウンロード</a></p>
-                    <p>ダウンロード後は、<a href="SHA256SUMS.txt">SHA256ハッシュ一覧</a>でファイルの改ざんがないことを確認してください。</p>
-                    <pre><code># 例: Linux / macOS
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="portfolio.html">ホーム</a></li>
+<li><a href="business-cases.html">業務改善実績</a></li>
+<li><a href="timeline.html">経歴</a></li>
+<li><a href="itskills.html">ITスキル</a></li>
+<li><a href="android-app.html">アプリ紹介</a></li>
+<li><a href="contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<main>
+<!-- アプリの概要 -->
+<section id="app-overview">
+<h2>アプリの概要</h2>
+<p>　本アプリは、「指をあまり動かさずに楽しめるクイズアプリ」を目指して開発されました。4択の選択肢から指をあまり動かさずに利用できる操作性にこだわりました。</p>
+<p>　主な機能として、4択クイズ、カウントダウンタイマー、経過時間と正解数を記録し、グラフで集計する機能を備えています。クイズは学習の確認や暇つぶしに最適であり、カウントダウンタイマーは緊張感を得るためのものです。経過時間と正解数のグラフ集計機能により、ユーザーは自分の学習進捗を視覚的に確認できます。</p>
+<p>　開発背景として、多くのクイズアプリが存在する中で、よりサクサクと回答できるアプリを作りたいという思いから、このアプリを開発しました。</p>
+<p>　このアプリは、通勤中や休憩時間などの短い時間での使用を想定しています。簡単な操作で素早くクイズを解き、自分の知識を試すことができます。また、長期的に使用することで、学習の進捗をグラフで確認し、モチベーションの維持にも役立ちます。</p>
+<p>　現在、同じようなUIで、Texを使った数学用のクイズアプリを作成中です。この数学クイズアプリでは、数式の表示に最適化されたTeX形式を採用しており、より専門的な学習ニーズにも応えられるように設計しています。ユーザーは数学の問題を解くことで、数学の知識を楽しく学ぶことができます。</p>
+<!-- 機能と機能概要の表 -->
+<table>
+<tr>
+<th>機能</th>
+<th>機能概要</th>
+</tr>
+<tr>
+<td>4択クイズ</td>
+<td>ユーザーは4つの選択肢から1つを選んで回答します。</td>
+</tr>
+<tr>
+<td>カウントダウンタイマー</td>
+<td>各クイズには15秒の時間制限があり、緊張感を高めます。</td>
+</tr>
+<tr>
+<td>経過時間と正解数の記録</td>
+<td>ユーザーのクイズ解答時間と正解数を記録し、グラフで進捗を可視化します。</td>
+</tr>
+</table>
+<!-- 4択クイズ機能の詳細な説明 -->
+<h3>4択クイズ機能について</h3>
+<p>　本アプリの4択クイズ機能では、ユーザーが提供された4つの選択肢の中から1つを選んで回答します。選択は以下のルールに従って処理されます：</p>
+<ol>
+<li><strong>初回クリック：</strong>ユーザーが最初に選択した回答が正解か不正解かを判断し、この結果はデータベースに記録されます。この初回のクリックがユーザーの回答としてカウントされ、クイズの成績に影響します。</li>
+<li><strong>2回目以降のクリック：</strong>初回の回答後、ユーザーが他の選択肢をクリックしても、これらのクリックは成績の計算には関与しません。これにより、ユーザーは自分の選んだ回答に自信が持てない場合に、他の選択肢を試してみることができますが、成績には影響しません。</li>
+<li><strong>問題の進行：</strong>ユーザーが正解の選択肢をクリックした後、さらに任意の選択肢をクリックすることで次の問題へと進むことができます。正解を確認しないと次の問題に進めないため、正しい知識の習得に役立ちます。</li>
+</ol>
+<p>　このシステムにより、ユーザーは自分の知識をテストしつつ、学習の進捗をリアルタイムで確認することができます。</p>
+</section>
+<!-- 画面遷移の紹介 -->
+<section id="screen-transitions">
+<h2>画面遷移の紹介</h2>
+<p>　アプリ内の主な画面遷移を下記のリンク先で掲載します。各画面の概要と、その画面でできることを簡単に説明します。</p>
+<!-- 画面遷移マップページへのリンク -->
+<a href="screen-transition-map.html">画面遷移マップを見る</a>
+</section>
+<!-- ダウンロード方法 -->
+<section id="download-instructions">
+<h2>ダウンロード方法</h2>
+<p>以下のリンクから、最新版のアプリをダウンロードできます。</p>
+<p><a download="" href="QuizVoyage.apk">クリックしてダウンロード</a></p>
+<p>開発中の数学用アプリに関心がある方は、下記のリンクからアクセスしてください。このバージョンでは、新しい数学の問題や機能がテスト段階で利用可能です。</p>
+<p><a download="" href="QuizVoyageMath.apk">開発中の数学用アプリをダウンロード</a></p>
+<p>ダウンロード後は、<a href="SHA256SUMS.txt">SHA256ハッシュ一覧</a>でファイルの改ざんがないことを確認してください。</p>
+<pre><code># 例: Linux / macOS
 shasum -a 256 QuizVoyage.apk
 shasum -a 256 QuizVoyageMath.apk
 
 # 例: Windows PowerShell
 Get-FileHash .\QuizVoyage.apk -Algorithm SHA256
 Get-FileHash .\QuizVoyageMath.apk -Algorithm SHA256</code></pre>
-                </section>
-
-                <!-- ソースコード -->
-                <section id="source-code">
-                    <h2>ソースコード</h2>
-                    <p>プロジェクトのソースコードを閲覧するには、以下のGitHubリポジトリを訪問してください。</p>
-                    <p><a href="https://github.com/meruba1234/android-application" target="_blank" rel="noopener noreferrer">GitHubで見る</a></p>
-                </section>
-
-                <!-- JSONデータのこだわりと構造 -->
-                <section id="json-details">
-                    <h2>JSONデータ</h2>
-                    <p>このアプリは、問題データをJSON形式で管理しており、iOSやAndroidなどのプラットフォームを問わず利用可能です。JSON形式を採用することで、データの取得が簡単になり、さまざまな環境での使用に柔軟に対応できるようになっています。以下に、JSONデータ設計のこだわり点とその構造を説明します。</p>
-                    <h3>JSON構造の説明</h3>
+</section>
+<!-- ソースコード -->
+<section id="source-code">
+<h2>ソースコード</h2>
+<p>プロジェクトのソースコードを閲覧するには、以下のGitHubリポジトリを訪問してください。</p>
+<p><a href="https://github.com/meruba1234/android-application" rel="noopener noreferrer" target="_blank">GitHubで見る</a></p>
+</section>
+<!-- JSONデータのこだわりと構造 -->
+<section id="json-details">
+<h2>JSONデータ</h2>
+<p>このアプリは、問題データをJSON形式で管理しており、iOSやAndroidなどのプラットフォームを問わず利用可能です。JSON形式を採用することで、データの取得が簡単になり、さまざまな環境での使用に柔軟に対応できるようになっています。以下に、JSONデータ設計のこだわり点とその構造を説明します。</p>
+<h3>JSON構造の説明</h3>
 <pre>
 {
     "tabs": [
@@ -147,114 +145,107 @@ Get-FileHash .\QuizVoyageMath.apk -Algorithm SHA256</code></pre>
     ]
 }
 </pre>
-                    <p>この構造を通じて、情報は整理され、エンドユーザーにとってアクセスしやすい形で提供されます。</p>
-                </section>
-
-                <section id="er-diagram">
-                    <h2>ER図</h2>
-                    <!-- データベース構造の将来的な修正に関する計画 -->
-                    <p>現状として、アプリは理想通りに動きますが、データベースの構造を修正したほうがわかりやすく、追加機能も作りやすいので、<strong>今後データベースの構造を修正し、正規化もする予定です。</strong>タブ名とボタンIDの複合キーから問題リストのidを作成します。その問題リストのidと、統計データ内で使われるautoincrementのidの複合キーで統計データを特定できるようにします。そして、タブごと、ボタンごとの過去の学習データをまとめて見られるようにします。</p>
-
-                    <!-- ER図の説明 -->
-                    <p>以下のER図は、異なるデータベースに格納されたテーブルを示しており、各データベースが特定の機能に特化し、独立してデータを管理しています。<br>テーブルがそれぞれ独立しているため、今回のER図にはテーブル間の関連性を示す線がありません。</p>
-                    <!-- データベースの役割の説明 -->
-                    <p><strong>quiz_database:</strong> このデータベースは問題文と選択肢、正答を管理しています。</p>
-                    <p><strong>Statistics.db:</strong> このデータベースはクイズに関する統計情報を管理するために特化しています。回答にかかった時間と正解数で、ユーザーのパフォーマンスを追跡し、分析するための情報を保持します。</p>    
-                
-                    <!-- ER図の画像 -->
-                    <img src="ERD.png" alt="ER図">
-                </section>
-                
-
-                <section id="table-description">
-                    <h2>テーブルの説明</h2>
-                    <h3>quiz_questions: 問題テーブル</h3>
-                    <table border="1">
-                        <tr>
-                            <th>項目名</th>
-                            <th>型</th>
-                            <th>説明</th>
-                        </tr>
-                        <tr>
-                            <td>id</td>
-                            <td>INT</td>
-                            <td>問題リストの一意の識別子</td>
-                        </tr>
-                        <tr>
-                            <td>question</td>
-                            <td>TEXT</td>
-                            <td>問題文のテキスト</td>
-                        </tr>
-                        <tr>
-                            <td>option1</td>
-                            <td>TEXT</td>
-                            <td>選択肢1のテキスト</td>
-                        </tr>
-                        <tr>
-                            <td>option2</td>
-                            <td>TEXT</td>
-                            <td>選択肢2のテキスト</td>
-                        </tr>
-                        <tr>
-                            <td>option3</td>
-                            <td>TEXT</td>
-                            <td>選択肢3のテキスト</td>
-                        </tr>
-                        <tr>
-                            <td>option4</td>
-                            <td>TEXT</td>
-                            <td>選択肢4のテキスト</td>
-                        </tr>
-                        <tr>
-                            <td>correct_answer</td>
-                            <td>INT</td>
-                            <td>正答ボタンのID</td>
-                        </tr>
-                    </table>
-                
-                    <h3>statistics: 統計テーブル</h3>
-                    <table border="1">
-                        <tr>
-                            <th>項目名</th>
-                            <th>型</th>
-                            <th>説明</th>
-                        </tr>
-                        <tr>
-                            <td>id</td>
-                            <td>INT</td>
-                            <td>統計データの一意の識別子</td>
-                        </tr>
-                        <tr>
-                            <td>timeTaken</td>
-                            <td>INT</td>
-                            <td>ボタンに含まれる問題データを解き終わるまでの経過時間</td>
-                        </tr>
-                        <tr>
-                            <td>correctAnswers</td>
-                            <td>INT</td>
-                            <td>初回の選択で正解した回数</td>
-                        </tr>
-                        <tr>
-                            <td>buttonId</td>
-                            <td>TEXT</td>
-                            <td>メイン画面で選択されたボタンのID</td>
-                        </tr>
-                        <tr>
-                            <td>tabName</td>
-                            <td>TEXT</td>
-                            <td>メイン画面で選択されたタブの名前</td>
-                        </tr>
-                        <tr>
-                            <td>timestamps</td>
-                            <td>TIMESTAMP</td>
-                            <td>メイン画面のボタンを選択したときの日時</td>
-                        </tr>
-                    </table>
-                </section>
-
-                <section id="quiz-questions-operations">
-                    <h2>quiz_questionsテーブルの操作</h2>
-                    <h3>テーブルの作成</h3>
+<p>この構造を通じて、情報は整理され、エンドユーザーにとってアクセスしやすい形で提供されます。</p>
+</section>
+<section id="er-diagram">
+<h2>ER図</h2>
+<!-- データベース構造の将来的な修正に関する計画 -->
+<p>現状として、アプリは理想通りに動きますが、データベースの構造を修正したほうがわかりやすく、追加機能も作りやすいので、<strong>今後データベースの構造を修正し、正規化もする予定です。</strong>タブ名とボタンIDの複合キーから問題リストのidを作成します。その問題リストのidと、統計データ内で使われるautoincrementのidの複合キーで統計データを特定できるようにします。そして、タブごと、ボタンごとの過去の学習データをまとめて見られるようにします。</p>
+<!-- ER図の説明 -->
+<p>以下のER図は、異なるデータベースに格納されたテーブルを示しており、各データベースが特定の機能に特化し、独立してデータを管理しています。<br/>テーブルがそれぞれ独立しているため、今回のER図にはテーブル間の関連性を示す線がありません。</p>
+<!-- データベースの役割の説明 -->
+<p><strong>quiz_database:</strong> このデータベースは問題文と選択肢、正答を管理しています。</p>
+<p><strong>Statistics.db:</strong> このデータベースはクイズに関する統計情報を管理するために特化しています。回答にかかった時間と正解数で、ユーザーのパフォーマンスを追跡し、分析するための情報を保持します。</p>
+<!-- ER図の画像 -->
+<img alt="ER図" src="ERD.png"/>
+</section>
+<section id="table-description">
+<h2>テーブルの説明</h2>
+<h3>quiz_questions: 問題テーブル</h3>
+<table border="1">
+<tr>
+<th>項目名</th>
+<th>型</th>
+<th>説明</th>
+</tr>
+<tr>
+<td>id</td>
+<td>INT</td>
+<td>問題リストの一意の識別子</td>
+</tr>
+<tr>
+<td>question</td>
+<td>TEXT</td>
+<td>問題文のテキスト</td>
+</tr>
+<tr>
+<td>option1</td>
+<td>TEXT</td>
+<td>選択肢1のテキスト</td>
+</tr>
+<tr>
+<td>option2</td>
+<td>TEXT</td>
+<td>選択肢2のテキスト</td>
+</tr>
+<tr>
+<td>option3</td>
+<td>TEXT</td>
+<td>選択肢3のテキスト</td>
+</tr>
+<tr>
+<td>option4</td>
+<td>TEXT</td>
+<td>選択肢4のテキスト</td>
+</tr>
+<tr>
+<td>correct_answer</td>
+<td>INT</td>
+<td>正答ボタンのID</td>
+</tr>
+</table>
+<h3>statistics: 統計テーブル</h3>
+<table border="1">
+<tr>
+<th>項目名</th>
+<th>型</th>
+<th>説明</th>
+</tr>
+<tr>
+<td>id</td>
+<td>INT</td>
+<td>統計データの一意の識別子</td>
+</tr>
+<tr>
+<td>timeTaken</td>
+<td>INT</td>
+<td>ボタンに含まれる問題データを解き終わるまでの経過時間</td>
+</tr>
+<tr>
+<td>correctAnswers</td>
+<td>INT</td>
+<td>初回の選択で正解した回数</td>
+</tr>
+<tr>
+<td>buttonId</td>
+<td>TEXT</td>
+<td>メイン画面で選択されたボタンのID</td>
+</tr>
+<tr>
+<td>tabName</td>
+<td>TEXT</td>
+<td>メイン画面で選択されたタブの名前</td>
+</tr>
+<tr>
+<td>timestamps</td>
+<td>TIMESTAMP</td>
+<td>メイン画面のボタンを選択したときの日時</td>
+</tr>
+</table>
+</section>
+<section id="quiz-questions-operations">
+<h2>quiz_questionsテーブルの操作</h2>
+<h3>テーブルの作成</h3>
 <pre><code>// アプリのインストール時に一回だけ行われるメソッド
 //　もう一度行いたい場合は、アンインストールしてから再度インストールする。
 @Override
@@ -274,8 +265,7 @@ public void onCreate(SQLiteDatabase db) {
     // JSONファイルから初期データを挿入
     insertInitialData(db);
 }</code></pre>
-
-    <h3>データの挿入</h3>
+<h3>データの挿入</h3>
 <pre><code>// 初期データをデータベースに挿入するメソッド
 private void insertInitialData(SQLiteDatabase db) {
     try {
@@ -292,7 +282,7 @@ private void insertInitialData(SQLiteDatabase db) {
         // JSON配列の各要素にアクセスできるようにする。
         JSONArray jsonArray = new JSONArray(sb.toString());
         // 問題文と選択肢、正解の要素番号を取得する。
-        for (int i = 0; i < jsonArray.length(); i++) {
+        for (int i = 0; i &lt; jsonArray.length(); i++) {
             JSONObject jsonObject = jsonArray.getJSONObject(i);
             String question = jsonObject.getString("question");
             JSONArray choices = jsonObject.getJSONArray("choices");
@@ -301,7 +291,7 @@ private void insertInitialData(SQLiteDatabase db) {
             <strong>// データベースに挿入
             ContentValues values = new ContentValues();
             values.put("question", question);
-            for (int j = 0; j < choices.length(); j++) {
+            for (int j = 0; j &lt; choices.length(); j++) {
                 values.put("option" + (j + 1), choices.getString(j));
             }
             values.put("correct_answer", correctAnswer);
@@ -314,12 +304,11 @@ private void insertInitialData(SQLiteDatabase db) {
         e.printStackTrace();
     }
 }</code></pre>
-
-    <h3>データのクエリ</h3>
+<h3>データのクエリ</h3>
 <pre><code>// 検索クエリに基づいてデータベースから質問を検索するメソッド
 // 問題文に基づいてデータを検索
-public List<Data_Quiz> searchQuizQuestions(String query) {
-    List<Data_Quiz> matchedQuestions = new ArrayList<>();
+public List<data_quiz> searchQuizQuestions(String query) {
+    List<data_quiz> matchedQuestions = new ArrayList&lt;&gt;();
     SQLiteDatabase db = this.getReadableDatabase();
 
     Cursor cursor = db.rawQuery("SELECT * FROM quiz_questions 
@@ -331,8 +320,8 @@ public List<Data_Quiz> searchQuizQuestions(String query) {
             int questionColumnIndex = cursor.getColumnIndex("question");
             if (questionColumnIndex != -1) {
                 String questionText = cursor.getString(questionColumnIndex);
-                List<String> choices = new ArrayList<>();
-                for (int i = 1; i <= 4; i++) {
+                List<string> choices = new ArrayList&lt;&gt;();
+                for (int i = 1; i &lt;= 4; i++) {
                     int choiceColumnIndex = cursor.getColumnIndex("option" + i);
                     if (choiceColumnIndex != -1) {
                         choices.add(cursor.getString(choiceColumnIndex));
@@ -348,8 +337,8 @@ public List<Data_Quiz> searchQuizQuestions(String query) {
     }
     cursor.close();
     return matchedQuestions;
-}</code></pre>
-                <h3>データベースの更新</h3>
+}</string></data_quiz></data_quiz></code></pre>
+<h3>データベースの更新</h3>
 <pre><code>// データベースをバージョンアップしたときに、テーブルを再作成
 @Override
 public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -358,9 +347,9 @@ public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         super.onOpen(db);
     }
 }</code></pre>
-                </section>
-                <section id="statistics-operations">
-                    <h2>statisticsテーブルの操作</h2>
+</section>
+<section id="statistics-operations">
+<h2>statisticsテーブルの操作</h2>
 <pre><code>private static final String DATABASE_NAME = "Statistics.db";// データベース名
 private static final String TABLE_NAME = "statistics"; //テーブル名
 private static final String COLUMN_ID = "id";
@@ -370,10 +359,10 @@ private static final String COLUMN_TAB_NAME = "tabName"; //選択されたタブ
 private static final String COLUMN_BUTTON_ID = "buttonId"; //選択されたボタンID
 private static final String COLUMN_TIMESTAMP = "timestamps"; //各レコードがいつ追加されたかを記録するためのカラム(列)
 </code></pre>
-                    <h3>テーブルの作成</h3>
+<h3>テーブルの作成</h3>
 <pre><code>// statisticsテーブルの作成
 public void onCreate(SQLiteDatabase db) {
-    String CREATE_STATISTICS_TABLE = <Strong>"CREATE TABLE " + TABLE_NAME + "("
+    String CREATE_STATISTICS_TABLE = <strong>"CREATE TABLE " + TABLE_NAME + "("
             + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
             + COLUMN_TIME_TAKEN + " INTEGER,"
             + COLUMN_CORRECT_ANSWERS + " INTEGER,"
@@ -381,10 +370,9 @@ public void onCreate(SQLiteDatabase db) {
             + COLUMN_TAB_NAME + " TEXT,"
             + COLUMN_TIMESTAMP + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
             + ")";
-    db.execSQL(CREATE_STATISTICS_TABLE);</Strong>
+    db.execSQL(CREATE_STATISTICS_TABLE);</strong>
 }</code></pre>
-                
-                    <h3>データの挿入</h3>
+<h3>データの挿入</h3>
 <pre><code>//クイズ完了時に統計データを挿入
 public void addStatistics(int timeTaken, int correctAnswers, String buttonId, String tabName) {
     SQLiteDatabase db = this.getWritableDatabase();
@@ -397,7 +385,7 @@ public void addStatistics(int timeTaken, int correctAnswers, String buttonId, St
     }
     cursor.close();
     // レコード数が10を超えていれば、最も古いレコードを削除
-    if (count >= 10) {
+    if (count &gt;= 10) {
         db.execSQL("DELETE FROM " + TABLE_NAME + " " +
                 "WHERE " + COLUMN_ID +
                 " IN (SELECT " + COLUMN_ID +
@@ -424,8 +412,7 @@ public void addStatistics(int timeTaken, int correctAnswers, String buttonId, St
         }
     }
 }</code></pre>
-                
-                    <h3>データのクエリ</h3>
+<h3>データのクエリ</h3>
 <pre><code>// tabNameとbuttonIdに基づいて統計データを取得するメソッド
 public Cursor getStatisticsForButtonAndTab(String buttonId, String tabName, int limit) {
     SQLiteDatabase db = this.getReadableDatabase();
@@ -444,8 +431,7 @@ public Cursor getStatisticsForButtonAndTab(String buttonId, String tabName, int 
     <strong>// rawQueryメソッドを使用してクエリを実行し、Cursorを返す
     return db.rawQuery(rawQuery, selectionArgs);</strong>
 }</code></pre>
-                
-                    <h3>データベースの更新</h3>
+<h3>データベースの更新</h3>
 <pre><code>// バージョンが変わった場合、既存のテーブルを削除後、再度テーブルを作成
 @Override
 public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -453,79 +439,40 @@ public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
     onCreate(db);</strong>
 }
 </code></pre>
-                </section>
+</section>
+<!-- ネットワーク構成図 -->
+<section id="network-configuration">
+<h2>問題データ更新時のネットワーク構成図(未実装)</h2>
+<p>初回ダウンロード以降に問題データを更新する場合には、インターネットを通じて更新データをダウンロードしていただきます。この機能は未実装ですが、将来的にユーザーが最新の問題データを容易に取得できるようにする計画です。</p>
+<div style="display:flex;justify-content:space-around;align-items:center;">
+<!-- Webサーバーをレンタルする場合 -->
+<div>
+<h3>Webサーバーをレンタルする場合</h3>
+<img alt="レンタルサーバーのネットワーク構成図" src="Network-page2.drawio.png" style="max-width:100%;height:auto;"/>
+<p>レンタルサーバーを使用する場合、サービスプロバイダが提供するサーバー上にWebサイトのデータを配置します。これにより、メンテナンスやセキュリティ対策などの面で利便性が高まります。</p>
+</div>
+<!-- Apacheを使って自分のPCでWebサーバーを立てる場合 -->
+<div>
+<h3>自分のPCでWebサーバーを立てる場合</h3>
+<img alt="自宅PCのApacheサーバーのネットワーク構成図" src="Network-page1.drawio.png" style="max-width:100%;height:auto;"/>
+<p>Apacheを使用して自分のPC上にWebサーバーを構築する場合、フルコントロールが可能ですが、セキュリティの設定や電力供給などの面で自己管理が必要になります。</p>
+</div>
+</div>
+</section>
+<section id="admin-site">
+<h2>管理者用サイトによる問題データの更新(未実装)</h2>
+<p>セキュリティを確保するために、専用の管理者用サイトを設け、そこから問題データの更新を行う予定です。このサイトは、認証プロセスを経てのみアクセス可能とし、不正アクセスやデータの漏洩を防ぐためのセキュリティ対策を施します。</p>
+<p>管理者用サイトでは、新しい問題の追加、既存問題の編集、問題データのバックアップなど、問題データに関する全ての管理作業を行うことができます。また、ユーザーはポートフォリオのウェブサイトを通じて、最新の問題データに更新されたアプリをダウンロードできるようになります。</p>
+<p>このアプローチにより、管理者は問題データの更新作業を安全かつ効率的に行うことができ、ユーザー体験の向上にも寄与します。</p>
+</section>
+</main>
+<footer>
+<p>© 2024 SkillShowcase. All rights reserved.</p>
+</footer>
+ ページの先頭に戻るボタン 
 
-                <!-- ネットワーク構成図 -->
-                <section id="network-configuration">
-                    <h2>問題データ更新時のネットワーク構成図(未実装)</h2>
-                    <p>初回ダウンロード以降に問題データを更新する場合には、インターネットを通じて更新データをダウンロードしていただきます。この機能は未実装ですが、将来的にユーザーが最新の問題データを容易に取得できるようにする計画です。</p>
-                    <div style="display:flex;justify-content:space-around;align-items:center;">
-                        <!-- Webサーバーをレンタルする場合 -->
-                        <div>
-                            <h3>Webサーバーをレンタルする場合</h3>
-                            <img src="Network-page2.drawio.png" alt="レンタルサーバーのネットワーク構成図" style="max-width:100%;height:auto;">
-                            <p>レンタルサーバーを使用する場合、サービスプロバイダが提供するサーバー上にWebサイトのデータを配置します。これにより、メンテナンスやセキュリティ対策などの面で利便性が高まります。</p>
-                        </div>
-                
-                        <!-- Apacheを使って自分のPCでWebサーバーを立てる場合 -->
-                        <div>
-                            <h3>自分のPCでWebサーバーを立てる場合</h3>
-                            <img src="Network-page1.drawio.png" alt="自宅PCのApacheサーバーのネットワーク構成図" style="max-width:100%;height:auto;">
-                            <p>Apacheを使用して自分のPC上にWebサーバーを構築する場合、フルコントロールが可能ですが、セキュリティの設定や電力供給などの面で自己管理が必要になります。</p>
-                        </div>
-                    </div>
-                </section>
 
-                <section id="admin-site">
-                    <h2>管理者用サイトによる問題データの更新(未実装)</h2>
-                    <p>セキュリティを確保するために、専用の管理者用サイトを設け、そこから問題データの更新を行う予定です。このサイトは、認証プロセスを経てのみアクセス可能とし、不正アクセスやデータの漏洩を防ぐためのセキュリティ対策を施します。</p>
-                    <p>管理者用サイトでは、新しい問題の追加、既存問題の編集、問題データのバックアップなど、問題データに関する全ての管理作業を行うことができます。また、ユーザーはポートフォリオのウェブサイトを通じて、最新の問題データに更新されたアプリをダウンロードできるようになります。</p>
-                    <p>このアプローチにより、管理者は問題データの更新作業を安全かつ効率的に行うことができ、ユーザー体験の向上にも寄与します。</p>
-                </section>
-            </main>
-
-            <footer>
-                <p>© 2024 SkillShowcase. All rights reserved.</p>
-            </footer>
-            <!-- ページの先頭に戻るボタン -->
-            <a href="#" class="to-top">↑ Top</a>
-        </div>
-    </div>
-    <script>
-        // スクロールに応じてボタンを表示または非表示にする関数
-        function toggleToTopButton() {
-            var toTopButton = document.querySelector('.to-top');
-            
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                toTopButton.style.display = "block";
-            } else {
-                toTopButton.style.display = "none";
-            }
-        }
-        
-        // スクロールイベントに関数をバインド
-        window.onscroll = function() { toggleToTopButton(); };
-        
-        // ボタンクリックでページの先頭にスムーススクロールする
-        document.querySelector('.to-top').addEventListener('click', function(e) {
-            e.preventDefault();
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        });
-
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-
-                var targetId = this.getAttribute('href');
-                var targetElement = document.querySelector(targetId);
-                var headerHeight = document.querySelector('header').offsetHeight;
-
-                window.scrollTo({
-                    top: targetElement.offsetTop - headerHeight - 20, // 20pxは余白
-                    behavior: 'smooth'
-                });
-            });
-        });
-    </script> 
+    </main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
 </body>
 </html>
