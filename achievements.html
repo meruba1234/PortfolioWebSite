@@ -193,7 +193,7 @@ details.data-table th { background: var(--bg-subtle); }
 <h2>月別コミット推移</h2>
 <div class="chart-panel">
 <h3>コミット数 / 月</h3>
-<p class="chart-note">全13リポジトリ合算。基盤整備が完了した2026年4月以降、開発速度が急伸。6月は337件で過去最多。<br/>※ git 導入は2026年1月末のため、それ以前の約4ヶ月の開発 (下記「git 導入以前の開発」参照) はこの集計に含まれない。</p>
+<p class="chart-note">全13リポジトリ合算。基盤整備が完了した2026年4月以降、開発速度が急伸。6月は337件で過去最多。<br/>※ CodeCommit / git 管理は 2025年12月23日開始のため、それ以前の約3.5ヶ月間の開発 (下記「git 導入以前の開発」参照) はこの集計に含まれない。</p>
 <div class="colchart" role="img" aria-label="月別コミット数の棒グラフ。2025年12月3件から2026年6月337件まで増加">
 <div class="col"><div class="bar" data-v="3" style="height:1.5%"></div></div>
 <div class="col"><div class="bar" data-v="14" style="height:4.2%"></div></div>
@@ -293,19 +293,20 @@ details.data-table th { background: var(--bg-subtle); }
 </section>
 
 <section>
-<h2>git 導入以前の開発 (2025年10月〜2026年1月)</h2>
+<h2>git 導入以前の開発 (2025年9月〜12月)</h2>
 <p>バージョン管理 (git) を導入したのは 2026年1月末。それ以前の約4ヶ月間は共有フォルダ上で直接開発しており、
 その期間の成果はコミット統計に表れていません。ファイルのタイムスタンプと成果物から復元した記録:</p>
 <ul class="skill-list">
-<li><strong>受注振分け表 Excel VBA (2025年10月〜11月)</strong> — 受注データを営業所・得意先別に振り分けるエクセルシステム。
-複数 VBA モジュール (メイン処理 / 集計 / シート管理 / マスタ差分確認フォーム) で構成。現在も月次で改修を継続</li>
+<li><strong>受注振分け表 Excel VBA (2025年9月〜11月)</strong> — 受注データを営業所・得意先別に振り分けるエクセルシステム。
+複数 VBA モジュール (メイン処理 / 集計 / シート管理 / マスタ差分確認フォーム) で構成。<strong>2025年11月18日更新版 (振分け表_1117更新.xlsm)</strong> を稼働開始し、現在も月次で改修を継続</li>
 <li><strong>受注CSV取込 (2025年11月完成)</strong> — 振分け表が出力した CSV を販売管理 DB に登録する Python スクリプト初版。
-既存システム (VB.NET) の金額計算ロジックを解読して移植。のちに 5,489 行の v3 に成長し、Prefect 基盤に統合</li>
-<li><strong>入金消込処理 フェーズ1 (2025年10月〜)</strong> — 経理の入金消込を支援する Excel 集計の初版。
-のちに SQL Server 連携 + 部分和探索の VBA システム (2026年1月完成) に発展</li>
+既存システム (VB.NET) の金額計算ロジックを解読して移植。のちに 5,489 行の v3 に成長し、Prefect 基盤に統合。
+<strong>2025年12月23日</strong>、この受注CSV取込を <code>sales-order-entry</code> リポジトリとして CodeCommit に登録したのが最初の git コミット</li>
+<li><strong>入金消込処理 フェーズ1 (2025年9月〜)</strong> — 経理の入金消込を支援する Excel 集計の初版。<strong>2025年8月分データ (入2025.8.10.xlsx)</strong> から対応開始。
+のちに SQL Server 連携 + 部分和探索の VBA システム (2026年1月27日 <code>payment-clearing-excel-vba</code> リポジトリとして git 管理開始) に発展</li>
 <li><strong>仕様書・操作マニュアルの整備</strong> — この時期から既に、成果物と同時に仕様書 / 操作マニュアルを書く習慣を確立</li>
 </ul>
-<p class="chart-note">2026年1月末に上記をすべて git 管理へ移行。以降の開発履歴はコミットログで完全に追跡可能。</p>
+<p class="chart-note">2025年12月〜2026年1月にかけて全成果物を git 管理へ順次移行 (sales-order-entry 12/23、payment-clearing-excel-vba 1/27)。以降の開発履歴はコミットログで完全に追跡可能。</p>
 </section>
 
 <section>
