@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<title>実績データ — SkillShowcase</title>
+<link href="style.css" rel="stylesheet"/>
+<meta content="git 履歴・業務改善記録から集計した開発実績データ。10ヶ月で715コミット、24本の自動化ジョブ、14万行超のコード。" name="description"/>
+<meta content="website" property="og:type"/>
+<meta content="実績データ — SkillShowcase" property="og:title"/>
+<meta content="git 履歴・業務改善記録から集計した開発実績データ。10ヶ月で715コミット、24本の自動化ジョブ、14万行超のコード。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="main.js"></script>
+<style>
+/* ---- 実績データページ専用: チャート ---- */
+.chart-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    margin: 16px 0;
+}
+.chart-panel h3 { margin-top: 0; }
+.chart-note { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 16px; }
+
+/* 縦棒グラフ (月別コミット) */
+.colchart {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 220px;
+    border-bottom: 2px solid var(--border-strong);
+    padding: 0 4px;
+}
+.colchart .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    min-width: 0;
+}
+.colchart .bar {
+    width: 100%;
+    max-width: 44px;
+    background: var(--primary);
+    border-radius: 4px 4px 0 0;
+    min-height: 3px;
+    position: relative;
+    transition: filter 0.15s;
+}
+.colchart .bar:hover { filter: brightness(1.15); }
+.colchart .bar:hover::after {
+    content: attr(data-v) " 件";
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--bg);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 5;
+    pointer-events: none;
+}
+.colchart .peak-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+.col-labels {
+    display: flex;
+    gap: 10px;
+    padding: 6px 4px 0;
+}
+.col-labels span {
+    flex: 1;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    min-width: 0;
+}
+
+/* 横棒グラフ (リポジトリ別) */
+.hbar-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.hbar-row {
+    display: grid;
+    grid-template-columns: 170px 1fr 52px;
+    align-items: center;
+    gap: 12px;
+}
+.hbar-name { font-size: 0.88rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-track { height: 14px; }
+.hbar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 0 4px 4px 0;
+    min-width: 3px;
+    transition: filter 0.15s;
+}
+.hbar-fill:hover { filter: brightness(1.15); }
+.hbar-val { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-align: right; }
+
+/* データ表 */
+details.data-table { margin-top: 14px; }
+details.data-table summary {
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+details.data-table table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.88rem;
+}
+details.data-table th, details.data-table td {
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    text-align: right;
+}
+details.data-table th:first-child, details.data-table td:first-child { text-align: left; }
+details.data-table th { background: var(--bg-subtle); }
+
+@media (max-width: 720px) {
+    .colchart { height: 160px; gap: 5px; }
+    .col-labels { gap: 5px; }
+    .col-labels span { font-size: 0.62rem; }
+    .hbar-row { grid-template-columns: 110px 1fr 46px; gap: 8px; }
+    .hbar-name { font-size: 0.78rem; }
+}
+</style>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="portfolio.html">ホーム</a></li>
+<li><a href="business-cases.html">業務改善実績</a></li>
+<li><a href="achievements.html">実績データ</a></li>
+<li><a href="timeline.html">経歴</a></li>
+<li><a href="itskills.html">ITスキル</a></li>
+<li><a href="android-app.html">アプリ紹介</a></li>
+<li><a href="contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+
+<section>
+<h2>実績データ</h2>
+<p>ローカル開発リポジトリ全13件の git 履歴と、業務改善の実績記録から自動集計した開発活動データです。
+数字はすべて実測値で、四半期ごとに更新しています。</p>
+<p class="chart-note">集計期間: 2025年9月〜2026年7月 (最終更新 2026-07-02)</p>
+</section>
+
+<section>
+<h2>サマリ</h2>
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-value">715</div>
+<div class="stat-label">総コミット数 (10ヶ月)</div>
+</div>
+<div class="stat-card">
+<div class="stat-value">24</div>
+<div class="stat-label">稼働中の自動化ジョブ</div>
+</div>
+<div class="stat-card">
+<div class="stat-value">14万行+</div>
+<div class="stat-label">追加コード行数 (主要2リポ)</div>
+</div>
+<div class="stat-card">
+<div class="stat-value">13</div>
+<div class="stat-label">開発リポジトリ</div>
+</div>
+</div>
+</section>
+
+<section>
+<h2>月別コミット推移</h2>
+<div class="chart-panel">
+<h3>コミット数 / 月</h3>
+<p class="chart-note">全13リポジトリ合算。基盤整備が完了した2026年4月以降、開発速度が急伸。6月は337件で過去最多。</p>
+<div class="colchart" role="img" aria-label="月別コミット数の棒グラフ。2025年12月3件から2026年6月337件まで増加">
+<div class="col"><div class="bar" data-v="3" style="height:1.5%"></div></div>
+<div class="col"><div class="bar" data-v="14" style="height:4.2%"></div></div>
+<div class="col"><div class="bar" data-v="6" style="height:2%"></div></div>
+<div class="col"><div class="bar" data-v="47" style="height:14%"></div></div>
+<div class="col"><div class="bar" data-v="98" style="height:29%"></div></div>
+<div class="col"><div class="bar" data-v="200" style="height:59%"></div></div>
+<div class="col"><span class="peak-label">337</span><div class="bar" data-v="337" style="height:100%"></div></div>
+<div class="col"><div class="bar" data-v="10" style="height:3%"></div></div>
+</div>
+<div class="col-labels">
+<span>12月</span><span>1月</span><span>2月</span><span>3月</span><span>4月</span><span>5月</span><span>6月</span><span>7月</span>
+</div>
+<details class="data-table">
+<summary>データ表を見る</summary>
+<table>
+<thead><tr><th>月</th><th>コミット数</th></tr></thead>
+<tbody>
+<tr><td>2025-12</td><td>3</td></tr>
+<tr><td>2026-01</td><td>14</td></tr>
+<tr><td>2026-02</td><td>6</td></tr>
+<tr><td>2026-03</td><td>47</td></tr>
+<tr><td>2026-04</td><td>98</td></tr>
+<tr><td>2026-05</td><td>200</td></tr>
+<tr><td>2026-06</td><td>337</td></tr>
+<tr><td>2026-07 (2日時点)</td><td>10</td></tr>
+</tbody>
+</table>
+</details>
+</div>
+</section>
+
+<section>
+<h2>リポジトリ別の活動</h2>
+<div class="chart-panel">
+<h3>コミット数 / リポジトリ</h3>
+<p class="chart-note">automation-jobs (Prefect ジョブ群) と batch-files (共通ライブラリ) が中心。役割ごとにリポジトリを分離して運用。</p>
+<div class="hbar-list" role="img" aria-label="リポジトリ別コミット数の横棒グラフ">
+<div class="hbar-row"><span class="hbar-name">automation-jobs</span><div class="hbar-track"><div class="hbar-fill" style="width:100%"></div></div><span class="hbar-val">365</span></div>
+<div class="hbar-row"><span class="hbar-name">batch-files</span><div class="hbar-track"><div class="hbar-fill" style="width:47%"></div></div><span class="hbar-val">171</span></div>
+<div class="hbar-row"><span class="hbar-name">flask-server</span><div class="hbar-track"><div class="hbar-fill" style="width:22%"></div></div><span class="hbar-val">80</span></div>
+<div class="hbar-row"><span class="hbar-name">life-os (記録基盤)</span><div class="hbar-track"><div class="hbar-fill" style="width:7.4%"></div></div><span class="hbar-val">27</span></div>
+<div class="hbar-row"><span class="hbar-name">sales-order-entry</span><div class="hbar-track"><div class="hbar-fill" style="width:5.8%"></div></div><span class="hbar-val">21</span></div>
+<div class="hbar-row"><span class="hbar-name">その他 8 リポジトリ</span><div class="hbar-track"><div class="hbar-fill" style="width:14%"></div></div><span class="hbar-val">51</span></div>
+</div>
+<details class="data-table">
+<summary>データ表を見る</summary>
+<table>
+<thead><tr><th>リポジトリ</th><th>役割</th><th>コミット数</th></tr></thead>
+<tbody>
+<tr><td>automation-jobs</td><td style="text-align:left">Prefect 自動化ジョブ群 (Flow層)</td><td>365</td></tr>
+<tr><td>batch-files</td><td style="text-align:left">業務スクリプト・共通ライブラリ (Script層)</td><td>171</td></tr>
+<tr><td>flask-server</td><td style="text-align:left">社内 Web ツール群</td><td>80</td></tr>
+<tr><td>life-os</td><td style="text-align:left">学習・実績記録の個人基盤</td><td>27</td></tr>
+<tr><td>sales-order-entry</td><td style="text-align:left">売上CSV取込 (VB.NET→Python 移植)</td><td>21</td></tr>
+<tr><td>その他 8 リポジトリ</td><td style="text-align:left">レポート生成 / VBA / ポートフォリオ 等</td><td>51</td></tr>
+</tbody>
+</table>
+</details>
+</div>
+</section>
+
+<section>
+<h2>稼働中の自動化ジョブ (24本)</h2>
+<p>Prefect 基盤の上で稼働しているジョブをカテゴリ別に整理。取引先名は匿名化しています。</p>
+
+<h3>🤝 受発注連携 (9本)</h3>
+<ul class="skill-list">
+<li><strong>EDI 発注処理 (大手外食チェーン)</strong> — 単価計算 CSV 返送。週2回自動稼働</li>
+<li><strong>発注メール自動受信</strong> — IMAP 受信 → 添付抽出 → 処理ジョブへ受け渡し</li>
+<li><strong>発注アップロード (オフィス通販)</strong> — bat 一発起動 + マスタ自動同期</li>
+<li><strong>EOS 受注 ×3ジョブ</strong> — 水産・ベーカリー系サプライヤーサイトから自動取得</li>
+<li><strong>EOS 出荷確定アップロード</strong> — 出荷確定 CSV を自動送信</li>
+<li><strong>EOS マスタ自動登録</strong> — 新規店舗・商品の変換マスタを DB に自動追加</li>
+<li><strong>追加返品処理 (水産卸)</strong> — BI ツール → kintone 画面入力代行。毎朝稼働</li>
+</ul>
+
+<h3>🔍 照合・検知・監視 (4本)</h3>
+<ul class="skill-list">
+<li><strong>売上照合 (受発注プラットフォーム)</strong> — PDF 伝票 × 販売管理 DB の3層照合。毎時稼働</li>
+<li><strong>異常受注検知</strong> — 統計分析による異常値検知 + カード型 UI</li>
+<li><strong>商品不足管理</strong> — 欠品予兆の全社共有サイト。10分毎更新</li>
+<li><strong>セキュリティチェック</strong> — サプライチェーン攻撃対策の毎朝スキャン</li>
+</ul>
+
+<h3>📊 レポート・集計 (5本)</h3>
+<ul class="skill-list">
+<li><strong>売上実績作成</strong> — BI ツールから自動集計 + メール下書き</li>
+<li><strong>店舗日別実績 (小売取引先)</strong> — POS データ → Excel → メール下書き。週次</li>
+<li><strong>出荷目安レポート (仕入先連携)</strong> — 前年同月売上との突合 + 営業課別配分</li>
+<li><strong>月次請求金額内訳 (鮮魚卸)</strong> — A4 1枚の Excel + PDF 自動生成</li>
+<li><strong>欠品データ出力</strong> — 販管画面の機能を完全自動化。日2回</li>
+</ul>
+
+<h3>🛠️ 基盤・社内ツール (6本)</h3>
+<ul class="skill-list">
+<li><strong>売上 CSV 取込</strong> — VB.NET 5,489行を Python 移植。10分毎ポーリング</li>
+<li><strong>FAX 履歴収集 + Web ビュアー</strong> — 複合機履歴の蓄積・検索</li>
+<li><strong>FAX アドレス帳同期</strong> — 全社の宛先表を自動統一</li>
+<li><strong>社内ドキュメント検索</strong> — 横断検索ツール</li>
+<li><strong>その他 運用支援ジョブ</strong> — ログ収集・ヘルスチェック等</li>
+</ul>
+</section>
+
+<section>
+<h2>直近の業務改善記録 (2026年6月)</h2>
+<p>業務改善は 5W1H + 投入工数 + 効果測定のフォーマットで毎回記録しています。6月の完了分:</p>
+<div class="chart-panel">
+<table style="width:100%; border-collapse:collapse; font-size:0.92rem;">
+<thead>
+<tr style="border-bottom:2px solid var(--border-strong);">
+<th style="text-align:left; padding:8px 12px;">完了日</th>
+<th style="text-align:left; padding:8px 12px;">案件</th>
+<th style="text-align:right; padding:8px 12px;">投入工数</th>
+</tr>
+</thead>
+<tbody>
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;">6/11</td><td style="padding:8px 12px;">発注アップロード自動化 (オフィス通販)</td><td style="text-align:right; padding:8px 12px;">56h</td></tr>
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;">6/16</td><td style="padding:8px 12px;">発注メール自動受信 (IMAP + 重複排除)</td><td style="text-align:right; padding:8px 12px;">34h</td></tr>
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;">6/23</td><td style="padding:8px 12px;">EDI 発注処理の SQLite 化 (shadow 13日間検証)</td><td style="text-align:right; padding:8px 12px;">44h</td></tr>
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;">6/25</td><td style="padding:8px 12px;">返品処理の精度改善 (マスタ検証 + 4段リトライ)</td><td style="text-align:right; padding:8px 12px;">30h</td></tr>
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;">6/25</td><td style="padding:8px 12px;">出荷目安レポートに営業課別配分を追加</td><td style="text-align:right; padding:8px 12px;">20h</td></tr>
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;">6/26</td><td style="padding:8px 12px;">売上照合システム新設 (PDF × DB 3層照合)</td><td style="text-align:right; padding:8px 12px;">66h</td></tr>
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;">6/29</td><td style="padding:8px 12px;">実績ジョブ安定化 (修復ダイアログ撲滅)</td><td style="text-align:right; padding:8px 12px;">12h</td></tr>
+<tr><td style="padding:8px 12px;"></td><td style="padding:8px 12px;"><strong>合計 7 案件</strong></td><td style="text-align:right; padding:8px 12px;"><strong>262h</strong></td></tr>
+</tbody>
+</table>
+<p class="chart-note">投入工数は設計・実装・テスト・ドキュメント作成の合計。各案件の詳細な効果測定 (残業削減・ROI) は個別記録シートで管理。</p>
+</div>
+</section>
+
+<section>
+<h2>数字にならない蓄積</h2>
+<ul class="skill-list">
+<li><strong>ジョブ仕様書 14件以上</strong> — 全主要ジョブに仕様書。機能追加と同時に更新する習慣を維持</li>
+<li><strong>設計方針ドキュメント</strong> — 命名規則 / ログ実装指針 / クラス設計 / ファイルI/O方針 / エンコーディング規約</li>
+<li><strong>AI 開発スキル 10件以上を自作</strong> — 仕様書自動生成 / ドキュメント整合性チェック / 新規ジョブ作成ガイド等</li>
+<li><strong>業務ナレッジ 50件以上</strong> — 障害パターン・業務ルール・設計判断の経緯を体系的に記録</li>
+<li><strong>業務改善の記録フォーマット</strong> — 依頼書 → 実績シート → 四半期集計のワークフローを設計・運用</li>
+</ul>
+</section>
+
+<section>
+<h2>関連ページ</h2>
+<p><a class="cta-link" href="business-cases.html">ケーススタディ 11件を見る</a></p>
+</section>
+
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>
