@@ -257,6 +257,42 @@ details.data-table th { background: var(--bg-subtle); }
 </section>
 
 <section>
+<h2>扱っている基幹データベースの規模</h2>
+<p>連携先の販売管理データベース (SQL Server) の実測値。readonly ユーザーでのシステムカタログ照会による (2026-07-02 計測)。</p>
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-value">336</div>
+<div class="stat-label">テーブル数 (+ビュー106)</div>
+</div>
+<div class="stat-card">
+<div class="stat-value">100 GB</div>
+<div class="stat-label">データベースサイズ</div>
+</div>
+<div class="stat-card">
+<div class="stat-value">408万行</div>
+<div class="stat-label">売上明細テーブル</div>
+</div>
+<div class="stat-card">
+<div class="stat-value">1</div>
+<div class="stat-label">外部キー制約の数</div>
+</div>
+</div>
+<p>そのほか、伝票ヘッダ 124万件、単価マスタ 154万行、得意先・商品マスタ 各7.6万件、
+最大テーブル (在庫履歴) は 2,467万行。</p>
+<div class="chart-panel">
+<h3>「外部キー制約 1 個」の意味</h3>
+<p>336テーブルに対して外部キー制約がほぼゼロ——つまり<strong>データ整合性のすべてを
+アプリケーションコード (VB.NET) が担っている</strong>設計です。DB スキーマを見ても業務ルールは分からず、
+コードを解読しない限り安全にデータを触れません。</p>
+<p>さらに、<strong>現行システムのソースコードは全体が手元にない</strong>状態でした。
+参照できる断片・実データの検証・業務担当者への聞き取り・繰り返しのテストを積み重ねて
+仕様を一つずつ確定し、その過程で<strong>既存システム側の修正すべき不具合も発見・報告</strong>しています。</p>
+<p class="chart-note">この環境での自動化は「ライブラリを呼べば動く」類の仕事ではなく、
+リバースエンジニアリングと業務理解の総合戦でした。</p>
+</div>
+</section>
+
+<section>
 <h2>git 導入以前の開発 (2025年10月〜2026年1月)</h2>
 <p>バージョン管理 (git) を導入したのは 2026年1月末。それ以前の約4ヶ月間は共有フォルダ上で直接開発しており、
 その期間の成果はコミット統計に表れていません。ファイルのタイムスタンプと成果物から復元した記録:</p>
