@@ -6,10 +6,10 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>実績データ — SkillShowcase</title>
 <link href="style.css" rel="stylesheet"/>
-<meta content="git 履歴・業務改善記録から集計した開発実績データ。10ヶ月で715コミット、24本の自動化ジョブ、14万行超のコード。" name="description"/>
+<meta content="git 履歴・業務改善記録から集計した開発実績データ。10ヶ月で741コミット、25本の自動化ジョブ、14万行超のコード。" name="description"/>
 <meta content="website" property="og:type"/>
 <meta content="実績データ — SkillShowcase" property="og:title"/>
-<meta content="git 履歴・業務改善記録から集計した開発実績データ。10ヶ月で715コミット、24本の自動化ジョブ、14万行超のコード。" property="og:description"/>
+<meta content="git 履歴・業務改善記録から集計した開発実績データ。10ヶ月で741コミット、25本の自動化ジョブ、14万行超のコード。" property="og:description"/>
 <meta content="SkillShowcase" property="og:site_name"/>
 <meta content="summary" name="twitter:card"/>
 <meta content="#0b84d8" name="theme-color"/>
@@ -164,22 +164,22 @@ details.data-table th { background: var(--bg-subtle); }
 <h2>実績データ</h2>
 <p>ローカル開発リポジトリ全13件の git 履歴と、業務改善の実績記録から自動集計した開発活動データです。
 数字はすべて実測値で、四半期ごとに更新しています。</p>
-<p class="chart-note">集計期間: 2025年9月〜2026年7月 (最終更新 2026-07-02)</p>
+<p class="chart-note">集計期間: 2025年9月〜2026年7月 (最終更新 2026-07-08)</p>
 </section>
 
 <section>
 <h2>サマリ</h2>
 <div class="stats-grid">
 <div class="stat-card">
-<div class="stat-value">715</div>
+<div class="stat-value">741</div>
 <div class="stat-label">総コミット数 (10ヶ月)</div>
 </div>
 <div class="stat-card">
-<div class="stat-value">24</div>
+<div class="stat-value">25</div>
 <div class="stat-label">稼働中の自動化ジョブ</div>
 </div>
 <div class="stat-card">
-<div class="stat-value">14万行+</div>
+<div class="stat-value">14.4万行</div>
 <div class="stat-label">追加コード行数 (主要2リポ)</div>
 </div>
 <div class="stat-card">
@@ -193,16 +193,16 @@ details.data-table th { background: var(--bg-subtle); }
 <h2>月別コミット推移</h2>
 <div class="chart-panel">
 <h3>コミット数 / 月</h3>
-<p class="chart-note">全13リポジトリ合算。基盤整備が完了した2026年4月以降、開発速度が急伸。6月は337件で過去最多。<br/>※ CodeCommit / git 管理は 2025年12月23日開始のため、それ以前の約3.5ヶ月間の開発 (下記「git 導入以前の開発」参照) はこの集計に含まれない。</p>
-<div class="colchart" role="img" aria-label="月別コミット数の棒グラフ。2025年12月3件から2026年6月337件まで増加">
-<div class="col"><div class="bar" data-v="3" style="height:1.5%"></div></div>
+<p class="chart-note">全13リポジトリ合算。基盤整備が完了した2026年4月以降、開発速度が急伸。6月は337件で過去最多、7月も月初1週間で36件のペース。<br/>※ CodeCommit / git 管理は 2025年12月23日開始のため、それ以前の約3.5ヶ月間の開発 (下記「git 導入以前の開発」参照) はこの集計に含まれない。</p>
+<div class="colchart" role="img" aria-label="月別コミット数の棒グラフ。2025年12月3件から2026年6月337件まで増加、7月は月初時点で36件">
+<div class="col"><div class="bar" data-v="3" style="height:0.9%"></div></div>
 <div class="col"><div class="bar" data-v="14" style="height:4.2%"></div></div>
-<div class="col"><div class="bar" data-v="6" style="height:2%"></div></div>
+<div class="col"><div class="bar" data-v="6" style="height:1.8%"></div></div>
 <div class="col"><div class="bar" data-v="47" style="height:14%"></div></div>
 <div class="col"><div class="bar" data-v="98" style="height:29%"></div></div>
 <div class="col"><div class="bar" data-v="200" style="height:59%"></div></div>
 <div class="col"><span class="peak-label">337</span><div class="bar" data-v="337" style="height:100%"></div></div>
-<div class="col"><div class="bar" data-v="10" style="height:3%"></div></div>
+<div class="col"><div class="bar" data-v="36" style="height:11%"></div></div>
 </div>
 <div class="col-labels">
 <span>12月</span><span>1月</span><span>2月</span><span>3月</span><span>4月</span><span>5月</span><span>6月</span><span>7月</span>
@@ -219,7 +219,7 @@ details.data-table th { background: var(--bg-subtle); }
 <tr><td>2026-04</td><td>98</td></tr>
 <tr><td>2026-05</td><td>200</td></tr>
 <tr><td>2026-06</td><td>337</td></tr>
-<tr><td>2026-07 (2日時点)</td><td>10</td></tr>
+<tr><td>2026-07 (8日時点)</td><td>36</td></tr>
 </tbody>
 </table>
 </details>
@@ -310,15 +310,15 @@ details.data-table th { background: var(--bg-subtle); }
 </section>
 
 <section>
-<h2>稼働中の自動化ジョブ (24本)</h2>
-<p>Prefect 基盤の上で稼働しているジョブをカテゴリ別に整理。取引先名は匿名化しています。</p>
+<h2>稼働中の自動化ジョブ (25本)</h2>
+<p>Prefect 基盤の上で稼働しているジョブをカテゴリ別に整理。取引先名は匿名化しています。<code>NEW</code> は 2026年7月に追加されたジョブ。</p>
 
-<h3>🤝 受発注連携 (9本)</h3>
+<h3>🤝 受発注連携 (8本)</h3>
 <ul class="skill-list">
 <li><strong>EDI 発注処理 (大手外食チェーン)</strong> — 単価計算 CSV 返送。週2回自動稼働</li>
-<li><strong>発注メール自動受信</strong> — IMAP 受信 → 添付抽出 → 処理ジョブへ受け渡し</li>
+<li><strong>発注メール自動受信</strong> — IMAP 受信 → 添付抽出 → 処理ジョブへ受け渡し。target_date パラメータで別日到着分の救済取得にも対応</li>
 <li><strong>発注アップロード (オフィス通販)</strong> — bat 一発起動 + マスタ自動同期</li>
-<li><strong>EOS 受注 ×3ジョブ</strong> — 水産・ベーカリー系サプライヤーサイトから自動取得</li>
+<li><strong>EOS 受注 ×2ジョブ</strong> — 水産・ベーカリー系サプライヤーサイトから自動取得</li>
 <li><strong>EOS 出荷確定アップロード</strong> — 出荷確定 CSV を自動送信</li>
 <li><strong>EOS マスタ自動登録</strong> — 新規店舗・商品の変換マスタを DB に自動追加</li>
 <li><strong>追加返品処理 (水産卸)</strong> — BI ツール → kintone 画面入力代行。毎朝稼働</li>
@@ -326,8 +326,8 @@ details.data-table th { background: var(--bg-subtle); }
 
 <h3>🔍 照合・検知・監視 (4本)</h3>
 <ul class="skill-list">
-<li><strong>売上照合 (受発注プラットフォーム)</strong> — PDF 伝票 × 販売管理 DB の3層照合。毎時稼働</li>
-<li><strong>異常受注検知</strong> — 統計分析による異常値検知 + カード型 UI</li>
+<li><strong>売上照合 (受発注プラットフォーム)</strong> — PDF 伝票 × 販売管理 DB の3層照合。毎時稼働。アーカイブ機構も追加</li>
+<li><strong>異常受注検知</strong> — 統計分析による異常値検知 + カード型 UI。7月は出荷規制対応で検知条件を商品CD/仕入先CD単位に再調整、検知対象商品ガイドを整備</li>
 <li><strong>商品不足管理</strong> — 欠品予兆の全社共有サイト。10分毎更新</li>
 <li><strong>セキュリティチェック</strong> — サプライチェーン攻撃対策の毎朝スキャン</li>
 </ul>
@@ -341,14 +341,23 @@ details.data-table th { background: var(--bg-subtle); }
 <li><strong>欠品データ出力</strong> — 販管画面の機能を完全自動化。日2回</li>
 </ul>
 
-<h3>🛠️ 基盤・社内ツール (6本)</h3>
+<h3>🛠️ 基盤・社内ツール (5本)</h3>
 <ul class="skill-list">
-<li><strong>売上 CSV 取込</strong> — VB.NET 5,489行を Python 移植。10分毎ポーリング</li>
-<li><strong>FAX 履歴収集 + Web ビュアー</strong> — 複合機履歴の蓄積・検索</li>
+<li><strong>売上 CSV 取込</strong> — VB.NET 5,489行を Python 移植。7月に月〜土10分毎の常時稼働へ強化し、concurrency ENQUEUE + 90分タイムアウトの二重防御で多重起動事故を防止</li>
+<li><strong>FAX 送信履歴収集 + Web ビュアー</strong> — 複合機履歴の蓄積・検索</li>
+<li><strong>FAX 受信履歴収集</strong> <code>NEW</code> — 受信履歴も SQLite に蓄積する新規ジョブ (2026年7月6日追加)</li>
 <li><strong>FAX アドレス帳同期</strong> — 全社の宛先表を自動統一</li>
 <li><strong>社内ドキュメント検索</strong> — 横断検索ツール</li>
-<li><strong>その他 運用支援ジョブ</strong> — ログ収集・ヘルスチェック等</li>
 </ul>
+
+<h3>🧩 運用基盤の一元化 <code>NEW</code> (3本)</h3>
+<ul class="skill-list">
+<li><strong>up_dbsync 差分同期</strong> — SQL Server (販売管理DB等) から MySQL raw テーブルへの差分コピーを、独自 cron (15分毎) から Prefect 起動に移行</li>
+<li><strong>up_dbsync 洗い替え更新</strong> — raw テーブルの全件洗い替えバッチを同じく Prefect に統合</li>
+<li><strong>up_hub raw受け皿展開</strong> — 別コンテナ (Laravel) の artisan コマンドを 5分間隔で Prefect から起動し、raw テーブルを正規業務テーブルへ展開</li>
+</ul>
+<p class="chart-note">この3本は、automation-jobs とは別ランタイムで動いていた up_hub (Laravel Schedule) と up_dbsync (独自cron) のスケジューリングを Prefect に一元集約する取り組みの第一弾。
+「どこで何が起動しているか分からない」状態を解消し、Prefect を全社の <strong>単一管制盤</strong> にする方針で 2026年6月末から着手。</p>
 </section>
 
 <section>
