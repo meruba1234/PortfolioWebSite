@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>経歴のあゆみ — SkillShowcase</title>
 <link href="style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="経歴のあゆみ — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -48,109 +48,18 @@
 <main class="main-content">
 <section>
 <h2>経歴のあゆみ</h2>
-<p>未経験からプログラミングを学び始めて、現在は社内SEとして業務基盤を一人で構築・運用しています。
-                試行錯誤の連続でしたが、一歩ずつ積み上げてきた軌跡です。</p>
+<p>職業訓練で学んだ基礎を、社内SEとしての業務改善・システム開発につなげてきました。</p>
 </section>
-<section>
-<div class="timeline">
-<div class="timeline-item">
-<div class="timeline-date">2022年頃</div>
-<h3>ポリテクセンターでプログラミング基礎を学ぶ</h3>
-<p>職業訓練校 (ポリテクセンター) でプログラミングの基礎を学習。
-                        HTML / CSS / JavaScript / Java / Android アプリ開発などをカリキュラムに沿って習得。</p>
-<p>当時の成果物として、クイズアプリ <strong>QuizVoyage</strong> を Android で開発。
-                        本ポートフォリオサイトの原型もこの時期に手書きで作成 (生成AIなし、純粋な手作り)。</p>
-</div>
-<div class="timeline-item">
-<div class="timeline-date">入社〜2025年8月頃</div>
-<h3>社内SE として実務経験を積む</h3>
-<p>卸売業の社内システム部門に入社。販売管理システムの保守・改修や、現場からの問い合わせ対応を担当。</p>
-<p>既存システム (VB.NET / SQL Server / VBA) のコードを読み解きながら、徐々に業務全体像を把握。</p>
-</div>
-<div class="timeline-item">
-<div class="timeline-date">2025年9月〜2025年11月</div>
-<h3>既存システムの解読と最初の自動化</h3>
-<p>販売管理システム (VB.NET) のソースコードを分析し、複雑な金額計算ロジックを Python に移植。</p>
-<p>入社してから約1年間かけて既存システム (VB.NET / 販売管理 DB) の全体像を把握し、
-                        <strong>2025年9月から本格的な自社開発</strong>を開始。「受注振分け表 Excel VBA」と
-                        「入金消込処理 Excel VBA」の2大プロジェクトを並行して進めた。</p>
-<p>11月18日には振分け表の稼働版 (振分け表_1117更新.xlsm) を完成させ、
-                        続いて「受注CSV取込」の Python 版初版も完成。
-                        ベンダー依頼すれば数十万円かかる改修を、自社内で実現できる体制の第一歩となった。</p>
-<p>この時期はまだ git 導入前で、共有フォルダ上で直接開発。仕様書・操作マニュアルを
-                        成果物と同時に書く習慣はこの頃から確立していた。
-                        <strong>2025年12月23日</strong>、受注CSV取込を <code>sales-order-entry</code> リポジトリとして
-                        CodeCommit に登録したのが、最初の git コミット。以降 2026年1月末までに全成果物を git 管理へ順次移行。</p>
-</div>
-<div class="timeline-item">
-<div class="timeline-date">2026年1月</div>
-<h3>異常受注検知システム / 入金消込 VBA</h3>
-<p>受注データの異常値を自動検知するシステムを、ゼロから1週間で初期版リリース。</p>
-<p>同時期、経理向けの入金消込 Excel VBA システムも完成。
-                        SQL Server 連携と 4,095通りの部分和探索で消込判定を自動化。
-                        以降、4ヶ月にわたって継続的に改善。</p>
-</div>
-<div class="timeline-item">
-<div class="timeline-date">2026年2月</div>
-<h3>評価シート最高評価 (5/5)</h3>
-<p>上長による業務評価で、業務遂行・自己啓発・主体性・勤怠すべて 5/5 の総合最高評価を取得。
-                        「今後も貢献してほしい」「社内SEとして期待」というコメントを受ける。</p>
-</div>
-<div class="timeline-item">
-<div class="timeline-date">2026年3月〜4月</div>
-<h3>自動化基盤の構築 (Prefect / Linux サーバー)</h3>
-<p>Windows PC ローカル運用から、Ubuntu Linux サーバー (Docker Compose + Prefect 3.x) への移行を計画・実行。</p>
-<p>二重稼働期間を経て本番運用化。
-                        nginx リバースプロキシ、watchdog 二段構え、ゾンビ run 自動 Cancel など、運用面の安定化施策まで一人で実装。</p>
-</div>
-<div class="timeline-item">
-<div class="timeline-date">2026年4月〜現在</div>
-<h3>業務自動化ジョブの大量追加</h3>
-<p>整備した基盤の上に、各種業務自動化ジョブを追加。
-                        EOS 受注処理 (4社)、ゼンショー EDI 発注、取引先A 追加返品処理、BI ツール連携、月次請求書作成など、
-                        9ヶ月で <strong>19本以上のジョブ</strong>を構築・運用。</p>
-<p>同時期に AI (Claude) を業務開発の基盤に組み込み、仕様書生成・コードレビュー・障害対応の速度を数倍に向上。
-                        カスタムスキル (社内ドキュメントテンプレート、ログ実装指針など) を自作して継続的に拡張。</p>
-</div>
-<div class="timeline-item">
-<div class="timeline-date">2026年6月</div>
-<h3>業務改善実績の体系化</h3>
-<p>5W1H + 残業換算 + ROI で業務改善実績を継続的に記録する仕組みを整備。
-                        過去の実績を匿名化してポートフォリオ化し、本サイトに公開。</p>
-<p>直近10ヶ月の総コミット数は <strong>715件</strong> (6月単月で337件)、稼働ジョブ数 <strong>24本</strong>
-                        社内合計の月間削減時間 <strong>90〜140時間</strong>、年間人件費削減効果 <strong>200万円以上</strong>を達成。</p>
-</div>
-<div class="timeline-item">
-<div class="timeline-date">2026年7月</div>
-<h3>ポートフォリオサイト全面リニューアル + 実績データ公開</h3>
-<p>ポリテク時代に手書きで作った本サイトを、AI を活用して全面リニューアル
-(ダークモード / モバイル対応 / モダン UI)。git 履歴から自動集計した開発活動データを
-「実績データ」ページとして公開し、11件のケーススタディと合わせて実績を透明化。</p>
-<p>2026年6月は単月 <strong>337 コミット</strong>で過去最多を記録。業務改善 7 案件
-(投入工数 262時間) を同月に完了し、開発と記録のサイクルが完全に定着した。</p>
-</div>
-<div class="timeline-item">
-<div class="timeline-date">2026年7月 (現在)</div>
-<h3>運用基盤の一元化に着手 + 信頼性エンジニアリングの強化</h3>
-<p>automation-jobs (Prefect) とは別ランタイムで動いていた <strong>up_hub (Laravel Schedule)</strong> と
-<strong>up_dbsync (独自cron)</strong> のスケジューリングを、Prefect を「単一管制盤」として一元集約する取り組みを開始。
-3本の新規ジョブ (差分同期・洗い替え更新・raw受け皿展開) を追加し、
-「どこで何が起動しているか分からない」状態の解消に着手した。</p>
-<p>既存ジョブの信頼性強化も継続。売上CSV取込は月〜土10分毎の常時稼働に切り替え、
-concurrency ENQUEUE + 90分タイムアウトの二重防御で多重起動事故を防止。
-異常受注検知は出荷規制対応で検知条件を商品CD/仕入先CD単位に再調整し、判定精度を継続的に磨いている。</p>
-<p>10ヶ月の総コミット数は <strong>741件</strong>、稼働ジョブ数 <strong>25本</strong>に到達
-(7月は月初1週間で36件のペース)。</p>
-</div>
-</div>
-</section>
-<section>
-<h2>これまでの学びと今後</h2>
-<p>未経験から始めて4年、社内SE として実務に取り組んで2年弱。試行錯誤の中で「コードを書ける」だけでなく、
-                「業務を理解して仕組みに落とし込む」「設計方針とドキュメントを並走更新する」「運用・障害対応も含めて責任を持つ」という
-                エンジニアの幅を広げてきました。</p>
-<p>今後も、AI を活用しながら業務基盤を磨き続けて、現場の「面倒くさい」を「自動」に変えていきたいと考えています。</p>
-</section>
+<section><div class="timeline">
+<div class="timeline-item"><div class="timeline-date">2023年8月〜2024年2月</div><h3>ポリテクセンター北海道で学習</h3><p>ものづくりプログラム科で C、Java、PHP、HTML/CSS、Linux、データベース、ネットワーク、Android、IoT連携を実習。学習成果としてクイズアプリ QuizVoyage を開発しました。</p></div>
+<div class="timeline-item"><div class="timeline-date">2025年9月〜2026年8月</div><h3>派遣先の事務システム部で社内SEを担当</h3><p>営業・物流・経理等へのヒアリング、業務システム開発、定型処理の自動化、社内Webツール、PC管理・問い合わせ対応に従事。要件整理から設計・実装・導入後の改善まで対応しました。</p></div>
+<div class="timeline-item"><div class="timeline-date">2025年9月〜12月</div><h3>既存システムの解析と業務自動化</h3><p>VB.NET・VBAと販売管理DBを調査し、受注振分け表やCSV取込処理を開発。金額計算等の業務ロジックを整理し、Pythonへの段階的な移植を進めました。2025年12月23日にGit管理を開始し、2026年1月末にかけて成果物を順次移行しました。</p></div>
+<div class="timeline-item"><div class="timeline-date">2026年1月〜4月</div><h3>入金消込・異常受注検知を開発</h3><p>Excel VBAとSQL Serverを連携させ、入金額と回収予定の組合せを照合する仕組みを実装。異常受注検知は約1週間で初期版を開発し、業務担当者の確認を踏まえて継続改善しました。</p></div>
+<div class="timeline-item"><div class="timeline-date">2026年3月〜7月の取組</div><h3>自動化基盤と業務連携を拡充</h3><p>Docker Compose・PrefectによるLinux上のジョブ管理基盤を構築。既存処理の段階移行、ログ・通知、多重起動対策、タイムアウト等を整備しました。受発注連携、帳票生成、FAX履歴検索、商品不足情報の共有にも取り組みました。</p></div>
+<div class="timeline-item"><div class="timeline-date">2026年7月</div><h3>開発実績をポートフォリオに整理</h3><p>業務改善の背景、担当した実装、設計上の判断を11件のケーススタディに整理。開発活動の集計は7月8日時点の記録であり、現在の稼働状況を示すものではありません。</p></div>
+<div class="timeline-item"><div class="timeline-date">2026年8月</div><h3>社内SEとしての当該勤務を終了</h3><p>本サイトの業務事例は、2025年9月〜2026年8月の在職中の取組を紹介しています。移行・レビューが当時継続中だった案件について、全工程完了を意味する記載はしていません。</p></div>
+</div></section>
+<section><h2>今後に活かしたい経験</h2><p>業務を理解して仕組みに落とし込むこと、実装とドキュメントを並行して更新すること、運用・問い合わせ対応まで考えることを大切にしています。業務システムの開発・保守と業務改善に、これまでの経験を活かしていきたいと考えています。</p></section>
 <footer>
 <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
 </footer>

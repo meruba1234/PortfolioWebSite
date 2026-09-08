@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>取引先C 月次請求金額内訳レポート — SkillShowcase</title>
 <link href="../style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="取引先C 月次請求金額内訳レポート — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -46,6 +46,7 @@
 <button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
 </header>
 <main class="main-content">
+<p class="note">在職中の事例（主に2026年7月時点の記録）です。現在の稼働状況を示すものではありません。背景の作業時間・処理性能等は当時の記載に基づく参考情報で、計測票の照合は未実施です。削減金額や無事故を保証するものではありません。</p>
 <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
 <section>
 <h2>取引先C 月次請求金額内訳レポート</h2>
@@ -80,7 +81,7 @@
 <ul class="skill-list">
 <li>営業事務が共有フォルダの .bat ファイルをダブルクリック</li>
 <li>黒い画面で集計期間 (開始月・終了月) を入力</li>
-<li>235 サーバーの Prefect API を叩いて Flow を起動</li>
+<li>移行先 サーバーの Prefect API を叩いて Flow を起動</li>
 <li>完了するとレポートが共有フォルダに出力される</li>
 </ul>
 <h3>2. データ取得 (readonly DB)</h3>
@@ -104,42 +105,13 @@
 <li>Script 層のロジックは他の月次レポートでも再利用可能</li>
 </ul>
 </section>
-<section>
-<h2>効果</h2>
-<table class="impact-table">
-<thead>
-<tr><th>項目</th><th>Before</th><th>After</th></tr>
-</thead>
-<tbody>
-<tr>
-<td>レポート作成時間</td>
-<td>約1時間/月 (手作業)</td>
-<td>約2分 (bat 起動→完成)</td>
-</tr>
-<tr>
-<td>集計ミスリスク</td>
-<td>数式組み直しでミス発生しうる</td>
-<td>ゼロ (コードで一元管理)</td>
-</tr>
-<tr>
-<td>PDF 品質</td>
-<td>Excel→PDF 手動変換でレイアウト崩れあり</td>
-<td>担当 PC で再生成して高品質維持</td>
-</tr>
-<tr class="highlight">
-<td>営業事務の操作</td>
-<td>Excel 開いて集計・書式調整</td>
-<td><strong>bat ダブルクリック + 期間入力のみ</strong></td>
-</tr>
-</tbody>
-</table>
-</section>
+<section><h2>実装した成果と範囲</h2><p>集計期間の入力から税区分別集計、Excel・PDF出力までを一連の処理にまとめました。</p></section>
 <section>
 <h2>得られた学び</h2>
 <ul>
 <li><strong>業務側のスキルレベルに合わせた起動経路</strong> — 「bat ダブルクリック + 黒い画面で入力」は技術的にはローテクだが、営業事務さんが迷わず使える最強の UI</li>
-<li><strong>PDF 品質の2段構え</strong> — Linux で生成した PDF はレイアウトが微妙なことがある。Windows 担当 PC で win32com 再生成する経路を持つことで、品質保証</li>
-<li><strong>readonly ユーザーでの DB 接続</strong> — 集計系ジョブは絶対に書き込まないため、専用 readonly ユーザーを使う設計で誤更新事故をゼロに</li>
+<li><strong>PDF 品質の2段構え</strong> — Linux で生成した PDF はレイアウトが微妙なことがある。Windows 担当 PC で win32com 再生成する経路を持つことで、品質確認</li>
+<li><strong>readonly ユーザーでの DB 接続</strong> — 集計系ジョブは絶対に書き込まないため、専用 readonly ユーザーを使う設計で誤更新のリスクを抑制</li>
 </ul>
 </section>
 <p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>

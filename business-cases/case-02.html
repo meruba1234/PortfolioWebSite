@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>経理 入金消込処理 Excel VBA — SkillShowcase</title>
 <link href="../style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="経理 入金消込処理 Excel VBA — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -46,6 +46,7 @@
 <button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
 </header>
 <main class="main-content">
+<p class="note">在職中の事例（主に2026年7月時点の記録）です。現在の稼働状況を示すものではありません。背景の作業時間・処理性能等は当時の記載に基づく参考情報で、計測票の照合は未実施です。削減金額や無事故を保証するものではありません。</p>
 <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
 <section>
 <h2>経理 入金消込処理 Excel VBA</h2>
@@ -96,46 +97,7 @@
 <li>フィルタ適用中の安全な動作 (チェックボックス形式は復元、それ以外は警告)</li>
 </ul>
 </section>
-<section>
-<h2>効果</h2>
-<table class="impact-table">
-<thead>
-<tr><th>項目</th><th>Before</th><th>After</th><th>削減量</th></tr>
-</thead>
-<tbody>
-<tr>
-<td>消込判定</td>
-<td>手作業で組み合わせ探索</td>
-<td>4,095通り自動探索 (1秒)</td>
-<td>判断時間ほぼゼロ</td>
-</tr>
-<tr>
-<td>得意先名・担当者名の確認</td>
-<td>別画面で都度確認</td>
-<td>自動表示</td>
-<td>画面切替不要</td>
-</tr>
-<tr class="highlight">
-<td>消込作業時間</td>
-<td>数時間/日</td>
-<td>確認のみ (30分程度)</td>
-<td><strong>月20〜40時間</strong></td>
-</tr>
-<tr>
-<td>判定ミス・戻り作業</td>
-<td>頻発</td>
-<td>大幅削減</td>
-<td>後工程の品質向上</td>
-</tr>
-<tr>
-<td>属人化</td>
-<td>ベテランのみ正確</td>
-<td>新人でも操作可能</td>
-<td>業務継続性向上</td>
-</tr>
-</tbody>
-</table>
-</section>
+<section><h2>実装した成果と範囲</h2><p>入金額と回収予定の組合せ照合、色分け表示、確認後のDB登録をExcel上にまとめました。最終確認は担当者が行う設計です。</p></section>
 <section>
 <h2>継続的改善 (4ヶ月の保守履歴)</h2>
 <p>このシステムは「作って終わり」ではなく、現場のフィードバックを受けて4ヶ月にわたり改善を続けています。</p>
@@ -150,7 +112,7 @@
 <section>
 <h2>得られた学び</h2>
 <ul>
-<li><strong>「枯れた技術」が一番強い場合がある</strong> — Excel VBA は時代遅れと見られがちだが、現場が日々触っているツールで完結することで、教育コスト・移行コストがゼロ</li>
+<li><strong>「枯れた技術」が一番強い場合がある</strong> — Excel VBA は時代遅れと見られがちだが、現場が日々触っているツールで完結することで、新たな操作習得や移行の負担を抑えられる</li>
 <li><strong>アルゴリズムは小さくても効く</strong> — 4,095通りの部分和探索は学部1年レベルだが、現場では「考えなくていい状態」を作る決定打になる</li>
 <li><strong>ドキュメント並走更新の習慣</strong> — コード追加と同時に仕様書・マニュアルも更新するルールを徹底することで、3年後の自分や引き継ぎ担当者を救う</li>
 <li><strong>UI への気配り</strong> — 「対象シート名一覧をダイアログに表示する」だけの修正でも、誤操作リスクを大幅に減らせる</li>

@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>取引先A 追加返品処理 自動化 — SkillShowcase</title>
 <link href="../style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="取引先A 追加返品処理 自動化 — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -46,6 +46,7 @@
 <button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
 </header>
 <main class="main-content">
+<p class="note">在職中の事例（主に2026年7月時点の記録）です。現在の稼働状況を示すものではありません。背景の作業時間・処理性能等は当時の記載に基づく参考情報で、計測票の照合は未実施です。削減金額や無事故を保証するものではありません。</p>
 <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
 <section>
 <h2>取引先A 追加返品処理 自動化</h2>
@@ -84,63 +85,9 @@
 </ul>
 <p>当初は kintone API 経由で実装していましたが、業務側の検算ロジック (店舗コード正規化、振替コード判定など) が画面側に埋め込まれていたため、後に Playwright での画面入力代行に一本化しました。</p>
 </section>
-<section>
-<h2>効果</h2>
-<table class="impact-table">
-<thead>
-<tr><th>項目</th><th>Before</th><th>After</th><th>削減量</th></tr>
-</thead>
-<tbody>
-<tr>
-<td>1回あたりの作業時間</td>
-<td>1〜2時間/日</td>
-<td>5分/日 (結果確認のみ)</td>
-<td>約1.5時間/日</td>
-</tr>
-<tr class="highlight">
-<td>月あたり残業時間</td>
-<td>30時間/月</td>
-<td>0時間/月</td>
-<td><strong>30時間/月</strong></td>
-</tr>
-<tr class="highlight">
-<td>残業代換算 (時給×1.25)</td>
-<td>約6.75万円/月</td>
-<td>0円</td>
-<td><strong>約 81万円/年</strong></td>
-</tr>
-<tr>
-<td>入力ミス・確定漏れ</td>
-<td>月1〜2件発生</td>
-<td>ゼロ件</td>
-<td>品質向上</td>
-</tr>
-<tr>
-<td>担当者休業時の業務継続</td>
-<td>業務停止</td>
-<td>自動継続</td>
-<td>属人化解消</td>
-</tr>
-</tbody>
-</table>
-</section>
-<section>
-<h2>投資対効果 (ROI)</h2>
-<ul class="skill-list">
-<li>投入工数: 約85時間 (設計10h + 実装50h + テスト15h + ドキュメント10h)</li>
-<li>投入工数の人件費換算: 約17万円</li>
-<li>初年度削減効果: 約81万円</li>
-<li><strong>初年度 ROI: 約4.8倍</strong></li>
-<li>2年目以降: ほぼ丸ごと利益 (保守は年数時間程度)</li>
-</ul>
-</section>
-<section>
-<h2>業務側からの声</h2>
-<blockquote style="background:#f0f9ff;border-left:4px solid var(--primary);padding:12px 18px;margin:16px 0;border-radius:4px;">
-                    「朝のバタバタが無くなって本当に助かっています。もうこの自動化なしでは仕事できないです。」
-                    <br/><span style="font-size:0.9em;color:var(--muted);">— 営業事務担当 (本番稼働1ヶ月後)</span>
-</blockquote>
-</section>
+<section><h2>実装した成果と範囲</h2><p>日次データ取得から画面入力・検証・通知までを自動処理にまとめ、担当者が結果確認に集中できる形にしました。</p></section>
+
+
 <section>
 <h2>得られた学び</h2>
 <ul>

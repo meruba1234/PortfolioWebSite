@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>BI ツール × 出荷目安レポート — SkillShowcase</title>
 <link href="../style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="BI ツール × 出荷目安レポート — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -46,6 +46,7 @@
 <button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
 </header>
 <main class="main-content">
+<p class="note">在職中の事例（主に2026年7月時点の記録）です。現在の稼働状況を示すものではありません。背景の作業時間・処理性能等は当時の記載に基づく参考情報で、計測票の照合は未実施です。削減金額や無事故を保証するものではありません。</p>
 <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
 <section>
 <h2>BIツール × 仕入先出荷目安 突合レポート</h2>
@@ -100,44 +101,10 @@
 <h3>5. アーキテクチャ</h3>
 <ul class="skill-list">
 <li>Flow 層 (Prefect 統合 + subprocess 起動) と Script 層 (業務ロジック) を別リポジトリに分離</li>
-<li>Script 層は他ジョブ (大三西澤商店レポート等) でも再利用できる設計</li>
+<li>Script 層は他ジョブ (取引先Cレポート等) でも再利用できる設計</li>
 </ul>
 </section>
-<section>
-<h2>効果</h2>
-<table class="impact-table">
-<thead>
-<tr><th>項目</th><th>Before</th><th>After</th></tr>
-</thead>
-<tbody>
-<tr>
-<td>BIツールから売上 DL</td>
-<td>3社 × 手動 ≒ 30分</td>
-<td>自動 (約2分)</td>
-</tr>
-<tr>
-<td>商品コード突合</td>
-<td>手作業で照合</td>
-<td>互換コード自動変換</td>
-</tr>
-<tr>
-<td>ケース換算</td>
-<td>手計算で電卓</td>
-<td>DB 自動取得</td>
-</tr>
-<tr class="highlight">
-<td>合計レポート作成時間</td>
-<td>約2時間/月</td>
-<td><strong>約5分/月 (DL→確認のみ)</strong></td>
-</tr>
-<tr>
-<td>計算ミスリスク</td>
-<td>手計算でミス発生しうる</td>
-<td>自動化でゼロ</td>
-</tr>
-</tbody>
-</table>
-</section>
+<section><h2>実装した成果と範囲</h2><p>データ取得・商品コード変換・ケース換算・レポート出力を一連の処理にまとめました。</p></section>
 <section>
 <h2>得られた学び</h2>
 <ul>

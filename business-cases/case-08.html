@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>EOS受注 マルチサプライヤー自動化 — SkillShowcase</title>
 <link href="../style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="EOS受注 マルチサプライヤー自動化 — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -46,6 +46,7 @@
 <button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
 </header>
 <main class="main-content">
+<p class="note">在職中の事例（主に2026年7月時点の記録）です。現在の稼働状況を示すものではありません。背景の作業時間・処理性能等は当時の記載に基づく参考情報で、計測票の照合は未実施です。削減金額や無事故を保証するものではありません。</p>
 <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
 <section>
 <h2>EOS受注 マルチサプライヤー自動化 (4社一括)</h2>
@@ -64,9 +65,9 @@
 <h2>背景・課題</h2>
 <p>大手取引先各社は EOS (電子発注システム) を採用しており、毎週決まった曜日に受注確認・出荷確定のための Web 画面操作が必要でした。</p>
 <ul>
-<li>取引先 D (水産): 月水金 09:30 にサプライヤーサイトから受注 CSV ダウンロード</li>
-<li>取引先 E (グループA): 月金 11:00 に EOS データを取り込み、DB の M_EOS* マスタに登録</li>
-<li>取引先 F + 取引先 G (グループ会社、ベーカリー系): 火曜 09:00 にグループ一括配信の受注 CSV をダウンロード、火曜 11:30 に出荷確定 CSV アップロード</li>
+<li>取引先 D (水産): 月水金 所定時刻 にサプライヤーサイトから受注 CSV ダウンロード</li>
+<li>取引先 E (グループA): 月金 所定時刻 に EOS データを取り込み、DB の M_EOS* マスタに登録</li>
+<li>取引先 F + 取引先 G (グループ会社、ベーカリー系): 火曜 所定時刻 にグループ一括配信の受注 CSV をダウンロード、火曜 所定時刻 に出荷確定 CSV アップロード</li>
 </ul>
 <p>すべて手動運用だと、担当者が時間に縛られ、休めない・ミスると取引先トラブルというストレスフルな状況でした。</p>
 </section>
@@ -75,7 +76,7 @@
 <h3>1. 各サイトを個別に Playwright で攻略</h3>
 <p>各サプライヤーサイトは UI も認証もまったく異なるため、それぞれ個別に Playwright スクリプトを設計。</p>
 <ul class="skill-list">
-<li><strong>取引先 D (水産)</strong> — シンプルなログイン後、月水金 09:30 のスケジュール実行</li>
+<li><strong>取引先 D (水産)</strong> — シンプルなログイン後、月水金 所定時刻 のスケジュール実行</li>
 <li><strong>取引先 E (グループA)</strong> — 既存ツール (MasterMainte.exe) の代替として、DB の M_EOS業者変換 / M_EOS商品変換 / M_EOS数量換算 に自動追加登録</li>
 <li><strong>取引先 F + G</strong> — グループ一括配信のため 1ジョブで両社分一度に取得 (受注 + 出荷確定の2 Flow に分離)</li>
 </ul>
@@ -102,41 +103,7 @@
 <li>失敗時の WARNING は件数のみ通知 (詳細は Prefect UI で確認)</li>
 </ul>
 </section>
-<section>
-<h2>効果</h2>
-<table class="impact-table">
-<thead>
-<tr><th>項目</th><th>Before</th><th>After</th></tr>
-</thead>
-<tbody>
-<tr>
-<td>担当者のサイト操作時間</td>
-<td>4社 × 15〜30分 × 週2〜3回</td>
-<td>ゼロ (確認のみ)</td>
-</tr>
-<tr class="highlight">
-<td>月間削減時間</td>
-<td>—</td>
-<td><strong>約15時間/月</strong></td>
-</tr>
-<tr>
-<td>時間制約</td>
-<td>決まった時間に必ず PC 前にいる必要</td>
-<td>スケジュール実行で解放</td>
-</tr>
-<tr>
-<td>担当者休暇時の業務継続</td>
-<td>引き継ぎ必須・ミスリスク</td>
-<td>自動継続</td>
-</tr>
-<tr>
-<td>取引先トラブルリスク</td>
-<td>処理漏れ・遅延あり</td>
-<td>スケジュール厳守で大幅削減</td>
-</tr>
-</tbody>
-</table>
-</section>
+<section><h2>実装した成果と範囲</h2><p>複数取引先の受注取得、マスタ連携、出荷確定を定期処理に整理しました。</p></section>
 <section>
 <h2>得られた学び</h2>
 <ul>

@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>商品不足管理サイト — SkillShowcase</title>
 <link href="../style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="商品不足管理サイト — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。19本以上の自動化ジョブ、11件のケーススタディを公開中。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -46,10 +46,11 @@
 <button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
 </header>
 <main class="main-content">
+<p class="note">在職中の事例（主に2026年7月時点の記録）です。現在の稼働状況を示すものではありません。背景の作業時間・処理性能等は当時の記載に基づく参考情報で、計測票の照合は未実施です。削減金額や無事故を保証するものではありません。</p>
 <p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
 <section>
 <h2>商品不足管理サイト</h2>
-<p>欠品予兆のある商品を Web で一覧化し、商品部・営業部が状況をリアルタイムに共有・対応できるシステム。差分10分毎 + 全件毎日6:05の自動更新で常に最新状態。</p>
+<p>欠品予兆のある商品を Web で一覧化し、商品部・営業部が状況をリアルタイムに共有・対応できるシステム。差分10分毎 + 全件毎日所定時刻の自動更新で常に最新状態。</p>
 <div class="case-meta">
 <dl>
 <dt>業種</dt><dd>卸売業 (社内 Web ツール)</dd>
@@ -81,7 +82,7 @@
 <h3>1. 差分検出 + 全件再構築のハイブリッド更新</h3>
 <ul class="skill-list">
 <li><strong>差分 10分毎</strong>: 直近変動を検出して即時反映 (Prefect Flow)</li>
-<li><strong>全件再構築 毎日 6:05</strong>: 整合性を保つために日次でフルスキャン</li>
+<li><strong>全件再構築 毎日 所定時刻</strong>: 整合性を保つために日次でフルスキャン</li>
 <li>差分処理だけだと過去データの逆転を見逃すため、両方を組み合わせ</li>
 </ul>
 <h3>2. SQLite による軽量永続化</h3>
@@ -98,7 +99,7 @@
 </ul>
 <h3>4. 配信基盤</h3>
 <ul class="skill-list">
-<li>235 サーバー上で nginx + Flask</li>
+<li>移行先 サーバー上で nginx + Flask</li>
 <li>URL は <code>/shortage/</code> で社内 8082 ポートから提供</li>
 <li>運用ジョブ (diff / full) は Prefect Deployment 登録済み</li>
 </ul>
@@ -108,45 +109,11 @@
 <li>滞留フラグは販管側にないため、shortage_master_sync 基盤に乗せる設計を選択</li>
 </ul>
 </section>
-<section>
-<h2>効果</h2>
-<table class="impact-table">
-<thead>
-<tr><th>項目</th><th>Before</th><th>After</th></tr>
-</thead>
-<tbody>
-<tr>
-<td>不足商品の確認</td>
-<td>各自が販管を叩いて手作業</td>
-<td>Web 1 画面で全件一覧</td>
-</tr>
-<tr>
-<td>商品部と営業部の情報共有</td>
-<td>口頭・メール・タイムラグあり</td>
-<td>同じ画面でリアルタイム共有</td>
-</tr>
-<tr class="highlight">
-<td>欠品見落としリスク</td>
-<td>頻発</td>
-<td><strong>大幅削減 (10分毎更新)</strong></td>
-</tr>
-<tr>
-<td>判断基準の統一</td>
-<td>担当者依存</td>
-<td>システムで一元化</td>
-</tr>
-<tr>
-<td>営業の機会損失</td>
-<td>気づいた時には在庫切れ</td>
-<td>早期把握 → 早期対応</td>
-</tr>
-</tbody>
-</table>
-</section>
+<section><h2>実装した成果と範囲</h2><p>商品不足情報を共有するWeb画面と定期更新処理を開発。記録時点では業務部門のレビュー中で、全社定着・レビュー完了を示すものではありません。</p></section>
 <section>
 <h2>得られた学び</h2>
 <ul>
-<li><strong>差分処理だけでは不完全</strong> — 差分検出はリアルタイム性が高いが、過去データの遡及変更を見逃す。日次フルスキャンとの組み合わせで整合性を保証</li>
+<li><strong>差分処理だけでは不完全</strong> — 差分検出はリアルタイム性が高いが、過去データの遡及変更を見逃す。日次フルスキャンとの組み合わせで整合性を確認</li>
 <li><strong>重い DB と軽い表示用 DB の分離</strong> — 販管 SQL Server (重い) を Web 表示で叩くのは危険。SQLite に集計済みデータを置くことで Web 応答速度と DB 負荷の両立</li>
 <li><strong>カード型 UI の柔軟性</strong> — 状態が多次元 (商品 × 担当者 × ステータス) なデータは、テーブルよりカード型のほうが業務担当者に好まれる</li>
 <li><strong>業務側のレビューを挟む</strong> — 本番稼働しても「商品部レビュー」フェーズを経て、業務側の声を反映してから完成扱いにする慎重さが信頼を生む</li>
