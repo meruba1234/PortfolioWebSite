@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>バッチ / ETL の安全設計 — 中間ファイル退避・洗い替え・多重起動防止 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="夜間バッチや ETL を安全に運用するための、中間ファイル退避・洗い替え・多重起動防止の設計整理。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="バッチ / ETL の安全設計 — 中間ファイル退避・洗い替え・多重起動防止 — SkillShowcase" property="og:title"/>
+<meta content="夜間バッチや ETL を安全に運用するための、中間ファイル退避・洗い替え・多重起動防止の設計整理。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-batch-etl-safe-design.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-batch-etl-safe-design.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">バッチ設計</span><span class="case-tag">ETL</span><span class="case-tag">運用設計</span></div>
+<h2>バッチ / ETL の安全設計 — 中間ファイル退避・洗い替え・多重起動防止</h2>
+<h3>背景</h3>
+<p>毎日決まった時刻に自動で動くバッチ（受信ファイルを取り込んで DB やレポートを更新する ETL）を作るとき、いちばん怖いのは「途中で失敗したときに元データが壊れる」「何が起きたか後から追えない」「スケジューラが二重に発火して同じ処理が重なる」という 3 つの事故だ。</p>
+<p>処理そのものが正しく書けていても、こういう <strong>運用時の事故</strong> はコードのロジックとは別の層で起きる。ここでは、失敗しても壊れず・追跡でき・多重起動しないバッチにするための定番パターンをまとめる。ポイントは「原本を守る」「状態をフォルダで表す」「冪等にする」「重複と暴走を止める」の 4 つ。</p>
+<h3>原本は絶対に直接書き換えない</h3>
+<p>入力として届いたファイル（受信原本）を、その場で開いて書き換えたり、変換結果で上書きしたりしてはいけない。処理の途中で例外が飛んだ瞬間、原本が中途半端な状態で壊れて、しかも「元々何が届いていたか」も分からなくなる。</p>
+<p>対策はシンプルで、<strong>処理は必ずコピーに対して行う</strong>。</p>
+<pre><code data-lang="">受信原本  ─┬─→ backup/2026-07-09/order_0930.csv   (永久保管・読み取り専用)
+           └─→ processing/order_0930.csv           (ここを加工する)</code></pre>
+<ul class="note-list"><li><code>backup/</code> … 届いたそのままを日付フォルダで永久保管する。後から「元は何が来ていたか」を必ず追えるようにするための証拠。ここには二度と書き込まない。</li><li><code>processing/</code> … 実際の変換・整形はこのコピーだけをいじる。途中で落ちても壊れるのはコピーだけなので、原本破壊はゼロになる。</li></ul>
+<p>「原本 = 触らない証拠」「コピー = 作業場」と役割を分けるのが肝。原本が無事なら、失敗しても何度でもやり直せる。</p>
+<h3>段階をフォルダの遷移で表す</h3>
+<p>処理がどこまで進んだかを、フラグ変数やメモではなく <strong>ファイルの置き場所</strong> で表現すると、状態がひと目で分かり復旧もしやすい。</p>
+<pre><code data-lang="">pending/     … これから処理する待ち行列（トリガー）
+   │  取り込み開始
+   ▼
+processing/  … いま処理中
+   │  成功 ─────────────→ done/        … 完了
+   │  失敗 ─────────────→ failed/2026-07-09/ … 失敗（日付付きで隔離）</code></pre>
+<p>ここで <strong>移動と記録の「順序」を設計する</strong> ことが重要になる。順序を間違えると、失敗時にトリガーファイルだけ消えて「処理された形跡はないのに待ち行列からも消えた」という不整合が起きる。</p>
+<p>たとえば悪い順序と良い順序:</p>
+<pre><code data-lang=""># 悪い例: 先に pending から消してしまう
+os.remove(pending_file)      # ← ここで消す
+do_heavy_work()              # ← ここで落ちると、待ち行列にもどこにも残らない = 消失
+
+# 良い例: 成功を見届けてから最後に状態を進める
+shutil.copy(pending_file, processing_file)  # まずコピー（原本相当は残す）
+do_heavy_work(processing_file)              # 加工はコピーに対して
+shutil.move(processing_file, done_file)     # 成功して初めて done へ
+os.remove(pending_file)                     # 最後にトリガーを消す</code></pre>
+<p>原則は「<strong>確定してから状態を進める / 消す</strong>」。移動（状態遷移）と記録（ログ・DB 反映）のどちらを先にするかを毎回意識し、途中で落ちても必ずどこかのフォルダに証拠が残るようにする。失敗は <code>failed/日付/</code> に隔離しておけば、後から中身を見て原因調査ができる。</p>
+<h3>洗い替え（対象期間だけ全消し・全入れ）</h3>
+<p>集計結果や取り込み済みレコードを更新する方式として、<strong>対象ウィンドウ（期間）内のレコードだけをいったん全削除して、作り直す</strong> やり方がある。これを洗い替えと呼ぶ。</p>
+<pre><code data-lang="">今日の実行: 対象 = 直近 3 日分
+  DELETE  WHERE 日付 BETWEEN 07/07 AND 07/09   ← ウィンドウ内を消して
+  INSERT  最新の 07/07〜07/09 を作り直す        ← 入れ直す</code></pre>
+<p>利点は <strong>冪等性</strong> だ。同じ実行を何回流しても結果が同じになるので、単発の失敗を気にせず「次回の実行がまた取り直す」で自然に回復できる。差分だけ追記する方式のように「二重登録された」「1 回スキップされた」を悩まなくてよい。</p>
+<p>ただし落とし穴がある。<strong>削除するのはあくまでウィンドウ「内」だけ</strong> なので、ウィンドウの外に出た古い結果が消えずに残り続ける。</p>
+<pre><code data-lang="">ウィンドウを 07/07〜07/09 に狭めた後…
+  07/03 の古いレコードは DELETE の条件に入らない → 残ったまま
+  → UI やレポートに「もう更新されない古い数字」が見え続ける事故</code></pre>
+<p>対策としては、(1) 定期的にウィンドウ全体を広げてフル洗い替えする回を混ぜる、(2) ウィンドウ外の古いレコードを別途パージする掃除処理を入れる、(3) 表示側で「対象期間外は出さない」とフィルタする、といった手を組み合わせる。<strong>「消し忘れゾーン」が必ず生まれる</strong> ことを設計時に意識しておくのが大事。</p>
+<h3>多重起動防止（ロックファイル）</h3>
+<p>スケジューラの多重発火や、前回の実行が長引いて次の実行と重なると、同じ入力を二重に処理してしまう。これを防ぐには <strong>ロックファイル</strong> を使う。</p>
+<pre><code data-lang="">起動時:
+  ロックを取れた？
+    ├─ はい → ロックファイルを作成して処理続行
+    └─ いいえ（既に誰かが持っている） → 専用の終了コードで即 exit
+終了時（成功でも失敗でも）:
+  ロックファイルを必ず削除する</code></pre>
+<ul class="note-list"><li>ロックの取得は「作成できたら勝ち」という原子的な操作にする（すでに在れば失敗する形で作る）。</li><li>取れなかったら普通のエラーではなく <strong>専用の終了コード</strong>（例: 75 = 一時的に実行できない、など決め打ち）で抜ける。監視側が「これは二重起動でスキップしただけ」と「本当の失敗」を区別できるようにするため。</li><li>終了時のロック解放は <code>try / finally</code> に入れて、途中で落ちても必ず消えるようにする（消し忘れると次回以降ずっと起動できなくなる＝デッドロック）。古いロックを時刻で無効化する仕組みを足すとさらに安全。</li></ul>
+<h3>暴走防止（タイムアウトの二重ガード）</h3>
+<p>外部コマンドや子プロセスを呼ぶバッチは、相手がハングすると自分も永遠に終わらない。<strong>実行側と監視側の両方にタイムアウト</strong> を仕込む二重ガードにする。</p>
+<pre><code data-lang="">呼び出し側（実行）:
+  subprocess.run([...], timeout=600)   # 子プロセスを 10 分で強制打ち切り
+     → TimeoutExpired を捕まえて failed 扱いにする
+
+監視側（オーケストレータ / スケジューラ）:
+  この処理全体にも別枠のタイムアウトを設定
+     → 実行側のガードをすり抜けても、外側で丸ごと止める</code></pre>
+<p>内側（子プロセス単位）だけだと、親のロジックが別の場所で固まったときに止められない。逆に外側だけだと粒度が粗く、どこで詰まったか分かりにくい。<strong>内側で細かく打ち切り、外側で最後の砦として全体を止める</strong> と、どんな詰まり方でも必ず有限時間で終わる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><strong>原本を直接書き換えない</strong>: 加工は <code>processing/</code> のコピーに対して行い、受信原本は <code>backup/日付/</code> に永久保管する。落ちても壊れるのはコピーだけ、元は必ず追える。</li><li><strong>状態はフォルダ遷移で表す</strong>: <code>pending → processing → done</code>（失敗は <code>failed/日付/</code>）。移動と記録の <strong>順序</strong> を設計し、「確定してから進める / 消す」を徹底して消失を防ぐ。</li><li><strong>洗い替えは冪等で扱いやすいが消し忘れゾーンに注意</strong>: ウィンドウ内だけ全消し全入れは回復が楽。一方でウィンドウ外の古い結果が残るので、フル洗い替え / パージ / 表示フィルタで補う。</li><li><strong>多重起動はロックファイルで防ぐ</strong>: 取れなければ専用終了コードで即 exit、解放は <code>finally</code> で確実に。</li><li><strong>暴走はタイムアウトの二重ガードで止める</strong>: 子プロセスは <code>subprocess.run(timeout=...)</code>、監視側にも別枠のタイムアウト。内側で細かく、外側で最後の砦。</li></ul>
+<p>ロジックが正しいだけでは安全なバッチにはならない。「失敗しても壊れない・追える・重ならない・止まる」を <strong>運用の器（フォルダ構造・ロック・タイムアウト）</strong> の側で担保するのが、毎日安心して回るバッチ設計の勘所。</p>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

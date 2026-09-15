@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>改行コード（CRLF / LF）と Git の autocrlf — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="改行コード (CRLF / LF) と Git の autocrlf。Windows と Linux をまたぐ開発での差分の扱い。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="改行コード（CRLF / LF）と Git の autocrlf — SkillShowcase" property="og:title"/>
+<meta content="改行コード (CRLF / LF) と Git の autocrlf。Windows と Linux をまたぐ開発での差分の扱い。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-git-line-endings.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-git-line-endings.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Git</span><span class="case-tag">改行コード</span><span class="case-tag">クロスプラットフォーム</span></div>
+<h2>改行コード（CRLF / LF）と Git の autocrlf</h2>
+<h3>背景</h3>
+<p>本番共有フォルダにある Windows 用ソース（VB.NET）を、Git リポジトリ（社内の CodeCommit）でバージョン管理し始めたところ、「<strong>本番のソースと Git のソースで改行コードが違う</strong>」と言われた。単純にコピーしただけなのになぜ違うのか、を調べて整理したノート。</p>
+<p>結論を先に言うと、<strong>ファイルコピーが改行を変えたのではなく、Git の設定 <code>core.autocrlf=true</code> がコミット時に改行コードを変換していた</strong>のが原因だった。</p>
+<h3>改行コードとは</h3>
+<p>テキストファイルの「行の終わり」を表す制御文字。OS によって標準が違う。</p>
+<table class="impact-table"><thead><tr><th scope="col">記号</th><th scope="col">正式名</th><th scope="col">バイト</th><th scope="col">主なOS</th></tr></thead><tbody><tr><td><strong>CRLF</strong></td><td>Carriage Return + Line Feed</td><td><code>0D 0A</code>（2バイト）</td><td>Windows</td></tr><tr><td><strong>LF</strong></td><td>Line Feed</td><td><code>0A</code>（1バイト）</td><td>Linux / macOS</td></tr></tbody></table>
+<p>見た目は同じ「改行」でも、中身のバイトが違う。だから中身が同一に見えるファイルでも改行コードが違えば「別物（差分あり）」と判定されることがある。</p>
+<h3>まず大前提：単純なファイルコピーでは改行は変わらない</h3>
+<p>Explorer のコピー＆ペースト、<code>copy</code> / <code>xcopy</code> / <code>robocopy</code>、共有フォルダ（SMB）経由のコピーは <strong>バイト列をそのまま複製する</strong>ので、改行コードも BOM も一切変わらない。Windows→Windows でも同じ。</p>
+<p>改行コードが変わるのは「コピー」そのものではなく、<strong>間に挟まる処理</strong>が原因：</p>
+<ul class="note-list"><li><strong>Git</strong>（<code>core.autocrlf</code> の設定による自動変換）← 今回の犯人</li><li>エディタの保存（メモ帳・VSCode などが別の改行で再保存）</li><li>テキストの<strong>コピペ</strong>（ファイルではなく中身をクリップボード／ターミナル経由で移す）</li><li>PowerShell の <code>Set-Content</code> / <code>Out-File</code> / リダイレクト（CRLF や BOM が付いたり変わる）</li></ul>
+<h3>Git が改行を変換する仕組み（core.autocrlf）</h3>
+<p>Git には改行コードを自動変換する設定 <code>core.autocrlf</code> がある。値は3種類。</p>
+<table class="impact-table"><thead><tr><th scope="col">設定</th><th scope="col">コミット時（add）</th><th scope="col">取り出し時（checkout）</th><th scope="col">リポジトリ内部の保存形</th></tr></thead><tbody><tr><td><strong><code>true</code></strong></td><td><strong>CRLF → LF に変換</strong></td><td>LF → CRLF に戻す</td><td><strong>LF</strong></td></tr><tr><td><code>input</code></td><td>CRLF → LF に変換</td><td>変換しない</td><td>LF</td></tr><tr><td><code>false</code></td><td>変換しない</td><td>変換しない</td><td>元のまま（CRLF なら CRLF）</td></tr></tbody></table>
+<p>ポイント：<strong><code>true</code> は「元が CRLF でも、保存時に LF へ剥がす」</strong>。「リポジトリ内部は LF、手元の作業フォルダは CRLF」という振り分けを自動でやる設定。（Windows 開発者が LF リポジトリに参加するための折衷案）</p>
+<h3>なぜ Git はわざわざ LF に正規化するのか</h3>
+<p>Git はもともと Linux／複数OSでの共同開発のために作られたツール。</p>
+<ol class="note-list"><li><strong>OSが違っても差分が出ないようにするため（最大の理由）</strong></li></ol>
+<p>各自が自分のOSの改行で保存すると、Windows の人と Linux の人が同じファイルを触るたびに「中身は同じなのに全行が変更された」巨大な差分が出る。内部を LF に統一すると起きない。</p>
+<ol class="note-list"><li><strong>diff / merge / blame をきれいに保つため</strong> — 改行が混ざるとマージ衝突や blame 追跡が壊れる。</li><li><strong>Unix 系ツールが CRLF で壊れるのを避けるため</strong> — シェルスクリプトや Makefile は CRLF で動かなくなる。</li></ol>
+<p>→ これは<strong>複数OS開発を前提にした汎用的な思想</strong>。 <strong>Windows 専用プロジェクト</strong>では LF 正規化の恩恵はなく、「リポジトリ ≠ 本番」のズレを生むだけ。</p>
+<h3>実例：3か所を測ると状態が違った</h3>
+<p>同じ 1 ファイルを、3つの場所で改行コードを実測した結果：</p>
+<table class="impact-table"><thead><tr><th scope="col">版</th><th scope="col">改行コード</th><th scope="col">備考</th></tr></thead><tbody><tr><td>本番共有フォルダ（原本）</td><td><strong>CRLF</strong></td><td>Visual Studio 標準</td></tr><tr><td>手元の作業フォルダ（clone した物）</td><td><strong>CRLF</strong></td><td>本番と<strong>バイト単位で完全一致</strong></td></tr><tr><td>Git 内部（＝リポジトリの正本）</td><td><strong>LF</strong></td><td>ここだけ本番と違う</td></tr></tbody></table>
+<ul class="note-list"><li><strong>「手元 vs 本番」は一致</strong>していた（<code>cmp</code> で完全一致）。</li><li><strong>「Git の中身 vs 本番」がズレている</strong>のが実態。</li><li><code>core.autocrlf=true</code> が checkout 時に LF→CRLF に戻すので、手元は本番と一致して<strong>見える</strong>。でもリポジトリの正本は LF になっている。</li></ul>
+<p>だから「CodeCommit の Web 画面で見る」「autocrlf=false の別PCで clone する」など <strong>Git の中身を直接見る経路</strong>だと LF で出てきて、本番の CRLF と「改行が違う」と言われる。</p>
+<h3>確認コマンド（実習）</h3>
+<pre><code data-lang="bash"># ① 手元ファイルの改行を確認（"CRLF line terminators" と出るか）
+file 対象.vb
+
+# ② Git 内部（正本）の改行を確認（0 なら LF 保存、1以上なら CRLF 保存）
+git show HEAD:パス/対象.vb | grep -c $'\r'
+
+# ③ 自分のPCの autocrlf 設定と、どの設定ファイルで効いているかを確認
+git config --show-origin core.autocrlf
+
+# ④ 本番ファイルと手元ファイルをバイト単位で比較（一致なら無出力）
+cmp "本番パス/対象.vb" "手元パス/対象.vb"</code></pre>
+<h3>全員・リポジトリ単位で改行を固定したいなら .gitattributes</h3>
+<p>改行の扱いを決める方法は2種類あり、<strong>置き場所（＝効く範囲）が違う</strong>。</p>
+<table class="impact-table"><thead><tr><th scope="col">方法</th><th scope="col">実体</th><th scope="col">効く範囲</th><th scope="col">clone で伝わるか</th></tr></thead><tbody><tr><td><code>core.autocrlf</code></td><td>Git の <strong>config</strong>（<code>.gitconfig</code> / <code>.git/config</code>）</td><td><strong>そのPC・そのユーザーだけ</strong></td><td>伝わらない</td></tr><tr><td><code>.gitattributes</code></td><td>リポジトリに<strong>コミットするファイル</strong></td><td><strong>リポジトリ全体（全員）</strong></td><td>伝わる</td></tr></tbody></table>
+<ul class="note-list"><li><strong><code>core.autocrlf</code> はローカル設定</strong>。clone しても付いてこないし、CodeCommit でも管理されない。 → 人によって挙動が変わる。</li><li><strong><code>.gitattributes</code> はリモート（CodeCommit）にコミットで入る</strong>ので、誰が clone しても同じ改行ルールが強制される。各PCの autocrlf より優先される。</li></ul>
+<p>Windows 専用プロジェクトで本番（CRLF）と一致させたいなら <code>.gitattributes</code> で CRLF 固定にする：</p>
+<pre><code data-lang="gitattributes">* text=auto eol=crlf
+*.png binary</code></pre>
+<p>既存のリポジトリを揃え直すときは、<code>.gitattributes</code> を追加してから一度だけ：</p>
+<pre><code data-lang="bash">git add --renormalize .
+git commit -m "chore: 改行コードを CRLF に統一（.gitattributes 追加）"</code></pre>
+<p>（改行だけの巨大な diff が1回出るが、中身は変わらないので安全）</p>
+<h3>整理：Git 関連はすべてローカル、共有したい物だけ push</h3>
+<ul class="note-list"><li><code>.gitattributes</code> を作る／<code>git add --renormalize</code>／<code>commit</code> は<strong>すべてローカル</strong>で行う。</li><li><code>push</code> して初めて CodeCommit（リモート）に反映される。</li><li>CodeCommit 側で改行の設定をしたり操作したりすることは<strong>一切ない</strong>。置き場所（リモート）でしかない。</li></ul>
+<h3>まとめ・覚え方</h3>
+<ul class="note-list"><li><strong>単純なコピーは改行を変えない。変えるのは Git・エディタ・PowerShell などの「処理」。</strong></li><li><code>core.autocrlf=true</code> は「<strong>リポジトリは LF、手元は CRLF</strong>」に自動で振り分ける（元が CRLF でも LF に剥がす）。</li><li>だから「手元は本番と一致」「でも Git の正本は LF」という食い違いが起きる。</li><li>覚え方：<strong>「true = 手元だけ Windows 仕様、中身は Linux 仕様（LF）」</strong>。</li><li>全員で改行を揃えたいなら、個人設定（autocrlf）ではなく <strong>リポジトリに入る <code>.gitattributes</code></strong> で固定する。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

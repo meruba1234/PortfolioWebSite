@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>本番 DB を壊さない多層防御 — 権限層で担保する — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="本番 DB を誤って壊さないための多層防御。コードの注意ではなく権限層で担保する。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="本番 DB を壊さない多層防御 — 権限層で担保する — SkillShowcase" property="og:title"/>
+<meta content="本番 DB を誤って壊さないための多層防御。コードの注意ではなく権限層で担保する。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-readonly-db-defense.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-readonly-db-defense.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">SQL Server</span><span class="case-tag">権限設計</span><span class="case-tag">安全設計</span></div>
+<h2>本番 DB を壊さない多層防御 — 権限層で担保する</h2>
+<h3>背景</h3>
+<p>本番 DB を「読むだけ」で使いたい場面はよくある。売上を集計するツール、外部システムの請求書と社内データを突き合わせる照合ツール、レポート生成バッチなど。これらは SELECT しかしないはずだが、コードにバグがあって誤って <code>UPDATE</code> や <code>DELETE</code> を投げてしまえば、本番データが壊れる。壊れたら業務が止まるし、復旧も簡単ではない。</p>
+<p>このとき「アプリのコードはバグらない」という前提だけに賭けるのは弱い。人間もコードもいつか間違える。大事なのは、<strong>1 つの対策が破れても別の層が止めてくれる</strong>ように、防御を重ねること。これを defense in depth（多層防御）と呼ぶ。</p>
+<p>以下、弱い層から強い層まで整理して、どう重ねるかを見ていく。</p>
+<h3>防御の層を整理する</h3>
+<p>読み取り専用ツールで「絶対に書き換えない」を担保する層は、大きく 3 つある。</p>
+<table class="impact-table"><thead><tr><th scope="col">層</th><th scope="col">仕組み</th><th scope="col">誰が止めるか</th><th scope="col">強さ</th></tr></thead><tbody><tr><td>運用層</td><td>接続フラグ・環境変数で「読み取りモード」を明示</td><td>運用・設計者</td><td>弱（宣言的、破れる）</td></tr><tr><td>アプリ層</td><td><code>autocommit=False</code> にして Commit を書かない</td><td>アプリ</td><td>中（変更をロールバック）</td></tr><tr><td>権限層</td><td>DB アカウントに UPDATE/INSERT/DELETE を与えない</td><td>DB エンジン</td><td>強（物理的に弾く）</td></tr></tbody></table>
+<p>ポイントは、<strong>下の行ほど「人の注意」に依存せず、機械が強制してくれる</strong>こと。一番下の権限層が最も信頼できる。</p>
+<h3>権限層 — 最も強い防御</h3>
+<p>いちばん強いのは DB の権限（GRANT）で縛ること。読み取り専用の DB アカウントを 1 つ用意し、そのアカウントには <code>SELECT</code> だけを許可して <code>UPDATE</code> / <code>INSERT</code> / <code>DELETE</code> を一切与えない。</p>
+<pre><code data-lang="sql">-- 読み取り専用ユーザーを作り、SELECT だけ許可する例
+CREATE USER report_reader WITH PASSWORD '********';
+
+-- 参照だけ許可（UPDATE/INSERT/DELETE は付与しない）
+GRANT SELECT ON ALL TABLES IN SCHEMA sales TO report_reader;
+
+-- 将来追加されるテーブルにも自動で SELECT を効かせる
+ALTER DEFAULT PRIVILEGES IN SCHEMA sales GRANT SELECT TO report_reader;</code></pre>
+<p>この状態なら、アプリのコードがバグで誤って <code>UPDATE</code> を発行しても、DB 側が権限エラーで<strong>物理的に弾く</strong>。</p>
+<pre><code data-lang="">ERROR: permission denied for table order_detail</code></pre>
+<p>アプリのバグに関係なく、DB エンジンそのものが「このアカウントは書けない」と拒否する。だから権限層は、アプリの品質に依存しない一番信頼できる防波堤になる。</p>
+<p class="note">ツール側の接続文字列には、この読み取り専用アカウントの資格情報だけを持たせる。書き込み権限のあるアカウントを渡さないことが大前提。</p>
+<h3>アプリ層 — autocommit=False で明示 Commit を封じる</h3>
+<p>権限が理想だが、事情があって書き込み権限つきのアカウントしか使えないこともある。そのときのアプリ側の追加防御が <code>autocommit=False</code>。</p>
+<p>多くの DB ドライバは、明示的に <code>commit()</code> を呼ばないとトランザクションが確定しない。<code>autocommit=False</code> にしておき、コードのどこにも <code>commit()</code> を書かなければ、万一 <code>UPDATE</code> が実行されても接続終了時に<strong>ロールバック</strong>されて無かったことになる。</p>
+<pre><code data-lang="python"># autocommit=False（デフォルト）。commit() を一切書かないポリシー
+conn = connect(dsn, autocommit=False)
+try:
+    cur = conn.execute("SELECT amount FROM order_detail WHERE ...")
+    rows = cur.fetchall()
+    # ここで commit() は絶対に呼ばない
+finally:
+    conn.rollback()   # 変更があっても取り消して閉じる
+    conn.close()</code></pre>
+<p>ただし注意。これは「変更が発生したが確定させない」層であって、権限層ほど強くない。</p>
+<ul class="note-list"><li><code>commit()</code> をうっかり書いてしまえば意味がない（人の注意に依存する）。</li><li>そもそも SELECT しかしないなら確定するものが無いので、効果は限定的。</li><li>DDL（<code>CREATE</code> / <code>DROP</code> など）は DB によっては暗黙コミットされ、ロールバックできないこともある。</li></ul>
+<p>つまりアプリ層は「保険」であって主役ではない。主役はあくまで権限層。</p>
+<h3>運用層 — 読み取りモードを宣言する</h3>
+<p>いちばん外側、運用層は「このツールは読み取り専用だ」と分かる形で明示すること。DB エンジンが強制するわけではないので防御としては弱いが、設計意図がコードや設定に残ることで事故を減らせる。</p>
+<ul class="note-list"><li>自前の環境フラグ（例: <code>DB_MODE=readonly</code>）を接続時にチェックし、書き込み系の関数を呼べないようにする。</li><li>SQL Server なら接続文字列に <code>ApplicationIntent=ReadOnly</code> を付けられる。これは可用性グループ構成で<strong>読み取りレプリカ側へ振り分ける</strong>指定で、参照系の負荷を分散しつつ、書き込みの主系（プライマリ）とは経路が分かれる。</li></ul>
+<pre><code data-lang="">Server=tcp:example-listener,1433;Database=sales_report;
+ApplicationIntent=ReadOnly;</code></pre>
+<p><code>ApplicationIntent=ReadOnly</code> は「読み取り経路に流す」という運用・アーキテクチャ上の分離であって、それ単体でテーブルへの書き込みを禁止する権限制御ではない点に注意。あくまで権限層と組み合わせて使う。</p>
+<h3>多層防御の考え方</h3>
+<p>まとめると、こう重ねる。</p>
+<table class="impact-table"><thead><tr><th scope="col">層</th><th scope="col">役割</th><th scope="col">破られたときに拾ってくれる下の層</th></tr></thead><tbody><tr><td>運用層（read フラグ / ReadOnly intent）</td><td>意図の宣言・経路分離</td><td>アプリ層・権限層</td></tr><tr><td>アプリ層（autocommit=False）</td><td>変更をロールバックする保険</td><td>権限層</td></tr><tr><td>権限層（GRANT SELECT のみ）</td><td>DB が物理的に書き込みを拒否</td><td>（最終防衛線）</td></tr></tbody></table>
+<p>大事なのは <strong>1 つの対策に賭けないこと</strong>。運用フラグを付け忘れても、<code>commit()</code> を書き間違えても、最後に権限層が <code>UPDATE</code> を弾いてくれる。逆に権限層があっても、運用・アプリ層で意図を明示しておけば、そもそも危険なコードが書かれにくくなる。層は互いを補い合う。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>本番 DB を読むだけのツールで「絶対に書き換えない」を担保したいとき、アプリがバグらない前提に頼るのは弱い。層を重ねる（defense in depth）。</li><li>最強の層は<strong>権限</strong>。読み取り専用アカウントに UPDATE/INSERT/DELETE を与えなければ、バグで誤って書き込もうとしても DB が権限エラーで物理的に弾く。</li><li>アプリ層の保険は <code>autocommit=False</code> ＋ Commit を書かないこと。ただし SELECT only なら効果は限定的で、主役にはならない。</li><li>運用層は読み取りモードの宣言。SQL Server の <code>ApplicationIntent=ReadOnly</code> は読み取りレプリカへの経路分離で、負荷分散と書き込み経路の分離に効く（権限制御そのものではない）。</li><li>結論: 権限・トランザクション・運用フラグを重ね、どれか 1 つが破れても他が止める設計にする。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

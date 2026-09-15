@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Playwright ブラウザ自動化 — codegen の限界・壊れにくいセレクタ・iframe・ダウンロード — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Playwright によるブラウザ自動化。codegen の限界、壊れにくいセレクタ、iframe とダウンロード処理。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Playwright ブラウザ自動化 — codegen の限界・壊れにくいセレクタ・iframe・ダウンロード — SkillShowcase" property="og:title"/>
+<meta content="Playwright によるブラウザ自動化。codegen の限界、壊れにくいセレクタ、iframe とダウンロード処理。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-playwright-automation.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-playwright-automation.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Playwright</span><span class="case-tag">自動化</span><span class="case-tag">スクレイピング</span></div>
+<h2>Playwright ブラウザ自動化 — codegen の限界・壊れにくいセレクタ・iframe・ダウンロード</h2>
+<h3>背景</h3>
+<p>社内の Web 画面や外部サイトに対して、「毎回同じ画面を開いて条件を入力し、ボタンを押してファイルをダウンロードする」といった定型操作を自動化したい場面は多い。API が提供されていない古い業務システムや、ログインの先にしか目的のデータがない外部サイトが相手だと、結局ブラウザをそのまま操作するしかない。</p>
+<p>Playwright はこうした「ブラウザを人間の代わりに動かす」ための自動化ツールで、Python から利用できる。ここでは実際に自動化を組んでみて分かった、codegen（操作記録）の使い方と限界、壊れにくいセレクタの書き方、iframe やダウンロードの扱い、そして実行環境（画面の有無・タイムアウト）の勘所をまとめる。</p>
+<h3>codegen で雛形を作る — ただし「最終状態」しか残らない</h3>
+<p>Playwright には、人間がブラウザで行った操作を記録して Python コードに書き起こす <code>codegen</code> 機能がある。</p>
+<pre><code data-lang="bash">playwright codegen --target python -o out.py https://example.com</code></pre>
+<p>このコマンドを実行するとブラウザが立ち上がり、こちらがクリックや入力をするたびに、対応するコードが <code>out.py</code> に追記されていく。ゼロからセレクタを調べて書くより圧倒的に速い、自動化の出発点として非常に便利な機能だ。</p>
+<p>ただし、codegen には理解しておくべき重要な限界が二つある。</p>
+<h4>1. 記録されるのは「操作の最終状態」だけ</h4>
+<p>codegen は「その操作の結果、最終的にどの要素がどうなったか」を記録するのであって、<strong>こちらの意図までは記録できない</strong>。</p>
+<p>例えば設定画面で「列を新しく追加した」「既存の列を編集した」「列を削除した」という 3 つの異なる操作をしても、最終的に同じセルをクリックして値を入れる形になっていれば、コード上はどれも同じ <code>click</code> + <code>fill</code> として記録されてしまう。後からコードだけを見ても、元がどういう意図の操作だったのかは区別できない。</p>
+<p>つまり codegen が吐いたコードは「そのとき画面がその状態だったから、たまたまこの手順で通った操作列」に過ぎない。手順の意味を理解した上で、必要ならこちらで組み直す前提で扱う。</p>
+<h4>2. 値がベタ書き（固定値）になる</h4>
+<p>入力した値はそのまま固定値として記録される。</p>
+<pre><code data-lang="python"># codegen が吐いたそのままのコード
+page.get_by_role("textbox", name="対象年月").fill("202504")</code></pre>
+<p><code>"202504"</code> のような具体的な値がハードコードされているので、これをそのまま定期実行すると毎回同じ年月を入力してしまう。録画で雛形を得たら、<strong>固定値を引数や変数に置き換える</strong>（引数化・変数化）のが必須の後工程になる。</p>
+<pre><code data-lang="python">def run(target_ym: str):
+    page.get_by_role("textbox", name="対象年月").fill(target_ym)</code></pre>
+<h3>セレクタの脆さと堅牢化</h3>
+<p>自動化が「昨日は動いたのに今日は要素が見つからない」で壊れる原因の大半はセレクタにある。壊れやすいパターンを知っておくと事故を減らせる。</p>
+<h4>壊れやすいセレクタ</h4>
+<p><strong>(a) 状態依存のクラスを含むもの。</strong> 特に厄介なのが、マウスホバー中にしか付与されないクラスだ。</p>
+<pre><code data-lang="python"># ホバー中だけ付く x-tree-node-over を当てにしている → 実行時は掴めない
+page.locator(".x-tree-node.x-tree-node-over").click()</code></pre>
+<p>codegen で記録した瞬間はマウスがその要素の上にあったのでクラスが付いていたが、自動実行時にはホバーしていないためクラスが存在せず、要素が見つからない。ホバー・フォーカス・選択中といった一時的な状態に依存するクラスは避ける。</p>
+<p><strong>(b) 値依存のもの。</strong> 表示されている値そのものを名前にしていると、値が変われば壊れる。</p>
+<pre><code data-lang="python"># セルの中身 "202504" を頼りにしている → 翌月には存在しない
+page.get_by_role("cell", name="202504").click()</code></pre>
+<h4>壊れにくくする書き方</h4>
+<p>要素そのものの見た目や値ではなく、<strong>変わらない構造や安定したラベルを起点に相対的に辿る</strong>のがコツ。</p>
+<p>ラベル行を起点に絞り込み、位置で指定する:</p>
+<pre><code data-lang="python"># 「対象年月」という見出しを含む行に絞り、その中の n 番目の入力欄を掴む
+row = page.locator("tr").filter(has_text="対象年月")
+row.get_by_role("textbox").nth(0).fill(target_ym)</code></pre>
+<p>安定した名前でロール指定する（値ではなくラベル名を使う）:</p>
+<pre><code data-lang="python">page.get_by_role("button", name="ダウンロード").click()</code></pre>
+<p>構造で辿る（ラベルのセルを起点に、祖先の行までさかのぼって同じ行の入力欄へ）:</p>
+<pre><code data-lang="python"># ラベルセル → 親の行(ancestor) → その中の入力欄、という相対経路
+page.locator(
+    "//td[text()='対象年月']/ancestor::tr[1]//input"
+).fill(target_ym)</code></pre>
+<p>いずれも「値が変わっても構造は変わらない」ことを利用している。値そのものを名前にしない、というのが共通の原則だ。</p>
+<h3>iframe の中の要素</h3>
+<p>ページの中に別ページを埋め込む <code>iframe</code> がある場合、その中の要素は通常のセレクタでは掴めない。<code>page</code> から直接 <code>locator</code> しても、iframe の内側までは届かないためだ。</p>
+<p>一度 iframe をロケータとして取得し、その中に入ってから要素を探す。</p>
+<pre><code data-lang="python"># frame_locator で iframe に入り、その内側の要素を掴む
+frame = page.frame_locator("iframe#report")
+frame.get_by_role("button", name="実行").click()</code></pre>
+<p>要素ハンドルから中身のフレームへ入る <code>content_frame</code> を使う書き方もある。</p>
+<pre><code data-lang="python">handle = page.query_selector("iframe#report")
+frame = handle.content_frame
+frame.get_by_role("button", name="実行").click()</code></pre>
+<p>「セレクタは合っているはずなのに要素が見つからない」というとき、対象が iframe の中にいないか（別ページが埋め込まれていないか）を疑うとよい。</p>
+<h3>ダウンロードの受け取り方</h3>
+<p>ボタンを押すとファイルがダウンロードされる、という操作は専用の待ち受けで扱う。「押したら落ちてくる」ものなので、<strong>先にダウンロードの発生を待ち受けてから</strong>操作する、という順序が重要になる。</p>
+<pre><code data-lang="python">with page.expect_download() as di:
+    page.get_by_role("button", name="ダウンロード").click()
+
+download = di.value
+download.save_as("C:/tmp/report.xlsx")</code></pre>
+<p><code>with page.expect_download() as di:</code> のブロックの中でダウンロードを引き起こす操作（クリック）を行い、ブロックを抜けたところで <code>di.value</code> からダウンロードオブジェクトを受け取る。あとは <code>save_as(path)</code> で任意の場所に保存する。ダウンロード先は一時領域に落ちるので、<code>save_as</code> で明示的に保存しないと後で参照できない点に注意。</p>
+<h3>headless とディスプレイの有無</h3>
+<p>ブラウザを起動するとき、画面を表示するかどうかを選べる。</p>
+<pre><code data-lang="python">browser = playwright.chromium.launch(headless=False)  # 実ブラウザ画面を出す
+browser = playwright.chromium.launch(headless=True)   # 画面なしで動かす</code></pre>
+<p><code>headless=False</code> は実際のブラウザウィンドウを画面に出して動かすモードで、動作を目で確認したいときに便利だ。ただしこれは<strong>ディスプレイ（描画先の画面）がある端末でしか動かせない</strong>。画面を持たないサーバや、GUI のないヘッドレス環境で <code>headless=False</code> を指定すると、描画先がなく起動に失敗する。</p>
+<p>サーバ上で定期実行させる自動化は <code>headless=True</code> で組むのが基本。開発中はローカルの画面付き端末で <code>headless=False</code> にして動きを確認し、本番では headless に切り替える、という使い分けになる。</p>
+<h3>タイムアウトと明示的な待機</h3>
+<p><code>page.goto</code> のナビゲーションには既定で 30 秒のタイムアウトが設定されている。1 回の遷移が 30 秒で切れるという意味だ。</p>
+<p>ここで見落としやすいのが、<strong>リダイレクトが多発するサイト</strong>だ。ログインを挟むと「トップ → 認証 → リダイレクト → 目的ページ」のように内部で何度も遷移が発生することがあり、それぞれで遷移待ちが積み重なると、体感で数分待たされることがある。「なぜか異常に遅い」ときは、裏で遷移が連鎖していないかを疑う。</p>
+<p>また、ページ表示後に JavaScript で内容が描画される動的なコンテンツは、<code>goto</code> が完了した時点ではまだ要素が存在しないことがある。固定の <code>sleep</code> で待つのではなく、<strong>目的の要素が現れるのを明示的に待つ</strong>のが確実だ。</p>
+<pre><code data-lang="python"># 要素が出現するまで待ってから操作する
+page.wait_for_selector("#result-table")
+page.locator("#result-table").click()</code></pre>
+<p><code>wait_for_selector</code> は指定した要素が現れるまで待ってくれるので、描画のタイミングに左右されず安定する。適切なタイムアウトを渡しておけば、想定より遅いときにいつまでもぶら下がることも防げる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>codegen（<code>playwright codegen --target python -o out.py</code>）は雛形作りに便利だが、<strong>操作の最終状態しか記録しない</strong>ため意図は区別できず、固定値もベタ書きになる。録画後の引数化・組み直しが前提。</li><li>壊れやすいセレクタは「ホバー時だけ付くクラス」や「値そのものを名前にしたもの」。<strong>安定したラベル・ロール・構造を起点に相対的に辿る</strong>ことで堅牢になる。</li><li>iframe の中の要素は <code>frame_locator</code> / <code>content_frame</code> を経由しないと掴めない。「合っているのに見つからない」ときは iframe を疑う。</li><li>ダウンロードは <code>with page.expect_download() as di:</code> で先に待ち受けてから操作し、<code>di.value.save_as(path)</code> で保存する。</li><li><code>headless=False</code> はディスプレイのある端末専用。サーバ実行は <code>headless=True</code> が基本。</li><li><code>goto</code> の既定タイムアウトは 30 秒。リダイレクト連鎖で総時間が膨らむことがあり、動的コンテンツは <code>wait_for_selector</code> 等で明示的に待つ。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

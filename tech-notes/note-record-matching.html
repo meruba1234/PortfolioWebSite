@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>異種データの突合・名寄せの設計（安定キー・合成キー分解・正規化・貪欲マッチの限界） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="異種データの突合・名寄せ設計。安定キー、合成キーの分解、表記正規化と貪欲マッチの限界。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="異種データの突合・名寄せの設計（安定キー・合成キー分解・正規化・貪欲マッチの限界） — SkillShowcase" property="og:title"/>
+<meta content="異種データの突合・名寄せ設計。安定キー、合成キーの分解、表記正規化と貪欲マッチの限界。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-record-matching.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-record-matching.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">データ突合</span><span class="case-tag">名寄せ</span><span class="case-tag">設計</span></div>
+<h2>異種データの突合・名寄せの設計（安定キー・合成キー分解・正規化・貪欲マッチの限界）</h2>
+<h3>背景</h3>
+<p>別々に育った 2 つのシステムのデータを突き合わせたい、という場面は多い。たとえば「外部サービスから届く明細（PDF や CSV）」と「自社の販売管理 DB の売上明細」が同じ取引を指しているか確認したい、といったケースだ。</p>
+<p>理想は両者に共通の一意キー（伝票番号など）があって <code>JOIN</code> 一発で済むこと。しかし現実にはそんなキーは無く、あっても桁数や表記が食い違う。</p>
+<pre><code data-lang="">外部データ:  取引先=「株式会社○○商店」 商品=87654321(8桁) 納品日=2026/07/01 金額=12,000
+自社DB:      得意先CD=1001         商品CD=654321(6桁)  納品日=20260701  金額=12000</code></pre>
+<p>「同じ取引なのに素直に結合できない」——この状況をどう設計で越えるか、を整理する。突合ツールを作るときに毎回悩むポイントなので、原則としてまとめておく。</p>
+<h3>結合キーは「変化しにくいフィールド」を選ぶ</h3>
+<p>まず、<strong>何をキーにして両者を紐付けるか</strong>を決める。ここで表記ゆれのあるフィールドを選ぶと最初から破綻する。</p>
+<ul class="note-list"><li>部署名・会社名・商品名などの<strong>名称系フィールドは結合キーに向かない</strong>。「株式会社○○商店」「(株)○○商店」「○○商店」が同じ相手を指す、といった表記ゆれが必ず出る。</li><li>氏名（人物）やコード（得意先CD・商品CD）など、<strong>運用上変化しにくいフィールド</strong>でマッチする。コードは付け替えが稀で、名称のような揺れが少ない。</li></ul>
+<p>名称は最終的な照合結果の<strong>表示</strong>には使うが、<strong>紐付けの判定</strong>には使わない。これが名寄せ設計の第一原則。</p>
+<h3>合成キーの分解と、規則の裏取り</h3>
+<p>レガシー DB には「1 カラムに複数の意味を桁位置で詰めたコード」がよくある。</p>
+<pre><code data-lang="">担当CD = 1203
+  ├ 上2桁 "12" = 課コード
+  └ 下2桁 "03" = 課内の担当者番号</code></pre>
+<p>こういう合成キーは、そのままでは相手テーブルの「課マスタ」や「担当者マスタ」と結合できない。<strong>桁位置で分解</strong>してからでないと引けない。</p>
+<p>分解規則を推測したら、必ず<strong>複数サンプルで裏取り</strong>する。危険なのは、たまたま別キー同士が同値で「引けてしまう」偶然があること。</p>
+<pre><code data-lang="">1件だけ見て「担当CD の下2桁 = 担当者番号」と決めつける
+  → 実は下2桁が別の意味で、たまたま担当者番号と一致していただけ、というワナ</code></pre>
+<p>1 サンプルで「引けた」ことは規則の証明にならない。何件かで一貫して成立するか、規則が崩れる境界（桁あふれ・特殊値）は無いかを確認する。</p>
+<h3>正規化は突合する両側で対称に適用する</h3>
+<p>桁数や書式が食い違うキーは、<strong>正規化</strong>して揃える。よくあるのが「8 桁コードの下 6 桁を取る」「日付の区切り文字を除く」といった変換。</p>
+<p>このとき鉄則なのが、<strong>両方のテーブルに同じ規則を適用する</strong>こと。片側だけ正規化すると、キーが揃わず<strong>全件不一致</strong>という派手な事故になる。</p>
+<pre><code data-lang="python">def normalize_shohin_cd(code: str) -&gt; str:
+    """商品CDを突合キーに正規化する。両テーブルで必ず同じ関数を通す。"""
+    s = str(code).strip()
+    # 8桁で来る側は下6桁を取る。元から6桁ならそのまま。
+    if len(s) &gt;= 8:
+        s = s[-6:]
+    return s.zfill(6)   # 桁数を固定して揃える</code></pre>
+<pre><code data-lang="python"># NG: 外部データ側だけ正規化して、DB側は生のまま突合 → 全件ミスマッチ
+left_key  = normalize_shohin_cd(row_ext["商品CD"])
+right_key = row_db["商品CD"]            # ← 揃わない
+
+# OK: 両側を同じ関数に通す
+left_key  = normalize_shohin_cd(row_ext["商品CD"])
+right_key = normalize_shohin_cd(row_db["商品CD"])</code></pre>
+<p>設計上の注意点。</p>
+<ul class="note-list"><li><strong>桁数可変</strong>を想定する。常に 8 桁とは限らず 6 桁や 7 桁が混ざることがある。「下 6 桁を取る」は 8 桁前提のコードで、6 桁のものに適用すると崩れないか確認する。</li><li><strong>特殊プレフィックス</strong>（区分を表す先頭記号、集約用の予約コードなど）は正規化の対象外にするか、除外する。</li><li>名称の表記ゆれ吸収（全角半角・大文字小文字など）は <strong>NFKC 正規化</strong>の領域なので、別ノートの Unicode 正規化と併用する。役割が違う 2 種類の正規化を混同しない。</li></ul>
+<h3>貪欲マッチの限界</h3>
+<p>キーを揃えても、<strong>同一キーの候補が複数ある</strong>と紐付けの一意性が崩れる。同じ商品・同じ日に複数明細があると、「どの明細とどの明細が対か」が確定しない。</p>
+<p>素朴な実装は、左の 1 件を取って右の候補リストから先頭を消費する<strong>貪欲マッチ</strong>になる。これは順序に依存し、本来一致できた組が「未マッチ」に取り残されることがある。</p>
+<pre><code data-lang="">左: A(100) B(100)
+右: X(100) Y(100)
+
+貪欲: A→X を確定 → B は残りの Y と対に
+  結果として B-Y の対が正しかったのに、A-Y / B-X が正解だったケースを取りこぼす</code></pre>
+<p>重要なのは、<strong>合計金額や「差異の有無」には影響しない</strong>ことが多い点。 100+100 は 200 のままなので照合の合否判定は変わらない。だが「<strong>どの明細に紐付くか</strong>」は前後する。明細単位のトレースが要る用途では問題になる。</p>
+<p>対処の指針。</p>
+<ul class="note-list"><li>合否や差額の総量だけ見たいなら、貪欲でも実害は出にくい。割り切ってよい。</li><li><strong>どの行とどの行が対か</strong>を厳密に確定したいなら、貪欲をやめて <strong>割当問題（マッチング／二部グラフの最適割当）</strong>として解く。コスト（金額差や日付差）を最小化する組合せを全体最適で求める。</li></ul>
+<p>「合計は合うのにペアリングが直感と違う」と言われたら、たいてい貪欲マッチが原因。</p>
+<h3>データ不整合はツール側で直さない</h3>
+<p>突合していると、マスタ側の都合で結合が空になることがある。典型は<strong>欠番</strong>——退職者の担当者レコードが削除され、明細に残る担当CDがどのマスタ行にも当たらない、といったもの。</p>
+<p>これは<strong>データ側の問題</strong>であって、突合ツール側では直せないし、直すべきでもない。</p>
+<ul class="note-list"><li>ツールがマスタを補完・書き換えて「無理やり引ける」ようにするのは筋が悪い。データの真実を歪めることになる。</li><li>マッチ失敗した明細は<strong>スキップして記録し、全体の処理は止めない</strong>設計にする。 1 件の欠番で突合全体がクラッシュするのは避ける。</li></ul>
+<pre><code data-lang="python">for row in details:
+    master = master_map.get(row.tantou_cd)
+    if master is None:
+        # 欠番など。ツール側で捏造せず、未解決として残して次へ
+        unresolved.append(row)
+        continue
+    matched.append((row, master))
+
+# 未解決は「データ側で要確認」として報告する。ツールは真実を歪めない。</code></pre>
+<p>責務の切り分けが肝心で、<strong>ツールは「照らし合わせる」ところまで</strong>を受け持ち、 <strong>マスタの正しさはデータ側の責任</strong>として分離する。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>結合キーは表記ゆれのある名称でなく、<strong>変化しにくいコード・氏名</strong>を選ぶ。</li><li>桁詰めされた<strong>合成キーは分解</strong>が要る。規則は<strong>複数サンプルで裏取り</strong>し、偶然の一致に騙されない。</li><li>桁揃えなどの<strong>正規化は両側で対称</strong>に。片側だけだと全件不一致。桁数可変・特殊プレフィックスに注意。</li><li>同一キーが複数あると<strong>貪欲マッチは取りこぼす</strong>。合計は合ってもペアリングは狂う。厳密さが要るなら<strong>割当問題</strong>として解く。</li><li>マスタ欠番などの<strong>不整合はツールで直さない</strong>。失敗はスキップして記録し、全体を止めない。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

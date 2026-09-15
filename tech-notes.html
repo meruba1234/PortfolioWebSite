@@ -53,7 +53,7 @@
 <div class="stat-card"><div class="stat-value">58</div><div class="stat-label">整理済みノート</div></div>
 <div class="stat-card"><div class="stat-value">9</div><div class="stat-label">分野</div></div>
 <div class="stat-card"><div class="stat-value">156</div><div class="stat-label">一問一答（復習用）</div></div>
-<div class="stat-card"><div class="stat-value">4</div><div class="stat-label">全文公開中</div></div>
+<div class="stat-card"><div class="stat-value">10</div><div class="stat-label">全文公開中</div></div>
 </div>
 </section>
 <section>
@@ -84,30 +84,66 @@
 <p>別プロセスが読むファイルを壊さずに更新するための、一時ファイル + rename によるアトミック書き込みの整理。</p>
 <p><a href="tech-notes/note-atomic-file-write.html">ノートを読む →</a></p>
 </div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">バッチ設計</span><span class="case-tag">ETL</span><span class="case-tag">運用設計</span></div>
+<h3>バッチ / ETL の安全設計 — 中間ファイル退避・洗い替え・多重起動防止</h3>
+<p>夜間バッチや ETL を安全に運用するための、中間ファイル退避・洗い替え・多重起動防止の設計整理。</p>
+<p><a href="tech-notes/note-batch-etl-safe-design.html">ノートを読む →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">ジョブ基盤</span><span class="case-tag">エラー設計</span><span class="case-tag">運用設計</span></div>
+<h3>ジョブのリトライ設計 — 一時エラーと恒久エラーを分ける</h3>
+<p>ジョブのリトライを、一時エラーと恒久エラーに分けて設計する考え方の整理。</p>
+<p><a href="tech-notes/note-job-retry-design.html">ノートを読む →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">SQL Server</span><span class="case-tag">権限設計</span><span class="case-tag">安全設計</span></div>
+<h3>本番 DB を壊さない多層防御 — 権限層で担保する</h3>
+<p>本番 DB を誤って壊さないための多層防御。コードの注意ではなく権限層で担保する。</p>
+<p><a href="tech-notes/note-readonly-db-defense.html">ノートを読む →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">データ突合</span><span class="case-tag">名寄せ</span><span class="case-tag">設計</span></div>
+<h3>異種データの突合・名寄せの設計（安定キー・合成キー分解・正規化・貪欲マッチの限界）</h3>
+<p>異種データの突合・名寄せ設計。安定キー、合成キーの分解、表記正規化と貪欲マッチの限界。</p>
+<p><a href="tech-notes/note-record-matching.html">ノートを読む →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">Playwright</span><span class="case-tag">自動化</span><span class="case-tag">スクレイピング</span></div>
+<h3>Playwright ブラウザ自動化 — codegen の限界・壊れにくいセレクタ・iframe・ダウンロード</h3>
+<p>Playwright によるブラウザ自動化。codegen の限界、壊れにくいセレクタ、iframe とダウンロード処理。</p>
+<p><a href="tech-notes/note-playwright-automation.html">ノートを読む →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">Git</span><span class="case-tag">改行コード</span><span class="case-tag">クロスプラットフォーム</span></div>
+<h3>改行コード（CRLF / LF）と Git の autocrlf</h3>
+<p>改行コード (CRLF / LF) と Git の autocrlf。Windows と Linux をまたぐ開発での差分の扱い。</p>
+<p><a href="tech-notes/note-git-line-endings.html">ノートを読む →</a></p>
+</div>
 </div>
 </section>
 <section>
 <h2>分野別の一覧</h2>
-<p>整理しているノートの見出し一覧です。全文公開しているものにはリンクを付けています。分野名をクリックすると展開します。</p>
+<p>公開・非公開を問わず、整理しているノートの見出し一覧です。分野名をクリックすると展開します。</p>
 <details class="note-group">
 <summary>データベース<span class="count">9 本</span></summary>
 <p>SQL Server / SQLite、突合・名寄せ、型と NULL の扱い、権限設計</p>
-<ul><li>消費税の計算・丸めと内税/外税・軽減税率（1円差の追い方）</li><li><a href="tech-notes/note-n-plus-1-prefetch.html">N+1 クエリ問題と prefetch（バッチ取得）による解消</a> <span class="note-badge">全文公開</span></li><li>DB の NULL / 0 / 空欄は別物 — 値の読み方と大きなキーの型</li><li><a href="tech-notes/note-pyodbc-setencoding.html">pyodbc の setencoding(cp932) が Linux で SQL と結果を壊す</a> <span class="note-badge">全文公開</span></li><li>本番 DB を壊さない多層防御 — 権限層で担保する</li><li>異種データの突合・名寄せの設計（安定キー・合成キー分解・正規化・貪欲マッチの限界）</li><li>SQLite の UPSERT（ON CONFLICT）で冪等に蓄積する・PRAGMA でスキーマ調査</li><li>SQL Server にクロスプラットフォーム接続（ODBC Driver 18 / TrustServerCertificate / Linux）</li><li>VBA/ADO の conn.Execute が Recordset を返す＝SELECT の見分け方</li></ul>
+<ul><li>消費税の計算・丸めと内税/外税・軽減税率（1円差の追い方）</li><li><a href="tech-notes/note-n-plus-1-prefetch.html">N+1 クエリ問題と prefetch（バッチ取得）による解消</a> <span class="note-badge">全文公開</span></li><li>DB の NULL / 0 / 空欄は別物 — 値の読み方と大きなキーの型</li><li><a href="tech-notes/note-pyodbc-setencoding.html">pyodbc の setencoding(cp932) が Linux で SQL と結果を壊す</a> <span class="note-badge">全文公開</span></li><li><a href="tech-notes/note-readonly-db-defense.html">本番 DB を壊さない多層防御 — 権限層で担保する</a> <span class="note-badge">全文公開</span></li><li><a href="tech-notes/note-record-matching.html">異種データの突合・名寄せの設計（安定キー・合成キー分解・正規化・貪欲マッチの限界）</a> <span class="note-badge">全文公開</span></li><li>SQLite の UPSERT（ON CONFLICT）で冪等に蓄積する・PRAGMA でスキーマ調査</li><li>SQL Server にクロスプラットフォーム接続（ODBC Driver 18 / TrustServerCertificate / Linux）</li><li>VBA/ADO の conn.Execute が Recordset を返す＝SELECT の見分け方</li></ul>
 </details>
 <details class="note-group">
 <summary>プログラミング<span class="count">20 本</span></summary>
 <p>Python、文字コード、ファイル I/O、Git、正規表現、丸め処理</p>
-<ul><li>累積・差分処理の冪等性バグ（再検知の繰り返し・集約漏れ）</li><li><a href="tech-notes/note-atomic-file-write.html">アトミックなファイル書き込み（.tmp に書いて rename）</a> <span class="note-badge">全文公開</span></li><li>bisect で「基準日以前の最新」を高速に選ぶ（二分探索）</li><li>CSV を手動で編集するときの注意点（かんたん版）</li><li>CSV を手動で編集するときの落とし穴（詳細版）</li><li>CP932 と Shift_JIS の違い・日本語ファイルの文字化け対処</li><li>ファイル I/O の3パターン（直接書き / メモリ完結 / 一時ファイル必須）</li><li>改行コード（CRLF / LF）と Git の autocrlf</li><li>.gitignore の否定パターンと既ステージ問題・日本語パス表示</li><li>Python は import 済みモジュールを再読込しない — 常駐プロセスは再起動が要る</li><li><a href="tech-notes/note-decimal-vba-rounding.html">Python Decimal と VBA の丸め・整数化の差分</a> <span class="note-badge">全文公開</span></li><li>Python パッケージマネージャとキャッシュ</li><li>python-pptx でスライドを動的に生成・分割する</li><li>Python の sys.path にディレクトリを追加するとは</li><li>短いIDの照合と正規表現の落とし穴（部分一致の誤ヒット・findall の順序）</li><li>標準出力のバッファリング — バックグラウンド実行で print が出ない</li><li>subprocess と環境変数の伝播 — env を明示指定すると親を継がない</li><li>Windows の UNC パスは Linux 上の os.path で壊れる</li><li>Unicode 正規化（NFKC）で全角半角・カナの表記揺れを吸収する</li><li>xlsx/xlsm は ZIP+XML — openpyxl が画像や図形を落とす原理と回避</li></ul>
+<ul><li>累積・差分処理の冪等性バグ（再検知の繰り返し・集約漏れ）</li><li><a href="tech-notes/note-atomic-file-write.html">アトミックなファイル書き込み（.tmp に書いて rename）</a> <span class="note-badge">全文公開</span></li><li>bisect で「基準日以前の最新」を高速に選ぶ（二分探索）</li><li>CSV を手動で編集するときの注意点（かんたん版）</li><li>CSV を手動で編集するときの落とし穴（詳細版）</li><li>CP932 と Shift_JIS の違い・日本語ファイルの文字化け対処</li><li>ファイル I/O の3パターン（直接書き / メモリ完結 / 一時ファイル必須）</li><li><a href="tech-notes/note-git-line-endings.html">改行コード（CRLF / LF）と Git の autocrlf</a> <span class="note-badge">全文公開</span></li><li>.gitignore の否定パターンと既ステージ問題・日本語パス表示</li><li>Python は import 済みモジュールを再読込しない — 常駐プロセスは再起動が要る</li><li><a href="tech-notes/note-decimal-vba-rounding.html">Python Decimal と VBA の丸め・整数化の差分</a> <span class="note-badge">全文公開</span></li><li>Python パッケージマネージャとキャッシュ</li><li>python-pptx でスライドを動的に生成・分割する</li><li>Python の sys.path にディレクトリを追加するとは</li><li>短いIDの照合と正規表現の落とし穴（部分一致の誤ヒット・findall の順序）</li><li>標準出力のバッファリング — バックグラウンド実行で print が出ない</li><li>subprocess と環境変数の伝播 — env を明示指定すると親を継がない</li><li>Windows の UNC パスは Linux 上の os.path で壊れる</li><li>Unicode 正規化（NFKC）で全角半角・カナの表記揺れを吸収する</li><li>xlsx/xlsm は ZIP+XML — openpyxl が画像や図形を落とす原理と回避</li></ul>
 </details>
 <details class="note-group">
 <summary>インフラ<span class="count">9 本</span></summary>
 <p>Docker、ジョブ基盤、バッチ/ETL の安全設計、Linux の障害診断</p>
-<ul><li>バッチ / ETL の安全設計 — 中間ファイル退避・洗い替え・多重起動防止</li><li>コンテナからホスト/別コンテナの処理を呼ぶ手段の分類</li><li>Docker のマウント3種（bind / volume / CIFS）とコードを焼き込まない設計</li><li>Excel → PDF 変換を OS で切り替える（win32com / LibreOffice headless）</li><li>ファイルドロップ型トリガー（watcher）で疎結合にジョブを起動する</li><li>ジョブのリトライ設計 — 一時エラーと恒久エラーを分ける</li><li>ジョブ基盤の scheduler と worker の分離 — 「予定は作られるが実行されない」の切り分け</li><li>Linux の「詰まり」診断 — D state / iowait / swap による I/O 飽和</li><li>ゾンビ化したジョブ実行を止める二重ガード（実行側 timeout ＋ 監視側 automation）</li></ul>
+<ul><li><a href="tech-notes/note-batch-etl-safe-design.html">バッチ / ETL の安全設計 — 中間ファイル退避・洗い替え・多重起動防止</a> <span class="note-badge">全文公開</span></li><li>コンテナからホスト/別コンテナの処理を呼ぶ手段の分類</li><li>Docker のマウント3種（bind / volume / CIFS）とコードを焼き込まない設計</li><li>Excel → PDF 変換を OS で切り替える（win32com / LibreOffice headless）</li><li>ファイルドロップ型トリガー（watcher）で疎結合にジョブを起動する</li><li><a href="tech-notes/note-job-retry-design.html">ジョブのリトライ設計 — 一時エラーと恒久エラーを分ける</a> <span class="note-badge">全文公開</span></li><li>ジョブ基盤の scheduler と worker の分離 — 「予定は作られるが実行されない」の切り分け</li><li>Linux の「詰まり」診断 — D state / iowait / swap による I/O 飽和</li><li>ゾンビ化したジョブ実行を止める二重ガード（実行側 timeout ＋ 監視側 automation）</li></ul>
 </details>
 <details class="note-group">
 <summary>Web技術<span class="count">6 本</span></summary>
 <p>Playwright、ブラウザキャッシュ、DevTools、検索UIの整合性</p>
-<ul><li>ブラウザキャッシュと no-store / ハードリロード — 「直したのに反映されない」</li><li>クライアント側フィルタ vs サーバ側フィルタの判断</li><li>DevTools の Network タブで「本命のリクエスト」を特定する</li><li>ファセット検索の整合性 — 「選択肢にあるのに選ぶと0件」を防ぐ</li><li>言語とフレームワークの関係</li><li>Playwright ブラウザ自動化 — codegen の限界・壊れにくいセレクタ・iframe・ダウンロード</li></ul>
+<ul><li>ブラウザキャッシュと no-store / ハードリロード — 「直したのに反映されない」</li><li>クライアント側フィルタ vs サーバ側フィルタの判断</li><li>DevTools の Network タブで「本命のリクエスト」を特定する</li><li>ファセット検索の整合性 — 「選択肢にあるのに選ぶと0件」を防ぐ</li><li>言語とフレームワークの関係</li><li><a href="tech-notes/note-playwright-automation.html">Playwright ブラウザ自動化 — codegen の限界・壊れにくいセレクタ・iframe・ダウンロード</a> <span class="note-badge">全文公開</span></li></ul>
 </details>
 <details class="note-group">
 <summary>Windows管理<span class="count">5 本</span></summary>
@@ -144,7 +180,7 @@
 <li><strong>取り込み用データ</strong> — 一問一答は暗記アプリへ取り込める TSV 形式でも管理。</li>
 </ul>
 <p>ノートの多くは、実際に業務で詰まった箇所から生まれています。
-背景となった案件は <a href="business-cases.html">業務改善実績</a> に掲載しています。</p>
+背景となった案件は <a class="cta-link" href="business-cases.html">業務改善実績</a> に掲載しています。</p>
 </section>
 <footer>
 <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
