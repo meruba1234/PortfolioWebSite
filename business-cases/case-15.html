@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>出荷目安レポートの営業課別配分と成功通知 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="出荷目安レポートの営業課別配分と成功通知 — SkillShowcase" property="og:title"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p class="note">在職中の事例（本ケースは2026年6月時点の記録）です。現在の稼働状況を示すものではありません。投入工数は本人記録の実績シートによる自己集計で、第三者が検証した数値ではありません。取引先名や接続先の識別情報は一般化しています。</p>
+<p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<section>
+<h2>出荷目安レポートの営業課別配分と成功通知</h2>
+<p>すでに稼働していた包装資材の出荷目安レポートに、営業課ごとの配分機能と成功時通知を追加した継続改善のケース。Excel で手作業していた配分をアルゴリズムに置き換えました。</p>
+<div class="case-meta">
+<dl>
+<dt>対象部門</dt><dd>上長・営業担当 (レポート利用者)</dd>
+<dt>実装期間</dt><dd>2026年6月 (2回に分けて追加)</dd>
+<dt>本番稼働</dt><dd>本体は2026年5月、継続改善は順次</dd>
+<dt>技術スタック</dt><dd>Python, Prefect 3.x, Excel, JSON サマリ出力, 社内チャット通知</dd>
+</dl>
+</div>
+</section>
+<section>
+<h2>背景・課題</h2>
+<ul class="skill-list">
+<li>レポート自体は自動生成できていたが、<strong>営業課ごとの配分は Excel で手作業</strong>のままだった</li>
+<li>月初〜中旬の手動実行だったため、実行したかどうか・成功したかどうかが本人以外に分からない</li>
+</ul>
+</section>
+<section>
+<h2>実装した解決策</h2>
+<h3>1. 小数比例配分アルゴリズム</h3>
+<p>課ごとの出荷数を比例配分する処理を実装しました。各課の値を整数で丸めてしまうと、合計が元の数量と合わなくなります。<strong>小数のまま比例配分し、最後に端数を調整して誤差を吸収</strong>する方式にしました。</p>
+<h3>2. 成功サマリの外部出力</h3>
+<p>実行結果を JSON のサマリとして出力し、それをそのまま社内チャットの通知内容に転用しています。通知には次を含めました。</p>
+<ul class="skill-list">
+<li>生成したファイル名と件数</li>
+<li>出力先</li>
+<li><strong>実行した PC の情報</strong></li>
+</ul>
+<h3>3. 妥当性チェックの2層化</h3>
+<ul class="skill-list">
+<li><strong>WARNING</strong> — 一部に問題はあるが処理は通す</li>
+<li><strong>ERROR</strong> — 致命的なため処理を止める</li>
+</ul>
+<p>この2つを通知でも分けて出し、受け手が対応の緊急度を判断できるようにしました。</p>
+</section>
+<section>
+<h2>投入工数</h2>
+<table class="impact-table"><thead><tr><th scope="col">内訳</th><th scope="col">投入工数</th></tr></thead><tbody><tr><td>営業課別配分機能 (小数比例配分アルゴリズム)</td><td>約 8時間</td></tr><tr><td>成功通知 (サマリ出力 + チャット連携)</td><td>約 4時間</td></tr><tr><td>妥当性チェックの WARNING/ERROR 分離</td><td>約 4時間</td></tr><tr><td>ドキュメント</td><td>約 4時間</td></tr><tr><th scope="row">合計</th><td class="highlight">約 20時間</td></tr></tbody></table>
+</section>
+<section>
+<h2>実装した成果と範囲</h2>
+<p>Excel での手作業だった課別配分を自動化し、実行結果が関係者に通知される状態にしました。既存レポートへの追加機能として、本体の処理には影響を与えない形で実装しています。</p>
+</section>
+<section>
+<h2>得られた学び</h2>
+<ul>
+<li><strong>配分処理は途中で整数に丸めない</strong> — 各値を丸めると合計が合わなくなる。小数のまま配分し、最後に調整するのが安全</li>
+<li><strong>成功通知に実行環境を含める</strong> — どの PC で動いたかを残しておくと、環境移行の時期に原因調査が早い</li>
+<li><strong>稼働中のジョブへの追加は影響範囲を切る</strong> — 本体の出力を変えずに機能を足すことで、既存の利用者に影響を出さずに改善できる</li>
+</ul>
+</section>
+<p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

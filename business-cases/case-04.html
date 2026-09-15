@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>取引先B EDI発注処理 自動化 — SkillShowcase</title>
 <link href="../style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="取引先B EDI発注処理 自動化 — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -77,10 +77,10 @@
 <section>
 <h2>実装した解決策</h2>
 <h3>1. 既存システムのロジック移植</h3>
-<p>販売管理システム (VB.NET) 内の「csv_to_db_v3.py / YNJTM32」の EOS 振り分け正規ルールを解読し、Python で互換性を検証しながら再実装。</p>
+<p>販売管理システム (VB.NET) の受注取込プログラムと、その Python 移植版の EOS 振り分け正規ルールを解読し、Python で互換性を検証しながら再実装。</p>
 <ul class="skill-list">
 <li>本体売価 × EOS 換算数量 (税区分問わず)</li>
-<li>D_売上_D 登録用の内税数量計算 (本ジョブでは数量列を書き換えないため不要、と検証で確認)</li>
+<li>売上明細テーブル登録用の内税数量計算 (本ジョブでは数量列を書き換えないため不要、と検証で確認)</li>
 <li><strong>書き換えるのは「単価 (列26)」と「金額 (列27)」の2列のみ</strong>。数量列はノータッチ</li>
 </ul>
 <h3>2. 起動経路の最適化</h3>
@@ -91,7 +91,7 @@
 </ul>
 <h3>3. データ整合性と運用安定化</h3>
 <ul class="skill-list">
-<li>厳格モード (1件でも単価未決定があれば全体エラー)</li>
+<li>当初は厳格モード (1件でも単価未決定があれば全体エラー) — 後述の継続改善で見直し</li>
 <li>括弧付きファイル ((1)(2)) の自動リネーム + 社内チャットへの WARNING 通知</li>
 <li>失敗 CSV は隔離フォルダに自動退避、inbox/order 分離設計</li>
 <li>リトライ無効化 (retries=0) — 中途半端な再試行で Completed に化けるバグを回避</li>
@@ -109,9 +109,24 @@
 </section>
 <section><h2>実装した成果と範囲</h2><p>DBに基づく単価・金額計算とCSV返送を自動化。計算結果の照合と処理性能の検証を行いました。</p></section>
 <section>
+<h2>本番稼働後の継続改善（約44時間）</h2>
+<p>稼働後に2つの課題が出ました。CSV ベースの受信管理では重複判定が弱いこと、そして厳格モードが運用に合わなかったことです。</p>
+<h3>1. 受信管理の SQLite 化</h3>
+<ul class="skill-list">
+<li>ファイル名ではなく<strong>内容のハッシュ</strong>で重複を判定し、括弧付きの重複ファイルにも確実に対応</li>
+<li>切替前に CSV 版と SQLite 版を<strong>13日間並行稼働</strong>させ、不一致ゼロを確認してから本切替</li>
+</ul>
+<h3>2. 厳格モードの撤廃</h3>
+<ul class="skill-list">
+<li>単価未登録・商品変換失敗は 0円のまま出力して WARNING 通知に切り替え。営業側が業務修正をしている間、他案件が止まらないようにした</li>
+<li>店舗行の欠落・検算違反・DB 障害といった致命的なエラーのみ、隔離フォルダへ退避して停止</li>
+</ul>
+<p>「どこで止めるか」を一律にしないことが、運用を続けられるかどうかを分けました。1件の不備で全部を止める設計は、一見安全に見えて業務を止めます。</p>
+</section>
+<section>
 <h2>得られた学び</h2>
 <ul>
-<li><strong>既存システムのソースコードを必ず読む</strong> — 「だいたい同じ計算」では事故る。csv_to_db_v3.py / YNJTM32 と突き合わせて検証することで、誤認していたルールを修正できた</li>
+<li><strong>既存システムのソースコードを必ず読む</strong> — 「だいたい同じ計算」では事故る。既存の取込プログラムと突き合わせて検証することで、誤認していたルールを修正できた</li>
 <li><strong>書き換える列を仕様書に明示</strong> — 「数量列はノータッチ、単価・金額のみ書き換え」を仕様書冒頭に明記。後から見直すときに混乱を防ぐ</li>
 <li><strong>運用側の慣習を尊重</strong> — EOS 名人 (既存 EDI ツール) を残しつつ、その中から Prefect を呼ぶ設計にしたことで、オペレーターは何も変えずに済む</li>
 <li><strong>パフォーマンス改善は実測で判断</strong> — 7.3倍の高速化を「速くなった気がする」ではなく、本番 DB での結果完全一致 + ベンチマークで検証</li>

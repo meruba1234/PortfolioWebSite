@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>事務用品発注のアップロード自動化 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="事務用品発注のアップロード自動化 — SkillShowcase" property="og:title"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p class="note">在職中の事例（本ケースは2026年6月時点の記録）です。現在の稼働状況を示すものではありません。投入工数は本人記録の実績シートによる自己集計で、第三者が検証した数値ではありません。取引先名や接続先の識別情報は一般化しています。</p>
+<p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<section>
+<h2>事務用品発注のアップロード自動化</h2>
+<p>通販サイトへの発注データアップロードを、bat のダブルクリックだけで完結するようにしたケース。<strong>送信後に削除・修正ができない業務</strong>のため、慎重に運用するための仕組みを設計に組み込みました。</p>
+<div class="case-meta">
+<dl>
+<dt>対象部門</dt><dd>営業事務 (発注処理担当)</dd>
+<dt>実装期間</dt><dd>約1〜2週間、以降も継続改善</dd>
+<dt>運用形態</dt><dd>2026年6月〜 手動トリガー (テスト期間運用)</dd>
+<dt>技術スタック</dt><dd>Python, Playwright, Prefect 3.x, Excel (openpyxl), .bat 連携, 社内チャット通知</dd>
+</dl>
+</div>
+</section>
+<section>
+<h2>背景・課題</h2>
+<ul class="skill-list">
+<li>発注データを営業事務が通販サイトへ手動でアップロードしていた</li>
+<li>数量変換マスタは事務システム部側の設定ファイルで管理していたため、営業事務が変更したいときは<strong>依頼 → 対応 → 反映</strong>のループが発生していた</li>
+<li>このサイトは<strong>送信後の削除・修正ができない</strong>。自動化するなら、誤送信を構造的に防ぐ必要があった</li>
+</ul>
+</section>
+<section>
+<h2>実装した解決策</h2>
+<h3>1. bat 起動の二段階運用</h3>
+<p>Playwright でサイト操作を代行し、営業事務は bat をダブルクリックするだけにしました。処理は「発注」と「確認」の2本に分け、誤操作でいきなり送信されない構成にしています。</p>
+<h3>2. 数量変換マスタの自動同期</h3>
+<p>マスタを共有フォルダの Excel に置き、業務側が直接編集できるようにしました。</p>
+<ul class="skill-list">
+<li>Excel の変更を検知して設定ファイルを自動書き換え、変更がなければスキップ</li>
+<li>書き換え前に <code>.bak</code> へ自動退避</li>
+<li>同期結果を社内チャットへ通知</li>
+<li>Excel 内に業務側が書いた手書きコメントを保持したまま同期</li>
+</ul>
+<p>これにより、マスタ変更のたびに情報システム側へ依頼する必要がなくなりました。</p>
+<h3>3. 処理単位の一意化</h3>
+<p><code>発注日_実行時刻</code> の <code>batch_id</code> で処理単位フォルダ名を一意化し、マニフェスト内の ID も同時に更新。どの実行がどのデータを送ったかを後から特定できます。</p>
+<h3>4. 取り消せない操作への備え</h3>
+<ul class="skill-list">
+<li>テスト期間中は<strong>本番アップロードを禁止するフラグ</strong>を立てて検証</li>
+<li>スケジュール起動をあえて設けず、人が判断して起動する手動トリガー運用</li>
+<li>アップロード後の受理確認 (履歴照会) の手順を仕様書に明記</li>
+<li>発注番号と管理番号の対応を通知に内訳表示し、関係者2グループへ同時通知</li>
+</ul>
+</section>
+<section>
+<h2>投入工数</h2>
+<table class="impact-table"><thead><tr><th scope="col">内訳</th><th scope="col">投入工数</th></tr></thead><tbody><tr><td>設計・要件定義</td><td>約 8時間</td></tr><tr><td>実装 (アップロード処理・bat・マスタ同期)</td><td>約 30時間</td></tr><tr><td>テスト・運用調整</td><td>約 10時間</td></tr><tr><td>ドキュメント (bat 操作マニュアル含む)</td><td>約 8時間</td></tr><tr><th scope="row">合計</th><td class="highlight">約 56時間</td></tr></tbody></table>
+</section>
+<section>
+<h2>実装した成果と範囲</h2>
+<p>発注アップロードを bat 一発で実行できる状態にし、数量変換マスタの編集も営業事務だけで完結するようにしました。送信の可否は人の判断に残したまま、手順と記録の部分を自動化しています。</p>
+</section>
+<section>
+<h2>得られた学び</h2>
+<ul>
+<li><strong>取り消せない操作は、速度より安全を優先する</strong> — テスト期間運用と本番禁止フラグを併用し、確信が持てるまで自動送信しない設計にした</li>
+<li><strong>マスタ管理の切り分け</strong> — 構造が変わるものはコード、データだけが変わるものは設定ファイル、という方針を決めておくと迷わない</li>
+<li><strong>業務側に編集権を渡すと依頼ループが消える</strong> — 共有フォルダの Excel を入口にしたことで、情報システム側を経由せずに運用が回るようになった</li>
+</ul>
+</section>
+<p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>業務改善ケーススタディ — SkillShowcase</title>
 <link href="style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="業務改善ケーススタディ — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -92,6 +92,20 @@
 <p><a href="business-cases/case-04.html">詳細を見る →</a></p>
 </div>
 <div class="case-card">
+<div class="case-tags"><span class="case-tag">IMAP</span><span class="case-tag">疎結合設計</span><span class="case-tag">障害検知</span></div>
+<h3>取引先B 発注メール自動受信</h3>
+<p>EDI 発注処理の前段に残っていた手作業の受信・添付保存を自動化。受信と処理を分離し、成功時も通知してサイレント故障を防ぐ設計に。</p>
+
+<p><a href="business-cases/case-13.html">詳細を見る →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">Playwright</span><span class="case-tag">Excel マスタ同期</span><span class="case-tag">運用設計</span></div>
+<h3>事務用品発注のアップロード自動化</h3>
+<p>通販サイトへの発注を bat 一発で実行。送信後に取り消せない業務のため、テスト期間運用と本番禁止フラグで守りながら検証。</p>
+
+<p><a href="business-cases/case-14.html">詳細を見る →</a></p>
+</div>
+<div class="case-card">
 <div class="case-tags"><span class="case-tag">Playwright</span><span class="case-tag">EOS</span><span class="case-tag">マルチサイト</span></div>
 <h3>EOS受注 マルチサプライヤー自動化</h3>
 <p>業態の違う 4 サプライヤーサイトから EOS 受注 CSV を自動取得 + 出荷確定アップロード。各サイトを Playwright で個別に攻略。</p>
@@ -107,6 +121,13 @@
 <p>仕入先からの出荷目安エクセルと社内BI (Dr.Sum) の前年同月売上を突き合わせ、課別ケース売上ベースで判定するレポートを自動生成。</p>
 
 <p><a href="business-cases/case-05.html">詳細を見る →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">配分アルゴリズム</span><span class="case-tag">継続改善</span><span class="case-tag">通知設計</span></div>
+<h3>出荷目安レポートの営業課別配分</h3>
+<p>稼働中のレポートに営業課別の配分機能を追加。整数丸めによる誤差を避ける小数比例配分と、実行結果の成功通知を実装。</p>
+
+<p><a href="business-cases/case-15.html">詳細を見る →</a></p>
 </div>
 <div class="case-card">
 <div class="case-tags"><span class="case-tag">Excel</span><span class="case-tag">PDF</span><span class="case-tag">SQL Server</span></div>
@@ -143,8 +164,15 @@
 <p><a href="business-cases/case-11.html">詳細を見る →</a></p>
 </div>
 </div>
-<h3 style="margin-top:32px;">🚨 異常検知・分析</h3>
+<h3 style="margin-top:32px;">🚨 照合・異常検知</h3>
 <div class="case-grid">
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">PDF パース</span><span class="case-tag">SQLite</span><span class="case-tag">3層照合</span></div>
+<h3>取引先プラットフォーム 売上照合システム</h3>
+<p>発注プラットフォームの PDF 伝票と販売管理 DB の売上を自動突合。伝票・日次・期間の3層で照合し、差異のみを通知。</p>
+
+<p><a href="business-cases/case-12.html">詳細を見る →</a></p>
+</div>
 <div class="case-card">
 <div class="case-tags"><span class="case-tag">統計分析</span><span class="case-tag">SQLite</span><span class="case-tag">Flask + Vue</span></div>
 <h3>異常受注検知システム</h3>
@@ -163,11 +191,20 @@
 <li><strong>欠品データ出力</strong> — 販売管理システムの画面操作でしか出せなかった欠品データの抽出を Python で自動化 (毎日2回の定時実行)</li>
 <li><strong>セキュリティチェック</strong> — サプライチェーン攻撃対策の毎朝自動スキャン</li>
 <li><strong>社内ドキュメント横断検索</strong> — 部門をまたいで社内資料を検索できる Web ツール</li>
-<li><strong>取引先プラットフォーム 売上照合</strong> — 発注プラットフォームの伝票と販売管理 DB を突合し、要確認分を分類するツール</li>
 <li><strong>FAX 受信履歴収集</strong> <code>NEW</code> — 受信履歴を SQLite に蓄積 (2026年7月追加)</li>
 <li><strong>運用基盤の一元化</strong> <code>NEW</code> — 別ランタイムで動いていた2システムのスケジューリングを Prefect に統合 (3ジョブ、2026年7月着手)</li>
 </ul>
 <p style="color: var(--muted); font-size: 0.95em;">※ 順次ケーススタディとして整理予定</p>
+</section>
+<section>
+<h2>本番稼働後の継続改善</h2>
+<p>作って終わりにせず、稼働後に出た不具合や運用上の要望にも対応しました。以下は記録に残している継続改善の例です。</p>
+<ul class="skill-list">
+<li><strong>取引先A 追加返品処理</strong>（約30時間） — 金額不一致時のフォールバックが過剰に発動する問題に対し、マスタ照合を4段リトライへ拡張。「マスタに存在するが未使用扱いで非表示」を正しく判定するロジックを追加。<a href="business-cases/case-01.html">ケースを見る</a></li>
+<li><strong>取引先B EDI発注処理</strong>（約44時間） — 受信管理を CSV から SQLite へ移行し、内容ハッシュで重複を排除。13日間の並行稼働で不一致ゼロを確認してから本切替。1件の不備で全体が止まる厳格モードを撤廃。<a href="business-cases/case-04.html">ケースを見る</a></li>
+<li><strong>小売取引先 日別実績</strong>（約12時間） — 営業事務PCで Excel の修復ダイアログが出る原因を特定し、ひな型からの復元処理を修正。あわせて成功通知を追加。</li>
+</ul>
+<p class="note">投入工数は本人記録の実績シートによる自己集計で、第三者が検証した数値ではありません。</p>
 </section>
 <section><h2>仕事の進め方</h2><ul class="skill-list"><li>担当者へのヒアリングで業務の目的・例外・確認手順を整理。</li><li>既存コード・DB・実際の挙動を照合して仕様を確認。</li><li>入力検証、エラー通知、再処理・移行時の確認方法を設計。</li><li>実装と並行して仕様書・操作マニュアルを更新。</li><li>作成された資料はすべて自分で読み、内容を確認します。不明点は復習用の文書に整理し、後から読み直せるようにしています。資料の作成量が増えても、この習慣を欠かしません。</li><li>効果は処理時間と人の作業時間を区別し、計測条件を明らかにして評価。</li></ul></section>
 <footer>

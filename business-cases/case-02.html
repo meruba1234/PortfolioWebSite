@@ -7,7 +7,7 @@
 <meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <title>経理 入金消込処理 Excel VBA — SkillShowcase</title>
 <link href="../style.css" rel="stylesheet"/>
-<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" name="description"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" name="description"/>
     
 
     <meta content="website" property="og:type"/>
@@ -16,7 +16,7 @@
     <meta content="経理 入金消込処理 Excel VBA — SkillShowcase" property="og:title"/>
     
 
-    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を11件のケーススタディで紹介。" property="og:description"/>
+    <meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" property="og:description"/>
     
 
     <meta content="SkillShowcase" property="og:site_name"/>
@@ -81,7 +81,7 @@
 <h3>ボタン1: 検証 (DB → Excel)</h3>
 <ul class="skill-list">
 <li>得意先CDを基準に SQL Server から得意先名・回収予定 (当月回収・滞留1〜5・予定1〜6) を取得</li>
-<li>M_担当者テーブルから営業担当者名・事務担当者名を自動取得</li>
+<li>担当者マスタから営業担当者名・事務担当者名を自動取得</li>
 <li>各入金行に対して <strong>4,095通りの部分和を全探索</strong>し、入金額と一致する組み合わせを発見</li>
 <li>整合した行 → 薄黄色で塗り分け、整合しない行 → 赤塗りで目視チェック効率化</li>
 </ul>
@@ -93,7 +93,7 @@
 </ul>
 <h3>付随機能</h3>
 <ul class="skill-list">
-<li>営業担当者名一括更新 (M_担当者の更新を複数シートに反映)</li>
+<li>営業担当者名の一括更新 (担当者マスタの更新を複数シートに反映)</li>
 <li>セル変更時の自動再計算</li>
 <li>フィルタ適用中の安全な動作 (チェックボックス形式は復元、それ以外は警告)</li>
 </ul>

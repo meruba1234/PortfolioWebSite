@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>取引先プラットフォーム 売上照合システム — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="取引先プラットフォーム 売上照合システム — SkillShowcase" property="og:title"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p class="note">在職中の事例（本ケースは2026年6月時点の記録）です。現在の稼働状況を示すものではありません。投入工数は本人記録の実績シートによる自己集計で、第三者が検証した数値ではありません。取引先名や接続先の識別情報は一般化しています。</p>
+<p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<section>
+<h2>取引先プラットフォーム 売上照合システム</h2>
+<p>取引先の発注プラットフォームから届く PDF 伝票と、自社販売管理 DB の売上を自動で突合し、差異のあるものだけを通知するシステム。営業事務の目視照合を、確認作業だけに置き換えました。</p>
+<div class="case-meta">
+<dl>
+<dt>業種</dt><dd>卸売 (取引先の発注プラットフォーム経由)</dd>
+<dt>対象部門</dt><dd>営業事務 (照合作業担当)</dd>
+<dt>実装期間</dt><dd>約2週間で初版稼働、以降も継続改善</dd>
+<dt>本番稼働</dt><dd>2026年6月 (日中の毎時自動実行)</dd>
+<dt>技術スタック</dt><dd>Python, pdfplumber, SQLite, SQL Server (pyodbc), Prefect 3.x, 社内チャット通知</dd>
+</dl>
+</div>
+</section>
+<section>
+<h2>背景・課題</h2>
+<p>取引先の発注プラットフォームから届く PDF 伝票と、自社の販売管理 DB に登録された売上を突き合わせる作業を、営業事務が手作業で行っていました。</p>
+<ul class="skill-list">
+<li>PDF を一件ずつ開いて、DB の売上と目視で照合する</li>
+<li>金額が合わないとき、<strong>どちらが正しいのかを後から追う手段がない</strong></li>
+<li>月次の照合作業に長時間かかる</li>
+</ul>
+<p>「照合する」こと自体よりも、「不一致が出たときに原因を追えない」ことのほうが業務上の負担でした。過去のデータが手元に残らないためです。</p>
+</section>
+<section>
+<h2>実装した解決策</h2>
+<h3>1. PDF の自動取得とパース</h3>
+<p>伝票 PDF を自動取得し、pdfplumber でテキストとして解析します。テキスト情報を持つ PDF だったため OCR は使わず、レイアウトベースで明細を抽出しました。</p>
+<h3>2. SQLite への蓄積 (差分更新)</h3>
+<ul class="skill-list">
+<li>PDF から読んだ明細を SQLite に蓄積し、過去データを保持</li>
+<li>主キーを <code>(伝票番号, 納品日, 自社コード, 金額)</code> の複合キーに変更し、同一伝票内の重複行を正しく区別</li>
+<li>差分更新方式にすることで、遡及調査ができる状態を作る</li>
+</ul>
+<h3>3. 3層の照合ロジック</h3>
+<p>1つの見方だけでは差異の性質が分かりません。粒度の違う3層で照合しています。</p>
+<ol>
+<li><strong>伝票単位</strong> — 1伝票ごとの金額一致を検算</li>
+<li><strong>得意先 × 納品日</strong> — 日単位の合計で突合</li>
+<li><strong>得意先の期間合計</strong> — 期間トータルで突合</li>
+</ol>
+<p>伝票単位では合わないが日合計では合う、といったケースから、代替品への差し替えや納品日のズレを切り分けられます。納品日は1日差まで許容してマッチングしています。</p>
+<h3>4. 実データの例外パターンへの対応</h3>
+<ul class="skill-list">
+<li>「(変更)」「(追加)」のプレフィクスが付く明細</li>
+<li>小数点を含む単価、<code>100/枚</code> のような規格表記の行</li>
+<li>返品・値引きによるマイナス値</li>
+<li>商品マスタ未登録を示す特定コード、仮伝票の取引区分を照合対象から除外</li>
+<li>0円明細、未来日付の納品予定を除外</li>
+</ul>
+<h3>5. 差異のみを通知</h3>
+<p>照合結果すべてではなく、差異が出たものだけを社内チャットに WARNING として通知します。担当営業・担当事務は担当者マスタから自動で引き当てています。</p>
+</section>
+<section>
+<h2>投入工数</h2>
+<table class="impact-table"><thead><tr><th scope="col">内訳</th><th scope="col">投入工数</th></tr></thead><tbody><tr><td>設計・要件定義</td><td>約 8時間</td></tr><tr><td>実装 (PDFパース・SQLite・照合ロジック)</td><td>約 40時間</td></tr><tr><td>テスト・運用調整</td><td>約 12時間</td></tr><tr><td>ドキュメント</td><td>約 6時間</td></tr><tr><th scope="row">合計</th><td class="highlight">約 66時間</td></tr></tbody></table>
+</section>
+<section>
+<h2>実装した成果と範囲</h2>
+<p>月次の照合作業を、目視での全件確認から「差異のみ通知される自動照合」に変更しました。伝票単位の検算ロジックによって、運用開始後に実際の差異を2件検出しています。SQLite への蓄積により、後から「いつの伝票がどうだったか」を追えるようになりました。</p>
+</section>
+<section>
+<h2>得られた学び</h2>
+<ul>
+<li><strong>PDF パースは実データを見るまで終わらない</strong> — 正規表現で書けたつもりでも、実データの例外パターンを洗い出すのに2週間かかった。想定でパターンを決めない</li>
+<li><strong>片側だけでは照合にならない</strong> — 「DB だけ」「PDF だけ」では不足で、両方を蓄積して突き合わせる構造が必要だった</li>
+<li><strong>粒度を変えて複数回照合する</strong> — 伝票・日次・期間の3層にしたことで、差異の「性質」まで分かるようになった</li>
+<li><strong>業務側の「絶対 NG」は明文化する</strong> — 触ってはいけない操作を仕様として残し、後任も含めて事故を防げる形にした</li>
+</ul>
+</section>
+<p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -163,7 +163,48 @@ details.data-table th { background: var(--bg-subtle); }
 <section><h2>実績データ</h2><p>在職中の開発活動について、既存の本人集計記録を整理したページです。集計基準日は2026年7月8日、記載整理日は2026年9月8日です。勤務期間は2025年9月〜2026年8月で、以下は現在の稼働状況を示すものではありません。</p><p class="note">元のGit履歴・計測票をこの公開ページに添付していないため、第三者が検証済みの数値ではありません。コミット数やコード量だけで成果・品質を評価するものでもありません。作業時間・費用の削減額は、計測条件と算定根拠を確認してから掲載する方針です。</p></section>
 <section><h2>月別コミット記録</h2><p>Git管理開始は2025年12月23日。Git導入前の開発は含みません。従来掲載されていた月別表の合計は741件です。</p><table class="impact-table"><thead><tr><th scope="col">月</th><th scope="col">コミット数</th></tr></thead><tbody><tr><td>2025-12</td><td>3</td></tr><tr><td>2026-01</td><td>14</td></tr><tr><td>2026-02</td><td>6</td></tr><tr><td>2026-03</td><td>47</td></tr><tr><td>2026-04</td><td>98</td></tr><tr><td>2026-05</td><td>200</td></tr><tr><td>2026-06</td><td>337</td></tr><tr><td>2026-07（8日時点）</td><td>36</td></tr><tr><th scope="row">合計</th><td>741</td></tr></tbody></table><p>リポジトリ別内訳には月別合計と不一致があったため、再集計できるまで掲載を見合わせています。</p></section>
 <section><h2>自動化処理のカテゴリ</h2><p>2026年7月8日時点の掲載記録では計25処理。取引先数・案件数とは異なり、同じ業務に複数の処理を含む場合があります。</p><table class="impact-table"><thead><tr><th scope="col">分類</th><th scope="col">処理数</th><th scope="col">例</th></tr></thead><tbody><tr><td>受発注連携</td><td>8</td><td>EDI、EOS、発注メール、追加返品</td></tr><tr><td>照合・検知・監視</td><td>4</td><td>売上照合、異常受注検知、商品不足情報</td></tr><tr><td>レポート・集計</td><td>5</td><td>売上実績、出荷目安、月次請求内訳</td></tr><tr><td>基盤・社内ツール</td><td>5</td><td>売上CSV取込、FAX履歴、資料検索</td></tr><tr><td>運用基盤の一元化</td><td>3</td><td>差分同期、洗い替え、業務テーブル展開</td></tr><tr><th scope="row">合計</th><td>25</td><td></td></tr></tbody></table></section>
-<section><h2>数字以外の担当範囲</h2><ul class="skill-list"><li>業務担当者へのヒアリングと既存システムの仕様整理。</li><li>VB.NET・VBA・DB・挙動の照合による業務ロジックの解析。</li><li>自動化処理の設計・実装・テストと、移行時の並行検証。</li><li>ログ、通知、タイムアウト、多重起動対策、運用手順の整備。</li><li>仕様書・操作マニュアルを機能改修と並行して更新。</li></ul><p><a class="cta-link" href="business-cases.html">11件のケーススタディを見る</a></p></section>
+<section>
+<h2>案件の記録と投入工数</h2>
+<p>業務改善案件は、依頼書・実績シート・集計という形で記録を残しながら進めていました。案件ごとに設計・実装・テスト・ドキュメントの内訳で工数を積み上げ、受付から本番稼働までの状態も管理しています。以下は実績シートとして記録した7件です。</p>
+<table class="impact-table">
+<thead><tr><th scope="col">完了日</th><th scope="col">案件</th><th scope="col">対象</th><th scope="col">投入工数</th></tr></thead>
+<tbody>
+<tr><td>2026-06-26</td><td><a href="business-cases/case-12.html">取引先プラットフォーム 売上照合</a></td><td>営業事務</td><td>約66時間</td></tr>
+<tr><td>2026-06-11</td><td><a href="business-cases/case-14.html">事務用品発注のアップロード</a></td><td>営業事務</td><td>約56時間</td></tr>
+<tr><td>2026-06-23</td><td><a href="business-cases/case-04.html">取引先B EDI発注処理 継続改善</a></td><td>営業事務・取引先連携</td><td>約44時間</td></tr>
+<tr><td>2026-06-16</td><td><a href="business-cases/case-13.html">取引先B 発注メール自動受信</a></td><td>営業事務</td><td>約34時間</td></tr>
+<tr><td>2026-06-25</td><td><a href="business-cases/case-01.html">取引先A 追加返品処理 継続改善</a></td><td>営業事務</td><td>約30時間</td></tr>
+<tr><td>2026-06-25</td><td><a href="business-cases/case-15.html">出荷目安レポート 営業課別配分</a></td><td>上長・営業</td><td>約20時間</td></tr>
+<tr><td>2026-06-29</td><td>小売取引先 日別実績 継続改善</td><td>営業事務</td><td>約12時間</td></tr>
+<tr><th scope="row">合計（7件）</th><td></td><td></td><td class="highlight">約262時間</td></tr>
+</tbody></table>
+<p>この7件はいずれも本番稼働まで到達し、保留・撤退・不採用は0件でした（2026年6月末時点の記録）。状態が変わったときは変更履歴も残し、「いつ計画から実装に移り、いつ本番稼働したか」を後から追える形にしています。</p>
+<p class="note">実績シートを作成した案件のみで、在職中の全案件ではありません。工数は本人記録による自己集計で、第三者が検証した数値ではありません。</p>
+</section>
+<section>
+<h2>Git 導入前の開発記録</h2>
+<p>Git によるソース管理を始めたのは2025年12月23日です。それ以前（2025年9月〜12月）の開発はコミット履歴に残っていないため、共有フォルダのファイル更新日時と、後継リポジトリの初回コミットから時期を復元して記録しています。</p>
+<table class="impact-table">
+<thead><tr><th scope="col">時期</th><th scope="col">案件</th><th scope="col">記録の根拠</th></tr></thead>
+<tbody>
+<tr><td>2025-10〜11</td><td>受注振分け表 Excel VBA</td><td>共有フォルダの作業ファイル更新日時（以降も改修を継続）</td></tr>
+<tr><td>2025-11</td><td>受注CSV取込・入金振分処理の自動化</td><td>作業ファイル更新日時 + 後継リポジトリの初回コミット</td></tr>
+<tr><td>2025-10〜2026-01</td><td>入金消込処理 Excel VBA（フェーズ1 → SQL連携版）</td><td>作業ファイル更新日時 + 初回コミット</td></tr>
+</tbody></table>
+<p>Git 導入後の主な開発時期は次のとおりです（コミット履歴から追えるもの）。</p>
+<table class="impact-table">
+<thead><tr><th scope="col">時期</th><th scope="col">案件</th></tr></thead>
+<tbody>
+<tr><td>2025-12〜2026-04</td><td>異常受注検知システム（初版 → SQLite 移行 → 切替）</td></tr>
+<tr><td>2026-03〜04</td><td>自動化基盤サーバーの構築・ジョブ基盤の整備</td></tr>
+<tr><td>2026-04</td><td>小売取引先 日別実績の Linux 化 / FAX履歴ビュアーのサーバー移行</td></tr>
+<tr><td>2026-05</td><td>EOS受注 複数サプライヤー対応 / 売上CSV取込の VB.NET → Python 移行</td></tr>
+<tr><td>2026-05</td><td>出荷目安レポート 本体 / 欠品データ出力 / 商品不足マスタ同期</td></tr>
+<tr><td>2026-06</td><td>取引先C 月次請求金額内訳 / 取引先A 追加返品処理 本体 / 取引先B EDI発注処理 本体</td></tr>
+</tbody></table>
+<p class="note">記録から時期を復元したもので、当時の作業時間を計測した数値ではありません。</p>
+</section>
+<section><h2>数字以外の担当範囲</h2><ul class="skill-list"><li>業務担当者へのヒアリングと既存システムの仕様整理。</li><li>VB.NET・VBA・DB・挙動の照合による業務ロジックの解析。</li><li>自動化処理の設計・実装・テストと、移行時の並行検証。</li><li>ログ、通知、タイムアウト、多重起動対策、運用手順の整備。</li><li>仕様書・操作マニュアルを機能改修と並行して更新。</li></ul><p><a class="cta-link" href="business-cases.html">15件のケーススタディを見る</a></p></section>
 <footer>
 <p>© 2024-2026 SkillShowcase. All rights reserved.</p>
 </footer>

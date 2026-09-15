@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>取引先B 発注メール自動受信 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="取引先B 発注メール自動受信 — SkillShowcase" property="og:title"/>
+<meta content="社内SE × 業務自動化 × AI 活用 の業務改善ポートフォリオ。在職中の開発・運用経験を15件のケーススタディで紹介。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p class="note">在職中の事例（本ケースは2026年6月時点の記録）です。現在の稼働状況を示すものではありません。投入工数は本人記録の実績シートによる自己集計で、第三者が検証した数値ではありません。取引先名や接続先の識別情報は一般化しています。</p>
+<p style="margin-top:0;"><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<section>
+<h2>取引先B 発注メール自動受信</h2>
+<p>EDI 発注処理ジョブの前段にあたる「発注メールの受信と添付ファイル保存」を自動化したケース。処理側と受信側を疎結合にし、動いていないことに気づけない「サイレント故障」を防ぐ設計にしました。</p>
+<div class="case-meta">
+<dl>
+<dt>業種</dt><dd>外食チェーン (取引先B)</dd>
+<dt>対象部門</dt><dd>営業事務 (メール受信確認担当)</dd>
+<dt>実装期間</dt><dd>調整を含め数日 (実装は即日デプロイ)</dd>
+<dt>本番稼働</dt><dd>2026年6月</dd>
+<dt>技術スタック</dt><dd>Python, IMAP (993/TLS), Prefect 3.x, 共有フォルダ, 社内チャット通知</dd>
+</dl>
+</div>
+</section>
+<section>
+<h2>背景・課題</h2>
+<p>取引先Bの EDI 発注処理ジョブ（<a href="case-04.html">別ケース</a>）は、発注 CSV が共有フォルダに置かれていることを前提に動いていました。ところがその手前、<strong>メールを受信して添付 CSV を保存する部分だけが手作業のまま</strong>残っていました。</p>
+<ul class="skill-list">
+<li>営業事務がメールの到着を目視でチェックする</li>
+<li>添付ファイルの保存も手動</li>
+<li>メールが来ていないときに気づきにくい — 後続ジョブは「ファイルが無い」だけで静かに何もしない</li>
+</ul>
+<p>自動化された処理の入口に手作業が残っていると、そこが止まっても誰も気づけません。サイレント故障の温床でした。</p>
+</section>
+<section>
+<h2>実装した解決策</h2>
+<h3>1. IMAP による自動受信</h3>
+<p>IMAP over TLS (993) でメールサーバーに接続し、条件に合うメールから添付 CSV を抽出して <code>inbox/</code> に保存します。導入にあたっては社内ネットワーク担当と調整し、対象ポートの開放から進めました。</p>
+<h3>2. 発注メールだけを取り出す</h3>
+<ul class="skill-list">
+<li>件名の OR 条件で対象メールを絞り込み</li>
+<li>出荷データ系のメールを3層の条件で除外し、発注メールのみを抽出</li>
+<li>実行日に到着したメールのみ取得 (<code>same_day_only</code>)。別日のメールが残っていた場合は WARNING 通知</li>
+<li>初回実行時だけ過去分を一括取得するシード処理を用意</li>
+</ul>
+<h3>3. ハッシュベースの重複排除</h3>
+<p>ファイル名ではなく内容のハッシュで重複を判定し、同一内容のメールを再受信しても <code>inbox/</code> の段階で弾きます。既存ファイルの検知も行い、誤って上書きしないようにしました。</p>
+<h3>4. 疎結合と可観測性</h3>
+<ul class="skill-list">
+<li>受信ジョブと処理ジョブを分離。片方が止まっても、もう片方は手動で動かせる</li>
+<li><strong>失敗時だけでなく成功時にも通知</strong>し、「動いているのか分からない」状態をなくす</li>
+<li>停止時に担当者が手作業で進められる、障害時の手動運用マニュアルを整備</li>
+<li>メール受信処理を共通ライブラリ化し、他ジョブからも再利用できる形に</li>
+</ul>
+</section>
+<section>
+<h2>投入工数</h2>
+<table class="impact-table"><thead><tr><th scope="col">内訳</th><th scope="col">投入工数</th></tr></thead><tbody><tr><td>設計・要件定義 (ネットワーク調整を含む)</td><td>約 6時間</td></tr><tr><td>実装 (IMAP・添付抽出・通知)</td><td>約 16時間</td></tr><tr><td>テスト・dry-run 検証</td><td>約 6時間</td></tr><tr><td>ドキュメント (障害時の手動運用マニュアル含む)</td><td>約 6時間</td></tr><tr><th scope="row">合計</th><td class="highlight">約 34時間</td></tr></tbody></table>
+</section>
+<section>
+<h2>実装した成果と範囲</h2>
+<p>メール受信から添付保存、後続ジョブへの受け渡しまでを自動処理にまとめました。dry-run で検証したうえで本番へ移し、稼働状況が通知で確認できる状態にしています。</p>
+</section>
+<section>
+<h2>得られた学び</h2>
+<ul>
+<li><strong>「いつ来るか分からない」データは、受信と処理を分ける</strong> — ポーリングと同期処理を1つのジョブに混ぜると、どちらが原因で止まったのか切り分けられなくなる</li>
+<li><strong>失敗時だけの通知では足りない</strong> — 「異常がないこと」と「動いていないこと」は通知の有無からは区別できない。成功通知はサイレント故障対策として必要</li>
+<li><strong>自動化しても手動経路を残す</strong> — 疎結合にしておくと、障害時に片方だけを人手で回して業務を止めずに済む</li>
+</ul>
+</section>
+<p><a href="../business-cases.html">← ケーススタディ一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>
