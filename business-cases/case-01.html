@@ -58,7 +58,7 @@
 <dt>対象部門</dt><dd>営業事務 (1名 + バックアップ1名)</dd>
 <dt>実装期間</dt><dd>約2.5週間</dd>
 <dt>本番稼働</dt><dd>2026年6月</dd>
-<dt>技術スタック</dt><dd>Python, Playwright, Prefect 3.x, Dr.Sum, kintone API, ChatLuck (社内チャット)</dd>
+<dt>技術スタック</dt><dd>Python, Playwright, Prefect 3.x, Dr.Sum, kintone API, 社内チャット通知</dd>
 </dl>
 </div>
 </section>
@@ -81,7 +81,7 @@
 <li><strong>BI ツールからの自動ダウンロード</strong> — Playwright で BI ツールにログインし、納品日条件を自動設定して CSV を取得</li>
 <li><strong>kintone への画面入力代行</strong> — kintone API ではなく、あえて画面入力を Playwright で代行 (業務側の検算ロジックが画面側にあるため)</li>
 <li><strong>金額検証 + 諸口振替フォールバック</strong> — 金額不一致時は自動的に諸口扱いに振替</li>
-<li><strong>結果通知</strong> — 成功・失敗・スキップを社内チャット (ChatLuck) に整形して通知</li>
+<li><strong>結果通知</strong> — 成功・失敗・スキップを社内チャットに整形して通知</li>
 <li><strong>当日以外スキップ機能</strong> — Phase 2 の確定処理は当日分のみ対象にして、過去データの誤確定を防ぐ</li>
 </ul>
 <p>当初は kintone API 経由で実装していましたが、業務側の検算ロジック (店舗コード正規化、振替コード判定など) が画面側に埋め込まれていたため、後に Playwright での画面入力代行に一本化しました。</p>
