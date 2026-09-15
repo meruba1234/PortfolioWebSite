@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>ファセット検索の整合性 — 「選択肢にあるのに選ぶと0件」を防ぐ — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="商品一覧や検索画面で、カテゴリ・メーカー・担当者などの絞り込み（ファセット検索）をよく使う。 このとき困るのが「絞り込みの選択肢としてリストに出ているのに、実際に選ぶと結果が 0 件になる」という現象だ。 ユーザーからす…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="ファセット検索の整合性 — 「選択肢にあるのに選ぶと0件」を防ぐ — SkillShowcase" property="og:title"/>
+<meta content="商品一覧や検索画面で、カテゴリ・メーカー・担当者などの絞り込み（ファセット検索）をよく使う。 このとき困るのが「絞り込みの選択肢としてリストに出ているのに、実際に選ぶと結果が 0 件になる」という現象だ。 ユーザーからす…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-faceted-search-integrity.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-faceted-search-integrity.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Web技術</span></div>
+<h2>ファセット検索の整合性 — 「選択肢にあるのに選ぶと0件」を防ぐ</h2>
+<h3>背景</h3>
+<p>商品一覧や検索画面で、カテゴリ・メーカー・担当者などの絞り込み（ファセット検索）をよく使う。このとき困るのが「絞り込みの選択肢としてリストに出ているのに、実際に選ぶと結果が 0 件になる」という現象だ。ユーザーからすれば「あるって書いてあったのに、選んだら何もない」わけで、UI への信頼が一気に崩れる。連動ドロップダウン（営業所を選ぶと担当者の候補が変わる、など）でも「担当者を選んだ瞬間に空になる」といった破綻が起きやすい。なぜこうなるのか、どう防ぐのかを整理しておく。</p>
+<h3>不整合が起きる仕組み</h3>
+<p>ファセット検索の UI には、実は 2 つの別々の計算が同居している。</p>
+<ul class="note-list"><li><strong>選択肢（facets）を生成する母集合</strong> — 「カテゴリの選択肢として何を並べるか」を決めるためのデータ集合。</li><li><strong>結果を絞り込む条件</strong> — 実際にユーザーが選んだ条件で行を絞り込む処理。</li></ul>
+<p>この 2 つが同じデータを見ていれば整合するが、<strong>別々のタイミング・別々の範囲</strong>で計算されるとズレる。選択肢は「全商品」から作ったのに、結果は「在庫あり かつ カテゴリ=飲料」で絞っている、といった状態だと、「在庫のないメーカー」も選択肢に残ってしまい、選ぶと 0 件になる。</p>
+<h3>固定選択肢の罠</h3>
+<p>いちばんよくある原因が、<strong>選択肢を初回に 1 回だけ取得して固定してしまう</strong>パターンだ。</p>
+<ul class="note-list"><li>画面を開いた瞬間に「全カテゴリ」「全メーカー」を取ってきてドロップダウンに詰める。</li><li>その後ユーザーが別の条件（例: 在庫あり、期間、営業所）を変えても、選択肢は最初のまま追従しない。</li><li>結果として、<strong>古くて広すぎる選択肢</strong>が残り続ける。</li><li>現在の絞り込みでは 1 件も該当しないメーカーが、堂々とリストに並んでいる。</li></ul>
+<p>「選択肢は静的なマスタ、結果は動的なクエリ」という思い込みが根っこにある。実際にはファセットの選択肢も、現在の絞り込み状態に依存する動的な値だ。</p>
+<h3>連動ドロップダウン</h3>
+<p>連動ドロップダウン（カスケード選択）は、この問題がとりわけ表面化しやすい。</p>
+<ul class="note-list"><li>例: 「営業所」を選ぶと「担当者」の候補が絞られる、という 2 段構え。</li><li>担当者の候補を、営業所とは無関係に「全担当者」から作ってしまうと、選んだ営業所に所属しない担当者まで候補に出て、選ぶと 0 件になる。</li><li>正しくは、<strong>上位の選択で絞り込まれた現在のデータから、下位の候補を動的に再計算する</strong>。</li><li>上位を変えたら、下位の選択肢を作り直し、いま無効になった選択（前の営業所の担当者）はリセットする。</li></ul>
+<p>「上流の条件が変わったら、下流の選択肢と選択値の両方を作り直す」を徹底しないと、いつか必ず破綻する。</p>
+<h3>対策（facets 再計算 / 0件を出さない）</h3>
+<p>不整合を根絶するには、選択肢そのものを結果と同じ土俵で計算する。</p>
+<ul class="note-list"><li><strong>選択肢を絞り込み後の集合から再計算する</strong> — 「全件」ではなく「いま結果に含まれている行」からカテゴリ・メーカーを集計して選択肢を作る。こうすれば、選択肢と結果が常に同じデータ由来になり、原理的にズレない。</li><li><strong>0 件になる選択肢を出さない</strong> — 現在の絞り込みで該当が 0 件になる選択肢は、そもそもリストに載せない。</li><li><strong>または、グレーアウトして件数を添える</strong> — 「飲料 (12)」「日用品 (0)」のように件数を併記し、0 件はクリック不可にする。存在自体は見せつつ、選んでも 0 件という体験は避けられる。どれを選ぶかは「選択肢が消えると混乱するか」次第。</li></ul>
+<p>いずれも本質は同じで、<strong>選択肢は現在の絞り込み状態の関数である</strong>と捉えること。</p>
+<h3>コストのトレードオフ</h3>
+<p>選択肢を毎回作り直すのは、当然ながら計算コストがかかる。</p>
+<ul class="note-list"><li>絞り込みのたびに全ファセットを集計し直すと、その分の処理が増える。</li><li><strong>データ件数が小さければクライアント側で全件から再計算</strong>する。手元に全データがあるので、絞り込みも facets 集計もブラウザ内で完結でき、サーバ往復もいらない。</li><li><strong>データ件数が大きければサーバ側で集計する</strong>。全件をクライアントに送るのは非現実的なので、絞り込み条件を渡して、結果と facets の件数をまとめてサーバで計算して返す。</li><li>これは「クライアントでフィルタするか、サーバでフィルタするか」という判断とまったく同じ軸。件数と応答速度を見て決める。</li><li>大きなデータでコストが気になるなら、facets 集計結果をキャッシュする、更新頻度を落とす、といった中間策もある。</li></ul>
+<h3>まとめ</h3>
+<ul class="note-list"><li>ファセット検索の不整合は、<strong>選択肢を作る母集合</strong>と<strong>結果を絞る条件</strong>がズレることで起きる。</li><li>典型的な罠は「選択肢を初回に固定して他条件に追従させない」こと。連動ドロップダウンで特に露見する。</li><li>根本対策は、<strong>選択肢を現在の絞り込み後の集合から再計算する</strong>こと。0 件の選択肢は出さない、あるいはグレーアウト＋件数表示にする。</li><li>再計算コストはデータ件数で判断し、小さければクライアント側、大きければサーバ側で集計する。</li><li>「選択肢は静的なマスタ」ではなく「現在の絞り込み状態の関数」と捉えるのが肝。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

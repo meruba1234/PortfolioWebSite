@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Python は import 済みモジュールを再読込しない — 常駐プロセスは再起動が要る — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="「ソースコードを直したのに、動かしてみると挙動が前のまま変わらない」—— これはプログラミングを始めると必ず一度は踏む落とし穴だ。 特に、起動しっぱなしのサーバや、バックグラウンドで動き続けるジョブワーカー、 あるいは …" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Python は import 済みモジュールを再読込しない — 常駐プロセスは再起動が要る — SkillShowcase" property="og:title"/>
+<meta content="「ソースコードを直したのに、動かしてみると挙動が前のまま変わらない」—— これはプログラミングを始めると必ず一度は踏む落とし穴だ。 特に、起動しっぱなしのサーバや、バックグラウンドで動き続けるジョブワーカー、 あるいは …" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-module-reload-worker-restart.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-module-reload-worker-restart.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>Python は import 済みモジュールを再読込しない — 常駐プロセスは再起動が要る</h2>
+<h3>背景</h3>
+<p>「ソースコードを直したのに、動かしてみると挙動が前のまま変わらない」—— これはプログラミングを始めると必ず一度は踏む落とし穴だ。特に、起動しっぱなしのサーバや、バックグラウンドで動き続けるジョブワーカー、あるいは REPL や Jupyter でコードをいじっているときに起きやすい。</p>
+<p>「保存したのに」「pull したのに」なぜ古い動きのまま？ その答えは、 Python がモジュールをどう扱うかを知ると腑に落ちる。</p>
+<h3>sys.modules というキャッシュ</h3>
+<p>Python は、一度 <code>import</code> したモジュールを <code>sys.modules</code> という辞書にキャッシュする。 2 回目以降の <code>import</code> は、ファイルを読み直すのではなく、このキャッシュから即座に返す。おかげで import は速いのだが、副作用として <strong>プロセスが起動している間、そのモジュールのコードは初回に読んだ時点で固定される</strong>。</p>
+<pre><code data-lang="python">import sys
+
+import my_module            # 1回目: ファイルを読んでキャッシュに登録
+import my_module            # 2回目以降: sys.modules から返すだけ（ファイルは読まない）
+
+print("my_module" in sys.modules)   # True — キャッシュされている</code></pre>
+<p>つまり、プロセスが動いている裏でソースファイルを差し替えても、すでに起動しているプロセスは <code>sys.modules</code> の古いオブジェクトを使い続ける。ディスク上のファイルと、メモリ上で動いているコードは別物になっている、というわけだ。</p>
+<h3>だから常駐プロセスは「再起動」が要る</h3>
+<p>この性質が効いてくるのが、長時間動き続けるプロセスだ。</p>
+<ul class="note-list"><li>常駐 Web サーバ</li><li>キューを処理し続けるジョブワーカー</li><li>起動しっぱなしの REPL / Jupyter カーネル</li></ul>
+<p>これらは一度立ち上がると、<code>sys.modules</code> に読み込んだコードをずっと握り続ける。そのため、<code>git pull</code> や <code>cp</code> でファイルを新しくしても、 <strong>プロセス側は何も変わらない</strong>。反映するには、プロセスやワーカーを<strong>再起動</strong>して、 <code>sys.modules</code> を空の状態から作り直させる必要がある。</p>
+<pre><code data-lang="bash"># ファイルを差し替えただけでは反映されない
+git pull
+
+# プロセス（ワーカー）を再起動して初めて新しいコードが読み込まれる
+systemctl restart my-worker      # 例: サービスとして常駐している場合</code></pre>
+<p>「デプロイ = ファイル更新 + プロセス再起動」がワンセット、と覚えておくとよい。ファイルを置き換えるだけの手順は、デプロイの半分しか終わっていない。</p>
+<h3>importlib.reload の限界</h3>
+<p>「再起動せずにモジュールだけ読み直したい」場合、<code>importlib.reload()</code> がある。ただしこれは万能ではなく、むしろ限界を知って使うべき道具だ。</p>
+<pre><code data-lang="python">import importlib
+import my_module
+
+importlib.reload(my_module)      # my_module のソースを読み直す</code></pre>
+<p>reload には次のような落とし穴がある。</p>
+<ul class="note-list"><li><strong>生成済みのインスタンスは古いまま</strong>。reload はモジュールオブジェクトを更新するが、すでに作られた古いクラスのインスタンスは、古い定義を持ち続ける。</li><li><strong><code>from x import y</code> で束縛済みの名前は更新されない</strong>。 <code>y</code> は import した時点の古いオブジェクトを指したままになる。 reload するなら <code>import x</code> してから <code>x.y</code> の形で参照する必要がある。</li><li><strong>依存モジュールは自動では reload されない</strong>。 A が B を import していて B を直しても、A を reload しただけでは B は古いまま。</li></ul>
+<pre><code data-lang="python"># これは危険: y は古いオブジェクトに束縛されたまま
+from my_module import y
+importlib.reload(my_module)      # my_module は更新されるが…
+# ここでの y は依然として古い定義を指している</code></pre>
+<p>こうした落とし穴のせいで、reload は「状態が絡まない小さなモジュールを、対話環境で手早く試す」程度が現実的な用途になる。本番の常駐プロセスをきれいに更新したいなら、素直に再起動するのが確実だ。</p>
+<h3>確認・テストは「再起動後」に</h3>
+<p>もう一つ大事なのが、<strong>疎通確認やテストは再起動を済ませてから行う</strong>という順番だ。ファイルを直した直後、まだ古いコードを握ったプロセスに対してテストを投げると、「直したはずのコード」ではなく「古いコード」を検証してしまう。うまく動いても動かなくても、その結果は当てにならない。</p>
+<p>手順としては次の順を守る。</p>
+<ol class="note-list"><li>コードを直す</li><li>プロセス / ワーカーを再起動する</li><li><strong>それから</strong>動作確認・テストを行う</li></ol>
+<p>なお、構成によっては再起動が要らないケースもある。たとえば「ジョブを実行するたびに最新コードを pull して新しいプロセスで走らせる」タイプのワーカーなら、実行ごとに最新が読み込まれるので、明示的な再起動は不要になる。自分の使っているジョブ基盤がどちらの方式かは、worker / scheduler の挙動ノートで確認しておくとよい。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>Python は import 済みモジュールを <code>sys.modules</code> にキャッシュし、プロセスが動いている間はそのコードを握り続ける。</li><li>ファイルを差し替えても常駐プロセスには反映されない。反映には<strong>プロセス / ワーカーの再起動</strong>が必要（pull や cp だけでは不十分）。</li><li><code>importlib.reload()</code> はあるが、生成済みインスタンス・<code>from import</code> 済みの名前・依存モジュールは追従しないため万能ではない。</li><li>疎通確認・テストは<strong>再起動後</strong>に行う。さもないと旧コードを検証してしまう。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

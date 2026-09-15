@@ -25,14 +25,63 @@
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/business-cases/case-13.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/business-cases/case-14.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/business-cases/case-15.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-accumulation-idempotency-bug.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-atomic-file-write.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-bat-ps1-encoding.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-batch-etl-safe-design.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-bisect-time-series-lookup.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-browser-cache-no-store-reload.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-client-vs-server-filtering.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-consumption-tax-calculation-rounding.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-container-host-integration.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-credentials-secret-and-integrity.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-csv-manual-editing-checklist.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-csv-manual-editing-pitfalls.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-decimal-vba-rounding.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-design-principles.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-devtools-network-request-finding.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-diy-clip-camera-project.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-docker-mount-types.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-encoding-cp932-shift-jis.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-excel-to-pdf-os-switch.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-faceted-search-integrity.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-filament.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-file-drop-trigger-watcher.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-file-io-abc-patterns.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-git-line-endings.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-gitignore-negation-quotepath.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-imap-basics.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-job-retry-design.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-job-scheduler-worker-separation.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-languages-vs-frameworks.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-linux-io-saturation-diagnosis.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-module-reload-worker-restart.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-mojibake-display-vs-data.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-n-plus-1-prefetch.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-null-zero-empty-and-keys.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-office-com-automation-quit.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-playwright-automation.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-public-key-cryptography.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-pyodbc-setencoding.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-python-package-managers-and-cache.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-python-pptx-dynamic-slides.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-python-sys-path.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-rdp-credentials-and-remoteapp.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-readonly-db-defense.html</loc></url>
   <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-record-matching.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-regex-id-matching-pitfalls.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-smb-cifs-unc-access.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-sqlite-upsert-pragma.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-sqlserver-cross-platform-connection.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-ssh-key-ppk-vs-openssh.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-stdout-buffering.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-subprocess-env-propagation.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-thin-camera-module.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-unc-path-linux-ospath.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-unicode-nfkc-normalization.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-vba-ado-execute-select-detection.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-windows-update-troubleshooting.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-wscript-process-pileup.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-xlsx-zip-xml-openpyxl.html</loc></url>
+  <url><loc>https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-zombie-run-double-guard.html</loc></url>
 </urlset>

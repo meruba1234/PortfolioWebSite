@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>クライアント側フィルタ vs サーバ側フィルタの判断 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="一覧画面に検索ボックスや絞り込み条件（カテゴリ、期間、ステータスなど）を付けるとき、 「その絞り込みをブラウザ側でやるか、サーバ側でやるか」を必ずどこかで決めることになる。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="クライアント側フィルタ vs サーバ側フィルタの判断 — SkillShowcase" property="og:title"/>
+<meta content="一覧画面に検索ボックスや絞り込み条件（カテゴリ、期間、ステータスなど）を付けるとき、 「その絞り込みをブラウザ側でやるか、サーバ側でやるか」を必ずどこかで決めることになる。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-client-vs-server-filtering.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-client-vs-server-filtering.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Web技術</span></div>
+<h2>クライアント側フィルタ vs サーバ側フィルタの判断</h2>
+<h3>背景</h3>
+<p>一覧画面に検索ボックスや絞り込み条件（カテゴリ、期間、ステータスなど）を付けるとき、「その絞り込みをブラウザ側でやるか、サーバ側でやるか」を必ずどこかで決めることになる。</p>
+<ul class="note-list"><li><strong>クライアント側</strong>: 全件を一度サーバから取ってきて、以降の検索・絞り込みはブラウザの JavaScript（例: <code>applySearch()</code>）で完結させる。</li><li><strong>サーバ側</strong>: 検索条件を変えるたびにサーバへリクエストを投げ、絞り込み済みのデータだけを受け取る。</li></ul>
+<p>どちらも「正しく絞り込める」点は同じなので、判断軸は正しさではなく <strong>データ量・権限・鮮度・体感速度</strong> になる。ここを最初に決めておかないと、後から作り直しになりやすい。</p>
+<h3>クライアント側が向くケース</h3>
+<p>以下が揃うほどクライアント側フィルタが有利になる。</p>
+<ul class="note-list"><li><strong>データ量が小さい</strong> — 全件がブラウザに無理なく載る（目安として数MB程度に収まる）。</li><li><strong>検索条件を頻繁に変える</strong> — キーワードを打ち替えたり、チェックを付け外ししながら何度も絞り込む使い方。</li><li><strong>行レベルの権限分けが不要</strong> — 誰が見ても同じ全件が見えてよい。</li></ul>
+<p>この条件なら、最初に一度だけ全件を取得しておけば、あとは <strong>サーバへ行かずにブラウザ内で <code>applySearch</code> するだけ</strong>なので、都度リクエストの往復（ネットワーク遅延）が発生せず体感がとても速い。インクリメンタルサーチのように「1文字打つたびに結果が変わる」UI とも相性がよい。</p>
+<h3>サーバ側が向くケース</h3>
+<p>逆に、次のどれかに当てはまるならサーバ側で絞り込むべき。</p>
+<ul class="note-list"><li><strong>データが大量</strong> — 全件をブラウザに送れない／送ると重い。ページング前提の一覧。</li><li><strong>行レベル権限がある</strong> — ユーザーごとに見えてよい範囲が違う。全件をブラウザに渡すと、画面に出していないだけで手元には全データがある状態になり、情報漏れになる。</li><li><strong>最新性が厳しい</strong> — 常に最新の状態を見せたい。手元にキャッシュした古い全件では困る。</li><li><strong>SEO が要る</strong> — 検索エンジンにインデックスさせたい公開ページ。サーバが絞り込み済みの HTML を返す必要がある。</li></ul>
+<p>特に <strong>権限</strong> は「速いから」で妥協してはいけない軸。速度のためにクライアント側に全件を渡すと、権限の壁を UI の見た目だけで作ることになり、開発者ツールで中身が丸見えになる。</p>
+<h3>トレードオフ整理</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">観点</th><th scope="col">クライアント側</th><th scope="col">サーバ側</th></tr></thead><tbody><tr><td>初回転送量</td><td>大（全件を一度に送る）</td><td>小（絞り込み後だけ）</td></tr><tr><td>都度リクエスト</td><td>不要（ブラウザ内で完結）</td><td>条件変更ごとに発生</td></tr><tr><td>体感速度（絞り込み時）</td><td>速い（往復なし）</td><td>ネットワーク遅延の分だけ待つ</td></tr><tr><td>ブラウザのメモリ</td><td>全件を保持するので多く使う</td><td>少なくて済む</td></tr><tr><td>行レベル権限</td><td>苦手（全件が手元に渡る）</td><td>得意（サーバで絞れる）</td></tr><tr><td>鮮度（最新性）</td><td>取得時点で固定されやすい</td><td>常に最新を返せる</td></tr><tr><td>データ量への強さ</td><td>小規模向き</td><td>大規模でもスケール</td></tr></tbody></table></div>
+<p>要するに <strong>「初回にまとめて払うか（クライアント）／使うたびに少しずつ払うか（サーバ）」</strong> のコスト配分の違いと、そこに <strong>権限と鮮度という妥協できない要件</strong>が乗ってくる、という構図で捉えるとよい。</p>
+<h3>ハイブリッドという現実解</h3>
+<p>実務では二択ではなく、組み合わせることが多い。</p>
+<ul class="note-list"><li><strong>サーバで粗く絞る</strong> — 期間・部署・担当など、母集合を現実的なサイズまで落とす条件はサーバ側で処理する。</li><li><strong>クライアントで細かく絞る</strong> — その結果セット（数百〜数千件程度）に対して、キーワード検索や細かいチェックボックス絞り込みはブラウザ側で高速に行う。</li></ul>
+<p>こうすると「全件は送らない（権限・データ量の問題を回避）」かつ「細かい絞り込みは往復なしで速い」という両方のいいとこ取りができる。まず粗いサーバ絞りの単位（期間や部署など、自然な区切り）を決めてから、その中でクライアント絞りを設計するのが定石。</p>
+<h3>関連: ファセット整合性（別テーマ）</h3>
+<p>絞り込みの選択肢（ファセット。カテゴリ一覧やタグ一覧など）を <strong>どの母集合から作るか</strong> と、実際に結果を絞る条件がずれると、「選択肢に出ているのに選ぶと0件」という不親切な状態が起きる。これは client/server の判断とは別の設計論点なので、ここでは深入りせず、別ノートで扱う。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>判断軸は正しさではなく <strong>データ量・権限・鮮度・体感速度</strong>。</li><li>小規模・高頻度検索・権限不要 → <strong>クライアント側</strong>（全件取得して往復なしで速く絞る）。</li><li>大量・行レベル権限・最新性・SEO → <strong>サーバ側</strong>（絞り込み後だけ返す）。</li><li>権限と鮮度は速度と引き換えにしてはいけない軸。特に全件をブラウザに渡す設計は情報漏れに直結する。</li><li>実務では <strong>サーバで粗く→クライアントで細かく</strong> のハイブリッドが有力。まず粗い絞りの単位を決める。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

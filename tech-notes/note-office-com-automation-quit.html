@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Office COM 自動化の鉄則 — Application.Quit() でユーザーの Office ごと閉じない — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="pywin32 (win32com) を使って Excel や PowerPoint、Word を Python から自動操作する処理を書いていた。 ファイルを開いて値を書き換え、最後に後片付けのつもりで Applica…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Office COM 自動化の鉄則 — Application.Quit() でユーザーの Office ごと閉じない — SkillShowcase" property="og:title"/>
+<meta content="pywin32 (win32com) を使って Excel や PowerPoint、Word を Python から自動操作する処理を書いていた。 ファイルを開いて値を書き換え、最後に後片付けのつもりで Applica…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-office-com-automation-quit.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-office-com-automation-quit.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Windows管理</span></div>
+<h2>Office COM 自動化の鉄則 — Application.Quit() でユーザーの Office ごと閉じない</h2>
+<h3>背景</h3>
+<p>pywin32 (win32com) を使って Excel や PowerPoint、Word を Python から自動操作する処理を書いていた。ファイルを開いて値を書き換え、最後に後片付けのつもりで <code>Application.Quit()</code> を呼んでいた。</p>
+<p>ところが、たまたま<strong>ユーザーが手動で開いていた別の Excel ブック</strong>まで一緒に閉じられてしまい、未保存の作業が消し飛ぶという事故が起きた。自動化スクリプトは自分の開いたファイルだけを閉じたつもりだったのに、なぜユーザーのウィンドウごと落ちたのか。これは COM 自動化で非常に踏みやすい地雷なので、原因と安全な作法を整理しておく。</p>
+<h3>なぜ起きるのか</h3>
+<p>Office アプリの COM オブジェクトは、多くの場合<strong>プロセス単位で共有される</strong>。</p>
+<p><code>win32com.client.Dispatch("Excel.Application")</code> を呼んだとき、すでに Excel が起動していれば、その<strong>既存プロセスに接続される</strong>ことがある。つまり自動化スクリプトが掴んだ <code>Application</code> は、ユーザーが手で開いている Excel と<strong>同じインスタンス</strong>かもしれない。</p>
+<p>その状態で <code>Application.Quit()</code> を呼ぶと、アプリケーション全体が終了する。自分が開いたブックだけでなく、ユーザーが開いていたブックも含めて<strong>プロセスごと</strong>閉じられる。これが事故の正体。</p>
+<p><code>Quit()</code> は「アプリを終了する」命令であって「自分のドキュメントを閉じる」命令ではない、という点を押さえておく。</p>
+<h3>安全な作法 — 一時コピーを ReadOnly で開き、Close だけする</h3>
+<p>鉄則は 2 つ。</p>
+<ol class="note-list"><li>元ファイルを直接触らず、<strong>一時コピーを作って ReadOnly で開く</strong></li><li>後片付けは<strong>ドキュメントを Close するだけ</strong>。<code>Application.Quit()</code> は呼ばない</li></ol>
+<pre><code data-lang="python">import shutil
+import tempfile
+import os
+import win32com.client
+
+src = r"C:\data\report.xlsx"
+
+# 1. 一時コピーを作る（元ファイルを保護）
+tmp_dir = tempfile.mkdtemp()
+tmp_path = os.path.join(tmp_dir, "work.xlsx")
+shutil.copy2(src, tmp_path)
+
+excel = win32com.client.Dispatch("Excel.Application")
+excel.DisplayAlerts = False  # 保存確認などのダイアログを抑止
+
+wb = None
+try:
+    # ReadOnly で開く。UpdateLinks=0 で外部リンク更新も抑止
+    wb = excel.Workbooks.Open(tmp_path, ReadOnly=True, UpdateLinks=0)
+
+    # ... ここで読み取り・処理 ...
+
+finally:
+    # 2. ドキュメントだけ閉じる。Quit() は呼ばない
+    if wb is not None:
+        wb.Close(SaveChanges=False)
+    # excel.Quit() は書かない！ ユーザーの Excel を巻き込む</code></pre>
+<p>PowerPoint も同じ考え方で、<code>Presentation.Close()</code> だけを呼び、<code>Application.Quit()</code> は避ける。</p>
+<pre><code data-lang="python">ppt = win32com.client.Dispatch("PowerPoint.Application")
+pres = ppt.Presentations.Open(tmp_path, ReadOnly=True, WithWindow=False)
+try:
+    # ... 処理 ...
+finally:
+    pres.Close()   # プレゼンだけ閉じる
+    # ppt.Quit() は呼ばない</code></pre>
+<p>「一時コピー + ReadOnly」にしておくと、万一処理が途中で落ちても元ファイルは無傷。書き換えが必要な場合も、一時コピー側を編集して別名保存し、最後に元へ差し替える方が安全。</p>
+<h3>DisplayAlerts と Visible の扱い</h3>
+<ul class="note-list"><li><code>DisplayAlerts = False</code> 上書き確認・保存確認・リンク更新などのモーダルダイアログを抑止する。これを設定しないと、自動処理が<strong>ダイアログ待ちで固まる</strong>（誰も OK を押さないので永久に止まる）。</li></ul>
+<ul class="note-list"><li><code>Visible</code> 自動処理では原則 <code>Visible = False</code>（非表示）で動かしたい。ただし既存プロセスに接続している場合、<code>Visible</code> を勝手に切り替えると<strong>ユーザーの画面表示に影響する</strong>ことがある。接続方式（次項）とセットで考える。</li></ul>
+<h3>どのインスタンスに繋ぐか — 影響範囲を決める選択</h3>
+<p>接続方法によって「ユーザーを巻き込むか」が変わる。</p>
+<ul class="note-list"><li><code>Dispatch("Excel.Application")</code> 既存プロセスがあればそれに繋ぐことがある。共有インスタンスなので <code>Quit()</code> は危険。</li></ul>
+<ul class="note-list"><li><code>GetActiveObject("Excel.Application")</code> すでに起動中のインスタンスに<strong>明示的に接続</strong>する。ユーザーが開いているものを操作したいとき用。当然 <code>Quit()</code> は厳禁。</li></ul>
+<ul class="note-list"><li><code>DispatchEx("Excel.Application")</code> <strong>専用プロセスを新規に立てる</strong>。ユーザーの Office とは別プロセスなので、この場合は <code>Quit()</code> を呼んでもユーザーに影響しない。</li></ul>
+<p><code>DispatchEx</code> は一見「Quit しても安全」で魅力的だが、環境によっては本当に独立した一意のプロセスになっているか確証を持ちにくい場面がある。迷ったら「Quit しない・ドキュメントを Close するだけ」を徹底しておけば、どの接続方式でも事故らない。</p>
+<h3>COM 参照は使い終わったら解放する</h3>
+<p>Python 側で COM オブジェクトへの参照が残っていると、アプリを閉じたつもりでも<strong>プロセスがメモリに居座る</strong>（ゾンビ化する）。</p>
+<p>使い終わった参照は明示的に手放す。</p>
+<pre><code data-lang="python">wb = None
+excel = None
+import gc
+gc.collect()</code></pre>
+<p><code>try/finally</code> で確実に <code>Close()</code> を通し、ローカル変数を手放してから <code>gc.collect()</code> を呼ぶと、掴んだままのプロセスが残りにくい。長時間動くバッチや繰り返し処理では、この解放を怠るとプロセスが溜まっていくので特に注意する。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>Office の COM は<strong>プロセス単位で共有される</strong>ことがある。<code>Application.Quit()</code> はアプリ全体を終了させ、<strong>ユーザーが開いている Office ごと閉じる</strong>重大事故になる。</li><li>後片付けは<strong>ドキュメントを Close するだけ</strong>。<code>Quit()</code> は原則呼ばない。</li><li>対象は<strong>一時コピーを ReadOnly で開く</strong>。元ファイルを保護し、途中で落ちても無傷にする。</li><li><code>DisplayAlerts = False</code> でダイアログ待ちのフリーズを防ぐ。<code>Visible</code> は接続方式とセットで考える。</li><li>専用プロセスが要るなら <code>DispatchEx</code>、既存を触るなら <code>GetActiveObject</code>。影響範囲を意識して接続方式を選ぶ。</li><li>COM 参照は使い終わったら解放する。残すとプロセスが居座る。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

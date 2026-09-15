@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>累積・差分処理の冪等性バグ（再検知の繰り返し・集約漏れ） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="「毎回、既存データを読み込んで、そこに新しい結果を追記する」タイプの処理を書いていると、実行するたびに件数や理由（reasons）が少しずつ膨れ上がっていく、という現象に出くわすことがある。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="累積・差分処理の冪等性バグ（再検知の繰り返し・集約漏れ） — SkillShowcase" property="og:title"/>
+<meta content="「毎回、既存データを読み込んで、そこに新しい結果を追記する」タイプの処理を書いていると、実行するたびに件数や理由（reasons）が少しずつ膨れ上がっていく、という現象に出くわすことがある。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-accumulation-idempotency-bug.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-accumulation-idempotency-bug.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>累積・差分処理の冪等性バグ（再検知の繰り返し・集約漏れ）</h2>
+<h3>背景</h3>
+<p>「毎回、既存データを読み込んで、そこに新しい結果を追記する」タイプの処理を書いていると、実行するたびに件数や理由（reasons）が少しずつ膨れ上がっていく、という現象に出くわすことがある。</p>
+<p>たとえば「異常な受注を検知して一覧に貯めていく」ような処理。1回目は3件、2回目は6件、3回目は9件…と、実際には何も起きていないのに検知件数だけが増え続ける。あるいは、1件の伝票に対して「新規取引」「数量が多い」といった検知理由が、実行回数ぶんだけ重複して並んでしまう。</p>
+<p>これらはたいてい <strong>冪等性（べきとうせい）が壊れている</strong> ことが原因だ。累積型・追記型の処理で特に踏みやすいので、パターンとして整理しておく。</p>
+<h3>冪等性とは</h3>
+<p>冪等性とは、<strong>同じ処理を何度実行しても結果が同じになる</strong> という性質のこと。</p>
+<ul class="note-list"><li>冪等な処理: 「この鍵に値 5 を代入する」→ 何回やっても値は 5。</li><li>冪等でない処理: 「この鍵に 5 を足す」→ 1回目は 5、2回目は 10、3回目は 15…と増え続ける。</li></ul>
+<p>累積処理や差分処理は「前回の状態に今回の結果を足し込む」構造なので、うっかりすると後者になりやすい。「このバッチは1日に何度流れても大丈夫か？」を常に自問するとよい。</p>
+<h3>典型バグ1: 「読み込む → 再検知 → 追記」で件数・理由が膨れる</h3>
+<p>一番多いのがこれ。毎回こういう流れで処理する。</p>
+<ol class="note-list"><li>既存の結果ファイルを読み込む</li><li>元データを再検知する</li><li>検知結果を既存に <strong>追記</strong> する</li></ol>
+<p>このとき、同じキー（伝票番号など）が毎回「新規」として判定され、そのたびに append されると、同じものが何個も並んでしまう。</p>
+<pre><code data-lang="python"># アンチパターン: リストへ append する経路に重複ガードがない
+results = load_existing()          # 既存の検知結果（リスト）
+for row in detect(source_data):    # 再検知（毎回同じキーが出てくる）
+    results.append(row)            # ← 重複ガードなし。実行のたび増殖する
+save(results)</code></pre>
+<p><code>results</code> が <strong>dict（キー→値）</strong> なら、同じキーへの代入は上書きになるので重複しない。これは冪等。</p>
+<pre><code data-lang="python"># dict なら上書きされるので冪等
+results = load_existing()          # {伝票番号: 検知結果}
+for key, row in detect(source_data):
+    results[key] = row             # 同じ key なら上書き。何回流しても同じ
+save(results)</code></pre>
+<p>問題は <strong>リストに append する経路</strong> や、<strong>理由（reasons）をリストに足していく経路</strong>。ここには必ず重複ガードを入れる。</p>
+<pre><code data-lang="python"># reasons を足すときも既存を見てからにする
+if reason not in record["reasons"]:
+    record["reasons"].append(reason)</code></pre>
+<p>ポイントは「追記する前に、それが既にあるか確認する」。キーで持てるものはリストではなく dict / set で持つと、そもそも重複しにくい設計になる。</p>
+<h3>典型バグ2: iterrows は明細行ごとに複数回まわる（集約漏れ）</h3>
+<p>pandas で <code>df.iterrows()</code> を回すとき、その DataFrame が <strong>明細行</strong> の粒度だと、1件の伝票に対してループが複数回まわる。</p>
+<p>伝票のつもりでループしているのに、実際は「伝票 × 明細行数」ぶん回ってしまい、同じ伝票の結果を何個も生成してしまう。</p>
+<pre><code data-lang="python"># アンチパターン: 明細行の DataFrame をそのまま回す
+for _, row in df.iterrows():       # 1伝票に明細が3行あれば3回まわる
+    detected.append(make_card(row))  # 同じ伝票のカードが3枚できる</code></pre>
+<p>表示したい単位が「伝票単位」なら、ループの前に <strong>その単位へ集約</strong> しておく。</p>
+<pre><code data-lang="python"># 伝票単位に集約してから回す
+grouped = (
+    df.groupby("伝票番号")
+      .agg({"金額": "sum", "商品CD": "first"})
+      .reset_index()
+)
+for _, row in grouped.iterrows():   # 1伝票につき1回
+    detected.append(make_card(row))</code></pre>
+<p>あるいは、キー列で重複排除してから回す。</p>
+<pre><code data-lang="python">unique = df.drop_duplicates(subset="伝票番号")</code></pre>
+<p>「今このループは、どの粒度で回っているのか？（明細か、伝票か、取引先か）」を常に意識する。粒度の取り違えは、件数がきれいに整数倍でズレるのが特徴。</p>
+<h3>母集合の取り違え: 検知側と表示側で違う DataFrame を見ている</h3>
+<p>検知（判定）に使う DataFrame と、画面に表示する値を計算する DataFrame が違うと、数字が食い違う。</p>
+<ul class="note-list"><li>検知側: 全期間を集計した DataFrame（平均や標準偏差を出すため広く取る）</li><li>表示側: 直近だけを抽出したあとの DataFrame</li></ul>
+<p>同じ「平均」でも、母集合が「全期間」か「抽出後」かで値が変わる。検知では異常と判定されたのに、画面に出す平均値は別の母集合で計算していて、見る人が「この数字だと異常に見えないが？」と混乱する。</p>
+<p>対策は、<strong>どの母集合（母数）を見ているかを変数名やコメントで明示する</strong> こと。</p>
+<pre><code data-lang="python">df_all = load_full_history()        # 全期間: 統計量（平均・標準偏差）算出用
+df_recent = df_all[df_all["納品日"] &gt;= cutoff]  # 直近抽出: 表示・判定対象
+
+mean_all = df_all["数量"].mean()    # 判定の基準はこちら
+# 表示にも判定と同じ母集合の値を使う（df_recent の平均を出さない）</code></pre>
+<p>「どちらの数字が正なのか」を先に決めて、検知と表示で同じ母集合を参照させる。</p>
+<h3>過去分は修復スクリプトで直す（コード修正だけでは戻らない）</h3>
+<p>一番忘れがちな点。バグの原因を突き止めてコードを直しても、<strong>既に膨れてしまった過去のデータはそのまま残る</strong>。</p>
+<p>累積型の処理は「前回の状態」を引き継ぐので、汚れた状態がずっと入力として使われ続ける。コード修正はあくまで「今後、新たに汚れないようにする」だけ。</p>
+<p>だから、別途 <strong>掃除（修復）スクリプト</strong> を1回だけ流して、過去分を正しい状態に直す必要がある。</p>
+<pre><code data-lang="python"># 過去分の掃除: reasons の重複を除去し、キー重複をまとめる
+data = load_existing()
+for key, record in data.items():
+    # 重複した reasons を順序を保ったまま一意化
+    record["reasons"] = list(dict.fromkeys(record["reasons"]))
+save(data)</code></pre>
+<p>修復スクリプトは、</p>
+<ul class="note-list"><li>実行前に必ずバックアップを取る</li><li>何を直したか（件数・対象キー）をログに出す</li><li>できれば「1回流しても2回流しても同じ結果になる」＝これ自体も冪等に作る</li></ul>
+<p>とよい。冪等な修復スクリプトなら、途中で失敗しても安心して再実行できる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><strong>冪等性</strong> = 同じ処理を何度実行しても結果が同じになる性質。累積・追記型の処理はこれを壊しやすい。</li><li><strong>追記の重複</strong>: リストへ append する経路・reasons を足す経路には必ず重複ガードを入れる。キーで持てるものは dict / set にすると設計から重複しにくくなる。</li><li><strong>iterrows の集約漏れ</strong>: 明細行の DataFrame は伝票 × 明細行数ぶん回る。表示単位で <code>groupby</code> / <code>drop_duplicates</code> してから回す。件数が整数倍でズレたら粒度を疑う。</li><li><strong>母集合の取り違え</strong>: 検知側（全期間集計）と表示側（抽出後）で違う DataFrame を見ると値がズレる。どの母数を見ているか明示し、判定と表示で揃える。</li><li><strong>過去分は修復スクリプト</strong>: コード修正は「今後汚さない」だけ。既に膨れたデータは別途、冪等な掃除スクリプトで直す。バックアップとログを忘れずに。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

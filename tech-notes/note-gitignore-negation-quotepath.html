@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>.gitignore の否定パターンと既ステージ問題・日本語パス表示 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content=".gitignore を書いていて、こんな場面に出くわした。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content=".gitignore の否定パターンと既ステージ問題・日本語パス表示 — SkillShowcase" property="og:title"/>
+<meta content=".gitignore を書いていて、こんな場面に出くわした。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-gitignore-negation-quotepath.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-gitignore-negation-quotepath.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>.gitignore の否定パターンと既ステージ問題・日本語パス表示</h2>
+<h3>背景</h3>
+<p><code>.gitignore</code> を書いていて、こんな場面に出くわした。</p>
+<ul class="note-list"><li>Excel ファイルは基本コミットしたくないので <code>*.xlsx</code> で全部除外した。でも <code>templates/</code> に置いた雛形の xlsx だけは Git で管理したい。「全部除外、でも一部だけ復活」をどう書くか。</li><li>すでに <code>git add</code> してコミット済みのファイルを、後から <code>.gitignore</code> に足したのに一向に無視されない。</li><li><code>git status</code> すると日本語のファイル名が <code>"\346\227..."</code> のような数字の羅列で表示されて読めない。</li></ul>
+<p>これらは Git を使っていると誰でもぶつかる定番の落とし穴なので、まとめて整理しておく。</p>
+<h3>否定パターン <code>!</code> で一部だけ追跡に戻す</h3>
+<p><code>.gitignore</code> は「除外ルール」を並べる場所だが、行頭に <code>!</code> を付けると「このパターンだけは除外を取り消す（＝追跡する）」という<strong>否定パターン</strong>になる。</p>
+<pre><code data-lang="gitignore"># xlsx は全部無視
+*.xlsx
+
+# ただし templates 配下の xlsx だけは追跡する
+!templates/*.xlsx</code></pre>
+<p>ポイントは<strong>後に書いたルールが勝つ</strong>こと。先に <code>*.xlsx</code> で広く除外し、後ろの <code>!templates/*.xlsx</code> で一部を拾い直す、という順序が必要。順番を逆にすると否定が先に打ち消されて効かない。</p>
+<p>もう一つの罠が<strong>パターンの書き方のズレ</strong>。単数・複数、サブパスの指定を間違えるとマッチしない。</p>
+<pre><code data-lang="gitignore">*.xlsx
+!templates/*.xlsx        # OK: templates 直下の xlsx にマッチ
+!template/*.xlsx         # NG: フォルダ名が違う（単数/複数の取り違え）
+!*.xlsx                  # 意図不明: 結局全部復活してしまう
+!templates/**/*.xlsx     # templates 配下を再帰的に拾いたいならこう</code></pre>
+<p>除外パターンと否定パターンで<strong>同じ粒度・同じパス</strong>を指しているか、必ず突き合わせて確認する。</p>
+<h3>重要な制約: 親ディレクトリごと除外していると復活できない</h3>
+<p>否定パターンには<strong>大きな制約</strong>がある。親ディレクトリそのものを除外していると、その中のファイルを <code>!</code> で個別に復活させることは<strong>できない</strong>。</p>
+<pre><code data-lang="gitignore"># NG パターン: build ディレクトリごと除外
+build/
+!build/keep.txt          # これは効かない</code></pre>
+<p>理由は、Git がディレクトリを除外と判定した時点で<strong>その中身を一切走査しない</strong>から。ディレクトリごとスキップされるので、中の <code>keep.txt</code> にはそもそも否定ルールを評価する機会が回ってこない。</p>
+<p>復活させたいファイルがあるなら、<strong>ディレクトリ自体は除外せず、中のファイルパターンで除外する</strong>。</p>
+<pre><code data-lang="gitignore"># OK パターン: ディレクトリは除外せず、中身をパターンで除外
+build/*
+!build/keep.txt          # これなら効く</code></pre>
+<p><code>build/</code> と <code>build/*</code> は見た目が似ているが挙動が決定的に違う。<code>build/*</code> は「build の中身」を除外するだけで build ディレクトリ自体は走査対象に残るので、否定パターンが評価される。</p>
+<h3>既に追跡中のファイルは <code>.gitignore</code> では消えない</h3>
+<p><code>.gitignore</code> は「<strong>まだ追跡していないファイル</strong>」に対して効くルール。すでに <code>git add</code> 済み（index に載っている）ファイルは、後から <code>.gitignore</code> に書いても無視されず、変更するたびに差分として出続ける。</p>
+<p>追跡から外すには、index（ステージ）から明示的に落とす必要がある。</p>
+<pre><code data-lang="bash"># ファイル自体は残しつつ、Git の管理からだけ外す
+git rm --cached path/to/config.xlsx
+
+# ディレクトリまるごとなら -r
+git rm --cached -r build/</code></pre>
+<p><code>--cached</code> を付けると<strong>ワーキングツリーのファイルは消さず</strong>、index からだけ削除する。この後 <code>.gitignore</code> に追記してコミットすれば、以降は無視されるようになる。<code>--cached</code> を付け忘れると実ファイルまで消えるので注意。</p>
+<h3>Excel の一時ロックファイルを無視する</h3>
+<p>Excel でブックを開くと、同じフォルダに <code>~$ブック名.xlsx</code> のような<strong>一時ロックファイル</strong>が生成される。これがコミット対象に紛れ込むと邪魔なので、まとめて無視しておく。</p>
+<pre><code data-lang="gitignore"># Office の一時ロックファイル
+~$*</code></pre>
+<p><code>~$</code> で始まるファイルは Word / Excel / PowerPoint 共通の一時ファイルなので、<code>~$*</code> の1行で一括除外できる。</p>
+<h3>日本語パスが化けて見えるときは quotepath</h3>
+<p>Git はデフォルトで、非 ASCII のパス（日本語ファイル名など）を<strong>8進エスケープ</strong>で表示する。</p>
+<pre><code data-lang="console">$ git status
+	"\346\227\245\346\234\254\350\252\236.txt"</code></pre>
+<p>これは壊れているわけではなく、<code>core.quotepath</code> という設定が既定で有効なため。無効にすれば日本語がそのまま出る。</p>
+<pre><code data-lang="bash"># その場限りで無効化（このコマンド1回だけ）
+git -c core.quotepath=false status
+
+# 恒久的に無効化（今後ずっと日本語をそのまま表示）
+git config --global core.quotepath false</code></pre>
+<p><code>-c core.quotepath=false</code> はコマンド単位の一時上書き、<code>git config --global</code> は全リポジトリに効く恒久設定。まず <code>-c</code> で試して、気に入ったら <code>--global</code> にする、という使い方が安全。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><code>!</code> で除外の一部を復活できる。ただし<strong>除外ルールより後ろ</strong>に書き、パス粒度を除外側と正確に揃える。</li><li><strong>親ディレクトリごと除外（<code>build/</code>）していると中のファイルは <code>!</code> で復活できない</strong>。<code>build/*</code> のように「中身」を除外して、ディレクトリ自体は走査対象に残す。</li><li><code>.gitignore</code> は既追跡ファイルには効かない。<code>git rm --cached &lt;file&gt;</code> で index から外す（<code>--cached</code> で実ファイルは残す）。</li><li>Office の一時ロックファイルは <code>~$*</code> で一括無視。</li><li>日本語パスが8進エスケープで化けたら <code>core.quotepath=false</code>。一時なら <code>-c</code>、恒久なら <code>git config --global</code>。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

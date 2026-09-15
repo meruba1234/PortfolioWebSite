@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>言語とフレームワークの関係 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="素の言語だけでも何でも作れるが、フレームワークを使うと「よくあるパターン」を効率よく書ける。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="言語とフレームワークの関係 — SkillShowcase" property="og:title"/>
+<meta content="素の言語だけでも何でも作れるが、フレームワークを使うと「よくあるパターン」を効率よく書ける。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-languages-vs-frameworks.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-languages-vs-frameworks.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Web技術</span></div>
+<h2>言語とフレームワークの関係</h2>
+<h3>言語とフレームワークの違い</h3>
+<ul class="note-list"><li><strong>言語</strong> = 文法そのもの（日本語、英語のようなもの）</li><li><strong>フレームワーク</strong> = 言語の上に乗る「便利な書き方のルール集」（ビジネスメールのテンプレートのようなもの）</li></ul>
+<p>素の言語だけでも何でも作れるが、フレームワークを使うと「よくあるパターン」を効率よく書ける。</p>
+<h3>Web系の全体像</h3>
+<h4>フロントエンド（ブラウザ側）</h4>
+<pre><code data-lang="">言語（素の技術）           フレームワーク/ライブラリ
+─────────────────────────────────────────────────
+HTML                    → （テンプレートエンジン: Blade, Jinja2）
+CSS                     → Tailwind CSS, Bootstrap, SASS
+JavaScript              → Alpine.js, React, Vue.js, jQuery</code></pre>
+<ul class="note-list"><li>HTML/CSS/JS を学習済みなら基礎はできている</li><li>フレームワークは「よく使うパターンを楽に書くためのツール」</li></ul>
+<h4>バックエンド（サーバー側）</h4>
+<pre><code data-lang="">言語                     フレームワーク
+─────────────────────────────────────────────────
+PHP                     → Laravel（+ Filament, Livewire）
+Python                  → Flask, Django, FastAPI
+JavaScript (Node.js)    → Express, Next.js
+Java                    → Spring Boot
+Kotlin                  → Ktor
+Ruby                    → Ruby on Rails</code></pre>
+<h3>モバイルアプリ開発</h3>
+<pre><code data-lang="">言語                     フレームワーク/SDK              備考
+─────────────────────────────────────────────────────────────
+Java                    → Android SDK                  従来のAndroid開発言語
+Kotlin                  → Android SDK (Jetpack Compose) Googleが推奨する後継言語
+Swift                   → UIKit, SwiftUI               iOS開発
+Dart                    → Flutter                      Android/iOS両対応</code></pre>
+<h4>Java と Kotlin の関係</h4>
+<ul class="note-list"><li><strong>Java</strong> — 長年Androidアプリの標準言語だった</li><li><strong>Kotlin</strong> — 2017年にGoogleがAndroidの公式言語として採用</li><li>KotlinはJavaと互換性があり、同じAndroid SDKの上で動く</li><li><strong>Kotlinは言語であり、フレームワークではない</strong>（Javaの後継的な位置づけ）</li><li>既にJavaでAndroidアプリを作った経験があれば、Kotlinへの移行はスムーズ</li></ul>
+<h3>業務で関わっている技術スタック</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">プロジェクト</th><th scope="col">言語</th><th scope="col">フレームワーク</th></tr></thead><tbody><tr><td>倉庫管理システム</td><td>PHP</td><td>Laravel + Filament + Livewire</td></tr><tr><td>job-repo</td><td>Python</td><td>Prefect + Flask</td></tr><tr><td>異常受注検知ビュアー</td><td>HTML/CSS/JS</td><td>Alpine.js</td></tr><tr><td>PortfolioWebSite</td><td>HTML/CSS/JS</td><td>（素のWeb技術）</td></tr></tbody></table></div>
+<h3>まとめ</h3>
+<ul class="note-list"><li>素のHTML/CSS/JSがわかっていれば基礎は十分</li><li>フレームワークは必要になったときに覚えればOK</li><li>言語の理解が先、フレームワークは後（順番が大事）</li><li>JavaでAndroidアプリを作った経験 → Kotlinは同じ土台の上の新しい言語</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Python の sys.path にディレクトリを追加するとは — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="job-repo などのプロジェクトで「sys.path に /flows を追加する」という話が出る。 これが何をしている操作で、なぜ必要なのかを整理しておくためのノート。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Python の sys.path にディレクトリを追加するとは — SkillShowcase" property="og:title"/>
+<meta content="job-repo などのプロジェクトで「sys.path に /flows を追加する」という話が出る。 これが何をしている操作で、なぜ必要なのかを整理しておくためのノート。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-python-sys-path.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-python-sys-path.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>Python の sys.path にディレクトリを追加するとは</h2>
+<h3>背景</h3>
+<p>job-repo などのプロジェクトで「<code>sys.path</code> に <code>/flows</code> を追加する」という話が出る。これが何をしている操作で、なぜ必要なのかを整理しておくためのノート。</p>
+<h3>sys.path とは</h3>
+<p>Python の <code>import</code> 文がモジュールを探すときに見にいく <strong>ディレクトリのリスト</strong>。標準ライブラリの <code>sys</code> モジュールに入っていて、Python 起動時に自動で組み立てられる。</p>
+<pre><code data-lang="python">import sys
+print(sys.path)
+# ['', 'C:\\Python311\\Lib', 'C:\\Python311\\Lib\\site-packages', ...]</code></pre>
+<p><code>import foo</code> と書くと、Python は <code>sys.path</code> を <strong>上から順に</strong> 見ていき、最初に見つかった <code>foo.py</code> または <code>foo/</code> パッケージを読み込む。</p>
+<h3>「/flows を追加する」とは</h3>
+<p><code>sys.path</code> の検索対象に <code>/flows</code> ディレクトリを加える操作。</p>
+<p>例えば <code>/flows/anomaly/flow.py</code> というファイルがあるとき：</p>
+<pre><code data-lang="python">import sys
+sys.path.insert(0, "/flows")
+
+# これで以下が書けるようになる
+from anomaly import flow
+from anomaly.scripts import detector</code></pre>
+<p><code>sys.path</code> に <code>/flows</code> が入っていないと <code>ModuleNotFoundError: No module named 'anomaly'</code> になる。</p>
+<h3>job-repo での文脈</h3>
+<p>リポジトリ構成は以下のようになっている。</p>
+<pre><code data-lang="">job-repo/
+├── common/        ← 共通モジュール (GroupwareMailSender 等)
+├── flows/
+│   ├── anomaly/
+│   ├── memo/
+│   └── _template/</code></pre>
+<p><code>flows/</code> を <code>sys.path</code> に通しておくと、</p>
+<ul class="note-list"><li><code>from common.groupware import GroupwareMailSender</code> のように <strong>リポジトリルート起点で書ける</strong></li><li><code>from anomaly.scripts.xxx import yyy</code> のように <strong>ジョブ間を跨いで参照できる</strong></li></ul>
+<p>ファイルの場所（カレントディレクトリ）に依存せず import が通るようになる。</p>
+<h3>追加方法 3 種類</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">方法</th><th scope="col">書き方</th><th scope="col">いつ使う</th></tr></thead><tbody><tr><td><strong>コード内で追加</strong></td><td><code>sys.path.insert(0, "/flows")</code></td><td>スクリプト自身で一時的に追加したいとき</td></tr><tr><td><strong>環境変数 PYTHONPATH</strong></td><td><code>PYTHONPATH=/flows python ...</code></td><td>Docker / Prefect Worker など外から指定するとき</td></tr><tr><td><strong>.pth ファイル</strong></td><td>site-packages に <code>flows.pth</code> を置く</td><td>Python 起動時に常に有効にしたいとき</td></tr></tbody></table></div>
+<p>Prefect の Docker Worker なら Dockerfile で</p>
+<pre><code data-lang="dockerfile">ENV PYTHONPATH=/app/flows</code></pre>
+<p>と書くか、docker-compose.yml の <code>environment:</code> に書くのが一般的。</p>
+<h3>insert と append の違い</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">メソッド</th><th scope="col">追加位置</th><th scope="col">優先度</th></tr></thead><tbody><tr><td><code>sys.path.insert(0, path)</code></td><td><strong>先頭</strong></td><td>標準ライブラリより優先される</td></tr><tr><td><code>sys.path.append(path)</code></td><td><strong>末尾</strong></td><td>標準ライブラリの方が優先</td></tr></tbody></table></div>
+<p>同名モジュールがあるときに挙動が変わるので注意。プロジェクト固有のモジュールを優先したいなら <code>insert(0, ...)</code>。</p>
+<h3>覚え方</h3>
+<ul class="note-list"><li><code>sys.path</code> = Python の <strong>「モジュール探索のための住所録」</strong></li><li>追加する = <strong>「ここも探しにいって」と住所を 1 件追記する</strong></li><li>追記しないと <code>ModuleNotFoundError</code></li></ul>
+<h3>注意点</h3>
+<ul class="note-list"><li>パスの区切りは OS 依存。Linux/コンテナは <code>/flows</code>、Windows ローカルは <code>C:\\...</code></li><li><code>sys.path.insert</code> はプロセス内だけの変更。Python を再起動すると消える</li><li>プロジェクトで恒久的に効かせるなら <code>PYTHONPATH</code> か <code>.pth</code> を使う</li><li>IDE (VS Code / PyCharm) では別途 <strong>プロジェクトのソースルート設定</strong> が必要なことがある</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>消費税の計算・丸めと内税/外税・軽減税率（1円差の追い方） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="既存の請求書 PDF の消費税額と、自分で SQL から集計し直した消費税額が 1 円だけ合わない。金額そのものが大きくズレるならロジックの根本ミスだが、「1 円」という微妙な差は原因がわかりにくい。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="消費税の計算・丸めと内税/外税・軽減税率（1円差の追い方） — SkillShowcase" property="og:title"/>
+<meta content="既存の請求書 PDF の消費税額と、自分で SQL から集計し直した消費税額が 1 円だけ合わない。金額そのものが大きくズレるならロジックの根本ミスだが、「1 円」という微妙な差は原因がわかりにくい。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-consumption-tax-calculation-rounding.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-consumption-tax-calculation-rounding.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">データベース</span></div>
+<h2>消費税の計算・丸めと内税/外税・軽減税率（1円差の追い方）</h2>
+<h3>背景</h3>
+<p>既存の請求書 PDF の消費税額と、自分で SQL から集計し直した消費税額が <strong>1 円だけ合わない</strong>。金額そのものが大きくズレるならロジックの根本ミスだが、「1 円」という微妙な差は原因がわかりにくい。</p>
+<p>売上明細から消費税を積み上げる自作集計と、請求書を発行しているシステム側の計算で、なぜ 1 円ズレるのか。この 1 円を追いかける過程で、消費税計算にまつわる論点（内税/外税・税率の持ち方・丸めの方式・丸めの方向）を整理しておく。同じハマり方を次回もするので、ここに残す。</p>
+<h3>内税（税込）と外税（税抜）</h3>
+<p>まず「請求対象の金額はどちらの世界の数字か」を最初に確定させる。ここが曖昧なまま計算すると、そもそも比較する土俵が違ってくる。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">区分</th><th scope="col">意味</th><th scope="col">消費税額の扱い</th></tr></thead><tbody><tr><td>外税（税抜）</td><td>単価・金額は税抜。消費税は別立てで加算</td><td><code>税抜金額 × 税率</code> が消費税額</td></tr><tr><td>内税（税込）</td><td>単価・金額に税が含まれている</td><td><code>税込金額 − 税抜相当額</code> の差額が消費税額</td></tr></tbody></table></div>
+<p>外税なら「税抜金額に税率を掛ける」で素直に出る。内税の場合だけ「税込と税抜の差」を消費税として逆算する必要があり、この逆算で端数処理が入る。</p>
+<pre><code data-lang=""># 外税
+消費税 = ROUND(税抜金額 * 税率)
+
+# 内税（税込から税抜を割り戻す）
+税抜相当 = ROUND(税込金額 / (1 + 税率))
+消費税   = 税込金額 - 税抜相当</code></pre>
+<p>内税の割り戻しは割り算が入るぶん端数が出やすく、丸めの影響も受けやすい。設計時に「このデータは内税か外税か」を必ず一次情報（マスタや帳票仕様）で確認しておく。</p>
+<h3>税率は商品単位で決まる（軽減税率）</h3>
+<p>税率は「伝票単位」ではなく <strong>商品単位</strong> で決まることが多い。食品などは軽減 8%、それ以外は標準 10%、といった具合に 1 枚の伝票に複数税率が混在する。</p>
+<p>税率の判定元は多くの場合、商品マスタの区分フラグである。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">フラグ値</th><th scope="col">意味</th><th scope="col">税率</th></tr></thead><tbody><tr><td>0 / 空</td><td>標準</td><td>10%</td></tr><tr><td>1</td><td>軽減</td><td>8%</td></tr></tbody></table></div>
+<pre><code data-lang="python">def tax_rate(product, sale_date):
+    # 商品マスタの区分フラグで軽減/標準を判定
+    is_reduced = product.reduced_flag == 1
+    # 売上日を引数に取り、税率テーブルを参照する
+    return tax_table.rate(reduced=is_reduced, on=sale_date)</code></pre>
+<p>ポイントは <strong>売上日を引数にして税率テーブルを引く設計</strong> にしておくこと。税率は過去に何度も改定されている（3% → 5% → 8% → 10%、そこに軽減 8% が追加）。「今は 10%」とハードコードすると、将来の改定や過去分の再計算で破綻する。税率を <code>売上日 → 税率</code> の関数として持てば拡張に強い。</p>
+<h3>丸めの方式で結果が変わる（明細合算 vs 小計方式）</h3>
+<p>ここが 1 円差の主犯。<strong>同じ明細・同じ税率でも、どの単位で丸めるかで合計が変わる。</strong></p>
+<h4>方式 A: 明細ごとに税を計算して合算</h4>
+<pre><code data-lang="">各明細で  税額 = ROUND(明細税抜 × 税率)
+合計税額 = Σ 明細税額</code></pre>
+<h4>方式 B: 小計方式（得意先×期間×税率でまとめてから丸める）</h4>
+<pre><code data-lang="">税率ごとに  小計 = Σ 明細税抜
+税額        = ROUND(小計 × 税率)
+合計税額    = Σ 税率ごとの税額</code></pre>
+<p>同じデータでも結果が違う例（税率 10%、円未満四捨五入）:</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">明細</th><th scope="col">税抜</th><th scope="col">税額（方式A: 明細ごと丸め）</th></tr></thead><tbody><tr><td>1</td><td>105</td><td>ROUND(10.5) = 11</td></tr><tr><td>2</td><td>105</td><td>ROUND(10.5) = 11</td></tr><tr><td>3</td><td>105</td><td>ROUND(10.5) = 11</td></tr><tr><td><strong>合計</strong></td><td><strong>315</strong></td><td><strong>33</strong></td></tr></tbody></table></div>
+<p>方式 B（小計方式）だと <code>ROUND(315 × 0.10) = ROUND(31.5) = 32</code>。</p>
+<p>→ 方式 A では 33 円、方式 B では 32 円。<strong>1 円ズレる。</strong></p>
+<p>明細ごとに丸めると端数（この例では各 0.5）が明細の数だけ積み上がり、まとめてから丸めるより大きくなりやすい。</p>
+<p><strong>請求書 PDF は方式 B（小計方式）を採用していることが多い。</strong> インボイス制度でも「1 請求書あたり税率ごとに 1 回の端数処理」が原則とされているため、帳票側は小計方式で組まれている前提で自作集計を合わせにいくのが基本。自作集計を方式 A のままにしていると、明細数が多い得意先ほどズレやすい。</p>
+<h3>負の金額（リベート等）の丸め方向</h3>
+<p>リベート・値引き・返品など、金額が <strong>負</strong> になる明細がある場合、丸めの「方向」で 1 円差が出ることがある。</p>
+<p>四捨五入（<code>ROUND_HALF_UP</code>）は絶対値ベースで丸めるため、負数だとゼロから遠い側へ動く。一方、システムによっては負数を <code>ROUND_FLOOR</code>（より負側＝小さい側へ切り下げ）で処理していることがある。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">元の値</th><th scope="col">ROUND_HALF_UP</th><th scope="col">ROUND_FLOOR</th></tr></thead><tbody><tr><td>-10.5</td><td>-11</td><td>-11</td></tr><tr><td>-10.4</td><td>-10</td><td>-11</td></tr><tr><td>-10.6</td><td>-11</td><td>-11</td></tr></tbody></table></div>
+<p>Python の <code>decimal</code> で方向を明示する例:</p>
+<pre><code data-lang="python">from decimal import Decimal, ROUND_HALF_UP, ROUND_FLOOR
+
+v = Decimal("-10.4")
+v.quantize(Decimal("1"), rounding=ROUND_HALF_UP)  # -10
+v.quantize(Decimal("1"), rounding=ROUND_FLOOR)     # -11</code></pre>
+<p>「正の明細は合うのに、リベートのある得意先だけ 1 円ズレる」ときは、負数の丸め方向を <code>ROUND_FLOOR</code> に変えると解消することがある。</p>
+<h3>1 円差の追い方（手順）</h3>
+<ol class="note-list"><li><strong>内税/外税を確認</strong> — そもそも比較対象の金額が税込か税抜か。土俵を揃える。</li><li><strong>税率の粒度を確認</strong> — 伝票単位ではなく商品単位。軽減/標準が混在していないか。</li><li><strong>丸めの単位を疑う</strong> — 自作集計が明細ごと丸め（方式A）になっていないか。帳票は小計方式（方式B）が多い。まず方式Bに合わせる。</li><li><strong>丸めの方向を疑う</strong> — 負の明細がある得意先で、<code>ROUND_FLOOR</code> を試す。</li><li><strong>どうしても再現できないなら妥協判断</strong> — 桁ごとの特殊な丸めをシステムが内部で行っている場合、完全再現はコストに見合わないことがある。「明細合算で数円以内に収める」で運用を回す判断もあり。ズレる条件（明細数・負数の有無）を記録しておく。</li></ol>
+<h3>まとめ</h3>
+<ul class="note-list"><li>消費税計算はまず <strong>内税/外税</strong> を確定させる。内税のときだけ割り戻しの端数が絡む。</li><li>税率は <strong>商品単位</strong>（軽減8%/標準10%）。<strong>売上日を引数に税率テーブルを引く</strong>設計にしておくと改定に強い。</li><li>「1 円合わない」の犯人はたいてい <strong>丸めの順序</strong>（明細ごと丸め vs 小計方式）か <strong>丸めの方向</strong>（負数の <code>ROUND_FLOOR</code>）。</li><li>請求書 PDF は <strong>小計方式（税率ごとに1回だけ丸め）</strong> が主流。自作集計はここに合わせる。</li><li>桁ごとの脆い特殊丸めを完全再現するより、<strong>明細合算で妥協する</strong> 現実的な落としどころもある。追えなくなったら、ズレる条件を記録して撤退ラインを引く。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

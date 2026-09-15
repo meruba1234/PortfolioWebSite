@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Docker のマウント3種（bind / volume / CIFS）とコードを焼き込まない設計 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="コンテナで動くアプリのコードを直したのに、コンテナに反映されない。あるいは、コンテナの中で作ったつもりのファイルがホストのフォルダに見当たらない。こういう「反映されない」「見えない」系のハマりは、たいてい コンテナの中と…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Docker のマウント3種（bind / volume / CIFS）とコードを焼き込まない設計 — SkillShowcase" property="og:title"/>
+<meta content="コンテナで動くアプリのコードを直したのに、コンテナに反映されない。あるいは、コンテナの中で作ったつもりのファイルがホストのフォルダに見当たらない。こういう「反映されない」「見えない」系のハマりは、たいてい コンテナの中と…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-docker-mount-types.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-docker-mount-types.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">インフラ</span></div>
+<h2>Docker のマウント3種（bind / volume / CIFS）とコードを焼き込まない設計</h2>
+<h3>背景</h3>
+<p>コンテナで動くアプリのコードを直したのに、コンテナに反映されない。あるいは、コンテナの中で作ったつもりのファイルがホストのフォルダに見当たらない。こういう「反映されない」「見えない」系のハマりは、たいてい <strong>コンテナの中と外はパスが別空間</strong> であること、そして <strong>どこをマウントしているか</strong> を正しく把握できていないことが原因です。</p>
+<p>Docker には外部とデータをやり取りする仕組みとして大きく3種類のマウントがあり、それぞれ用途が違います。まずここを区別できると、上のようなトラブルが一気に読めるようになります。</p>
+<h3>マウント3種の違い</h3>
+<p>Docker 公式でも、これらは別物として区別されています。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">種類</th><th scope="col">実体の置き場所</th><th scope="col">主な用途</th><th scope="col">特徴</th></tr></thead><tbody><tr><td><strong>bind mount</strong></td><td>ホストの任意パス（例 <code>/opt/app</code>）</td><td>コード・設定・データの共有</td><td>ホスト側で編集した内容がそのままコンテナに見える</td></tr><tr><td><strong>volume（named volume）</strong></td><td>Docker が管理する領域</td><td>永続データ（DB のデータ等）</td><td>ホストのどこにあるか意識しない。Docker が面倒を見る</td></tr><tr><td><strong>CIFS mount</strong></td><td>SMB 共有（例 <code>\\server\share</code>）</td><td>ネットワーク共有をコンテナから使う</td><td>ファイルサーバ上のフォルダをコンテナにマウント</td></tr></tbody></table></div>
+<p>ざっくり言うと、</p>
+<ul class="note-list"><li><strong>bind mount</strong> = 「ホストのこのフォルダを、コンテナのここに見せて」</li><li><strong>volume</strong> = 「Docker、永続データを預かっておいて。場所は任せる」</li><li><strong>CIFS mount</strong> = 「ネットワーク上の共有フォルダを、コンテナにつないで」</li></ul>
+<p>という役割分担です。</p>
+<h3>コードは Dockerfile に焼き込まず、bind mount で見せる</h3>
+<p>アプリのコードの扱い方には2通りあります。</p>
+<ol class="note-list"><li><strong>Dockerfile に <code>COPY</code> して焼き込む</strong> → コードはイメージの中に固定される</li><li><strong>bind mount で見せる</strong> → コードはホスト側にあり、コンテナはそれを覗くだけ</li></ol>
+<p>開発・運用では <strong>2 の bind mount</strong> が扱いやすい場面が多いです。理由は、コードがホスト側にあるので、</p>
+<ul class="note-list"><li>ホストでファイルを編集する</li><li>ホストで <code>git pull</code> する</li></ul>
+<p>だけでコンテナに反映され、<strong>イメージの再ビルドもコンテナの再起動も不要</strong>（ホットリロード）だからです。焼き込んでしまうと、1行直すたびに再ビルド → 作り直し、という手間がかかります。</p>
+<p>compose での書き方のイメージ:</p>
+<pre><code data-lang="yaml">services:
+  app:
+    image: myapp:latest
+    volumes:
+      # ホストの /opt/app を、コンテナの /app に bind mount
+      - /opt/app:/app</code></pre>
+<p>この状態なら、ホストの <code>/opt/app</code> を編集すればコンテナの <code>/app</code> に即反映されます。</p>
+<h4>例外: 依存ライブラリを追加したときだけは再ビルド</h4>
+<p>bind mount ならいつでもノータッチ、というわけではありません。<strong>新しい依存ライブラリを追加したとき</strong> は話が別です。ライブラリはコードと違ってイメージの中（<code>pip install</code> 等の結果）に入っているので、</p>
+<ul class="note-list"><li>依存を追加 → <strong>Dockerfile（や requirements）を更新</strong> → <strong>イメージを再ビルド</strong></li></ul>
+<p>が必要になります。「コードを直しただけ = 再ビルド不要 / ライブラリを増やした = 再ビルド必要」と覚えておくと迷いません。</p>
+<h3>コンテナの中と外は別空間</h3>
+<p>ここが一番ハマりやすいポイントです。コンテナ内のパス（<code>/tmp</code> やアプリ用のパス）は、<strong>ホストとはまったく別の空間</strong> です。マウントしていない限り、コンテナ内に書いたファイルはホストからは見えませんし、その逆もしかりです。</p>
+<pre><code data-lang="">ホスト                          コンテナ
+--------                        --------
+/opt/app   ── bind mount ──▶    /app        ← ここは共有されている
+/tmp       （無関係）           /tmp        ← 名前は同じでも別物
+                                /var/log/x  ← マウントしてなければホストから見えない</code></pre>
+<p>「コンテナの中で <code>/tmp</code> にファイルを書いたのに、ホストの <code>/tmp</code> に無い」というのは、この別空間を混同しているのが原因です。ホストと共有したいパスは、明示的に bind mount する必要があります。</p>
+<h3>権限: マウントしていても書けないことがある</h3>
+<p>ホスト側パスを bind mount していても、<strong>そのパスの所有者が root だと、ホストの一般ユーザーからは書けない</strong> ことがあります。</p>
+<ul class="note-list"><li>ホストの一般ユーザー → root 所有フォルダには書き込めない</li><li>コンテナは root 権限で動いていることが多い → コンテナ経由なら操作できる</li></ul>
+<p>なので「マウントはしてあるのにホストから編集できない」ときは、所有者・権限を確認します。ホストで直接いじれない場合は、コンテナの中に入って操作する、という回避になることがあります。</p>
+<h3>補足: hostname でホストは識別できない</h3>
+<p>デバッグ時にありがちな落とし穴として、コンテナ内で</p>
+<pre><code data-lang="python">import socket
+socket.gethostname()   # 例: '3f9a1c2b7d4e'（Container ID の先頭12桁）</code></pre>
+<p>を呼んでも、返ってくるのは <strong>Container ID の先頭12桁</strong> です。物理ホストの名前ではありません。しかもコンテナを作り直すたびに変わります。</p>
+<p>そのため、「どのサーバで動いているか」「どの環境（本番/検証）か」といった <strong>意味のあるラベルは、環境変数で注入する</strong> のが定石です。</p>
+<pre><code data-lang="yaml">services:
+  app:
+    environment:
+      - APP_ENV=production
+      - HOST_LABEL=main-server</code></pre>
+<p>hostname はホスト識別に使えない、と割り切っておきます。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>Docker のマウントは <strong>bind（任意パス共有）/ volume（Docker 管理の永続データ）/ CIFS（SMB 共有）</strong> の3種。用途で使い分ける。</li><li><strong>コードは焼き込まず bind mount で見せる</strong> と、ホストで編集 / <code>git pull</code> するだけで反映され、再ビルド・再起動が不要。ただし <strong>依存ライブラリの追加時だけは再ビルドが必要</strong>。</li><li><strong>コンテナの中と外はパスが別空間</strong>。マウントしていないパスは互いに見えない。「書いたのに反映されない」の典型原因。</li><li>マウントしていても <strong>root 所有のパスは一般ユーザーから書けない</strong>。権限を確認する。</li><li><code>socket.gethostname()</code> は <strong>Container ID</strong> を返す。ホスト識別には使えず、意味のあるラベルは <strong>環境変数で注入</strong> する。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>ファイル I/O の3パターン（直接書き / メモリ完結 / 一時ファイル必須） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="共有フォルダやリモートストレージ（ネットワーク越しの保存先）へデータを読み書きするとき、 「ローカルに一時ファイルを作るべきか、それとも作らずに直接やりとりできるか」で毎回迷いがちだ。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="ファイル I/O の3パターン（直接書き / メモリ完結 / 一時ファイル必須） — SkillShowcase" property="og:title"/>
+<meta content="共有フォルダやリモートストレージ（ネットワーク越しの保存先）へデータを読み書きするとき、 「ローカルに一時ファイルを作るべきか、それとも作らずに直接やりとりできるか」で毎回迷いがちだ。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-file-io-abc-patterns.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-file-io-abc-patterns.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>ファイル I/O の3パターン（直接書き / メモリ完結 / 一時ファイル必須）</h2>
+<h3>背景</h3>
+<p>共有フォルダやリモートストレージ（ネットワーク越しの保存先）へデータを読み書きするとき、「ローカルに一時ファイルを作るべきか、それとも作らずに直接やりとりできるか」で毎回迷いがちだ。</p>
+<p>この判断を場当たり的にやると、不要な一時ファイルを作ってゴミが残ったり、逆に一時ファイルが必要な場面でメモリ上だけで処理しようとして詰まったりする。</p>
+<p>そこで「一時ファイルの要否」を軸に <strong>A / B / C の3パターン</strong> に分類しておくと、新しい処理を書くたびに設計判断が一瞬で済む。以下にその整理をまとめる。</p>
+<h3>3パターンの整理</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">パターン</th><th scope="col">中身</th><th scope="col">一時ファイル</th><th scope="col">代表シーン</th></tr></thead><tbody><tr><td><strong>A: 直接書き</strong></td><td>文字列・バイト列を組み立てて、そのままリモートへ write</td><td>不要</td><td>小さいテキスト、CSV、ログ 1 本など</td></tr><tr><td><strong>B: メモリ完結</strong></td><td><code>io.BytesIO</code> などメモリ上のバッファで組み立てて read/write</td><td>不要（ディスクに触れない）</td><td>xlsx / zip をメモリ内で生成して転送</td></tr><tr><td><strong>C: 一時ファイル必須</strong></td><td>ローカルに実ファイルを一度書き出してから扱う</td><td><strong>必須</strong></td><td>ライブラリ/外部プロセスが「パス」しか受け付けない</td></tr></tbody></table></div>
+<h4>A: 直接書き</h4>
+<p>データが小さく、そのまま送れるならこれが一番シンプル。余計なオブジェクトも後始末も要らない。</p>
+<pre><code data-lang="python"># 文字列をそのままリモートへ
+with open(remote_path, "w", encoding="utf-8") as f:
+    f.write("col1,col2\n1,2\n")</code></pre>
+<h4>B: メモリ完結（BytesIO）</h4>
+<p>ライブラリが「ファイルオブジェクト（ストリーム）」を受け付けるなら、ディスクを経由せずメモリ上で組み立てられる。一時ファイルの作成も削除も不要になる。</p>
+<pre><code data-lang="python">import io
+from openpyxl import Workbook
+
+buf = io.BytesIO()
+wb = Workbook()
+wb.save(buf)          # パスではなくストリームに保存できる
+buf.seek(0)
+upload(buf.getvalue())  # バイト列としてリモートへ</code></pre>
+<h4>C: 一時ファイル必須</h4>
+<p>問題は「パスしか受け付けない」相手。ここは B にできず、必ずローカルの実ファイルが要る。</p>
+<p>代表例:</p>
+<ul class="note-list"><li><strong>ブラウザ自動化のダウンロード</strong> — ダウンロードを実行するのはブラウザ自身であり、ブラウザはローカルにファイルを書き出す。だから受け取り側は <code>download.save_as("/tmp/xxx.xlsx")</code> のように <strong>保存先パス</strong> を渡す形になる。</li><li><strong>サブプロセス / 外部コマンド</strong> — 引数にファイルパスを取る CLI ツールに渡す場合。</li><li><strong>C 実装のライブラリ API</strong> — パス引数しか用意されていないもの。</li></ul>
+<pre><code data-lang="python">import tempfile, os
+
+# パスを要求する相手にはローカル実ファイルを渡すしかない
+tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
+tmp.close()
+try:
+    download.save_as(tmp.name)   # ← パスが必須
+    with open(tmp.name, "rb") as f:
+        upload(f.read())         # 読み直してリモートへ
+finally:
+    os.remove(tmp.name)          # 後始末は必ず</code></pre>
+<h3>判断軸</h3>
+<p>どのパターンにするかは、次の3点を順に確認すれば決まる。</p>
+<ol class="note-list"><li><strong>使うライブラリはパスを要求するか、ストリームも受け付けるか</strong></li></ol>
+<ul class="note-list"><li>パスしか無理 → <strong>C</strong></li><li>ストリームOK → A か B へ</li></ul>
+<ol class="note-list"><li><strong>データはメモリに載るサイズか</strong></li></ol>
+<ul class="note-list"><li>十分小さい → A / B</li><li>巨大 → C（後述）</li></ul>
+<ol class="note-list"><li><strong>ネットワーク越しか</strong></li></ol>
+<ul class="note-list"><li>リモート直書きが可能なら A、メモリで組んで転送なら B</li></ul>
+<p>ざっくり言えば「<strong>パス必須なら C、そうでなければサイズを見て A か B</strong>」。</p>
+<h3>サイズとメモリの注意</h3>
+<p>B（BytesIO）は手軽だが、<strong>すべてメモリに載る</strong> ことを忘れてはいけない。</p>
+<ul class="note-list"><li>巨大ファイルや、複数ファイルをまとめて zip する処理を BytesIO でやると、内容がまるごと RAM を占有し <strong>OOM（メモリ枯渇）</strong> を起こしうる。</li><li>こういうときは C にして物理的な一時ファイルを使う方が安全。 OS のページキャッシュが必要な部分だけ効率よくメモリに載せてくれるので、巨大でもメモリを食いつぶしにくい。</li></ul>
+<p>つまり「小さい＝B で身軽に」「大きい・大量＝C で OS に任せる」と覚えておくとよい。</p>
+<h3>後始末を忘れない</h3>
+<p>C の一時ファイルは、使い終わったら <strong>必ず消す</strong>。消し忘れは共有ディスクやローカルにゴミを残す。</p>
+<ul class="note-list"><li><code>try / finally</code> で確実に <code>os.remove()</code> する</li><li>あるいは context manager を使う</li><li><code>tempfile.NamedTemporaryFile</code> を使えば衝突しない一時名を自動で用意してくれる（<code>delete=False</code> で開いた場合は自分で消す責任が残る点に注意）</li></ul>
+<pre><code data-lang="python">import tempfile
+
+# with を抜けると自動で削除される（ただしパスを外部プロセスに渡す間は
+# ファイルが開かれたままになる点に注意。Windows では別プロセスが開けないこともある）
+with tempfile.NamedTemporaryFile(suffix=".csv") as tmp:
+    ...  # tmp.name を使う
+# ここで自動削除</code></pre>
+<h3>まとめ</h3>
+<ul class="note-list"><li>リモート I/O は <strong>一時ファイルの要否</strong> で A（直接）/ B（メモリ）/ C（一時ファイル必須）に分ける。</li><li>分岐の起点は「<strong>ライブラリがパスを要求するか</strong>」。パス必須なら問答無用で C。</li><li>ストリーム対応なら、<strong>サイズ</strong>で A/B と C を選ぶ。巨大・大量は BytesIO を避けて C にし、OS のキャッシュに任せる。</li><li>C を選んだら <strong>後始末（削除）</strong> をセットで設計する。try/finally か context manager で確実に。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>wscript プロセスがたまるとは — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="移行元PC（タスクスケジューラ運用機）で「wscript プロセスがたまる」「wscript が溜まると異常検知も巻き込まれて落ちる」という話が出る。 何が起きているのか、なぜ復旧が PC 再起動なのかを整理しておくため…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="wscript プロセスがたまるとは — SkillShowcase" property="og:title"/>
+<meta content="移行元PC（タスクスケジューラ運用機）で「wscript プロセスがたまる」「wscript が溜まると異常検知も巻き込まれて落ちる」という話が出る。 何が起きているのか、なぜ復旧が PC 再起動なのかを整理しておくため…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-wscript-process-pileup.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-wscript-process-pileup.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Windows管理</span></div>
+<h2>wscript プロセスがたまるとは</h2>
+<h3>背景</h3>
+<p>移行元PC（タスクスケジューラ運用機）で「wscript プロセスがたまる」「wscript が溜まると異常検知も巻き込まれて落ちる」という話が出る。何が起きているのか、なぜ復旧が PC 再起動なのかを整理しておくためのノート。</p>
+<h3>wscript.exe とは</h3>
+<p>Windows 標準の <strong>Windows Script Host (WSH)</strong>。<code>.vbs</code> (VBScript) や <code>.js</code> (JScript) を実行するための Windows 組み込みのインタプリタ。</p>
+<ul class="note-list"><li><code>wscript.exe</code> … GUI 版（ダイアログ表示できる）</li><li><code>cscript.exe</code> … コンソール版（標準出力に出る）</li></ul>
+<p>タスクスケジューラから <code>.vbs</code> を起動すると、内部で <code>wscript.exe</code> が立ち上がってスクリプトを実行する。</p>
+<h3>「たまる」とは</h3>
+<p>タスクスケジューラから <code>.vbs</code> を実行 → 内部で <code>wscript.exe</code> が起動 → 本来は処理が終われば自動で終了するはずが、<strong>何らかの理由でプロセスが終了せず残り続ける</strong>現象。</p>
+<p>スケジューラは設定された間隔で次々と <code>.vbs</code> を起動するので、終わらない <code>wscript.exe</code> がどんどん積み上がっていく。</p>
+<p>タスクマネージャーで見ると <code>wscript.exe</code> が 10 個も 20 個も並んでいる、という状態になる。</p>
+<h3>なぜ起きるか（移行元PC で観測されたパターン）</h3>
+<p>ハングの典型的な連鎖：</p>
+<ol class="note-list"><li><strong>FAX 複合機エラー</strong>などで、<code>.vbs</code> から呼ばれた外部処理（ファイル取得 / 印刷 / ネットワーク I/O）がハング</li><li>その <code>.vbs</code> を実行している <code>wscript.exe</code> が <strong>I/O 待ちのまま終了できない</strong></li><li>スケジューラは時間が来たら次の <code>wscript.exe</code> を起動 → 同じ理由でハング</li><li><code>wscript.exe</code> が大量に溜まる</li><li>リソース枯渇 / 同じファイル・リソースのロック競合で <strong>異常受注検知など他のタスクも巻き込まれて失敗</strong>し始める</li></ol>
+<p>ポイント：<code>wscript.exe</code> 自身がバグっているわけではなく、<strong>内部から呼んでいる外部処理がハングしている</strong>のが本当の原因。<code>wscript.exe</code> はそれを忠実に待っているだけ。</p>
+<h3>確認方法</h3>
+<h4>タスクマネージャー</h4>
+<p>プロセスタブで <code>wscript.exe</code> の数を数える。通常運用なら同時に走っている数（多くて数個）を超えていたら異常。</p>
+<h4>コマンド</h4>
+<pre><code data-lang="cmd">tasklist | findstr wscript</code></pre>
+<p>PowerShell なら</p>
+<pre><code data-lang="powershell">Get-Process wscript | Measure-Object | Select-Object Count</code></pre>
+<h3>対処</h3>
+<h4>復旧</h4>
+<p><strong>PC 再起動が確実</strong>。</p>
+<p>個別に <code>taskkill /IM wscript.exe /F</code> で殺すこともできるが、</p>
+<ul class="note-list"><li>ハング中の <code>.vbs</code> が中途半端な状態でファイルを開いている可能性</li><li>殺した直後にスケジューラが次の <code>wscript</code> を起動して同じ状況に戻る</li><li>取りこぼしが出やすい</li></ul>
+<p>ので <strong>タスクスケジューラを止めずに連発 kill しない</strong>こと。</p>
+<h4>予防</h4>
+<ul class="note-list"><li><code>.vbs</code> から呼ぶ外部処理にタイムアウトを設ける</li><li>強制終了オプション（タスクスケジューラの「タスクが指定時間以上実行されたら停止する」）を設定する … ただし業務によっては中断すると状態破壊のリスクがあるので注意（異常受注検知のタスクには設定していない）</li><li>そもそも <code>.vbs</code> + タスクスケジューラから卒業して Prefect（自動化基盤サーバー） に載せ替える</li></ul>
+<h3>業務での具体例</h3>
+<ul class="note-list"><li>移行元PC の FAX 関連 vbs がハング → <code>wscript.exe</code> 溜まり → 異常受注検知も失敗、という連鎖が複数回発生</li><li>復旧手順は基本「移行元PC を再起動」</li><li>自動化基盤サーバー (Prefect + Docker) に移行した業務はこの問題から解放される。<code>.vbs</code> を使わず Python flow を Worker コンテナで実行するため、プロセス管理は Prefect / Docker が面倒を見てくれる</li></ul>
+<h3>覚え方</h3>
+<ul class="note-list"><li><code>wscript.exe</code> = <strong>Windows が <code>.vbs</code> を動かすためのランナー</strong></li><li>たまる = <strong><code>.vbs</code> の中の処理がハングしてランナーが止まれない状態</strong></li><li>真犯人は <code>wscript</code> ではなく <strong><code>.vbs</code> から呼ばれている外部 I/O</strong></li><li>復旧は <strong>再起動</strong>、根本対策は <strong>Prefect 移行</strong></li></ul>
+<h3>関連</h3>
+<ul class="note-list"><li>タスクスケジューラ運用全般 → 将来 <code>task-scheduler-operation.md</code> に書く予定</li><li>自動化基盤サーバー / Prefect への移行 → （社内固有の情報を含むため非公開）</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>SMB / CIFS / UNC 共有アクセス — smbprotocol 直叩き vs OS マウント — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Linux サーバーや Docker コンテナから、Windows のファイル共有（\\server\share）を読み書きしたい場面はよくある。 たとえば「NAS 上の共有フォルダに置かれた Excel を Linux…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="SMB / CIFS / UNC 共有アクセス — smbprotocol 直叩き vs OS マウント — SkillShowcase" property="og:title"/>
+<meta content="Linux サーバーや Docker コンテナから、Windows のファイル共有（\\server\share）を読み書きしたい場面はよくある。 たとえば「NAS 上の共有フォルダに置かれた Excel を Linux…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-smb-cifs-unc-access.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-smb-cifs-unc-access.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">ネットワーク</span></div>
+<h2>SMB / CIFS / UNC 共有アクセス — smbprotocol 直叩き vs OS マウント</h2>
+<h3>背景</h3>
+<p>Linux サーバーや Docker コンテナから、Windows のファイル共有（<code>\\server\share</code>）を読み書きしたい場面はよくある。たとえば「NAS 上の共有フォルダに置かれた Excel を Linux のバッチが取り込む」「コンテナ内のジョブが共有フォルダへ出力する」といったケースだ。</p>
+<p>ここで最初に迷うのが「<strong>マウントすべきか、それともコードから直接叩くべきか</strong>」という選択。用語（SMB / CIFS / UNC）を整理したうえで、Linux 側の 3 つのアクセス方式を比較していく。</p>
+<h3>用語整理: SMB / CIFS / UNC</h3>
+<p>まず言葉を揃えておく。この 3 つはよく混同されるが、指しているレイヤーが違う。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">用語</th><th scope="col">何を指すか</th></tr></thead><tbody><tr><td><strong>SMB</strong> (Server Message Block)</td><td>Windows のファイル共有・プリンタ共有を実現する<strong>プロトコル</strong>。現行は SMB2/SMB3。</td></tr><tr><td><strong>CIFS</strong> (Common Internet File System)</td><td>SMB の<strong>旧称・古い方言</strong>（SMB1 相当）。Linux では歴史的経緯で今も「cifs」という名前がドライバ名などに残る。</td></tr><tr><td><strong>UNC</strong> (Universal Naming Convention)</td><td><code>\\server\share\path</code> という<strong>パスの書き方</strong>。プロトコルではなく表記ルール。</td></tr></tbody></table></div>
+<p>ポイントは「CIFS ≒ 昔の SMB」「UNC はパスの書式であってプロトコルではない」という点。 Linux の <code>mount -t cifs</code> というコマンドは名前こそ cifs だが、中身は SMB2/SMB3 で通信している（バージョンは <code>vers=</code> オプションで指定できる）。</p>
+<p>UNC パスは Windows 独自の書式なので、Linux 側で扱うときは方式によって読み替えが必要になる。たとえば <code>\\nas01\share\data\report.xlsx</code> は、ライブラリ経由なら <code>smb://nas01/share/data/report.xlsx</code> のように書き直す。</p>
+<h3>Linux から Windows 共有を触る 3 方式</h3>
+<p>大きく分けて 3 系統ある。A/B は「OS やコンテナに共有をマウントして、ローカルのパスのように見せる」方式。C は「マウントせず、ライブラリが TCP で直接 SMB を喋る」方式。</p>
+<h4>A: OS カーネルの CIFS マウント</h4>
+<p><code>mount -t cifs</code> で共有を <code>/mnt/...</code> に見せる。恒久化するなら <code>/etc/fstab</code> に書く。</p>
+<pre><code data-lang="bash"># 一時的にマウント
+mount -t cifs //nas01/share /mnt/share \
+  -o username=guest,password=,vers=3.0
+
+# fstab に書いて永続化する場合（認証はcredentialsファイルに逃がすのが定石）
+# //nas01/share  /mnt/share  cifs  credentials=/etc/smb-cred,vers=3.0  0  0</code></pre>
+<p>マウント後は <code>/mnt/share/data/report.xlsx</code> のように<strong>普通のローカルパスとして</strong>読み書きできる。アプリ側は共有を意識しなくてよいのが利点。</p>
+<h4>B: Docker volume の cifs マウント</h4>
+<p>Docker の volume ドライバで cifs を使い、コンテナに共有をマウントする。</p>
+<pre><code data-lang="yaml"># docker-compose.yml の例
+volumes:
+  share_vol:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: "username=guest,password=,vers=3.0"
+      device: "//nas01/share"
+
+services:
+  job:
+    volumes:
+      - share_vol:/mnt/share</code></pre>
+<p>コンテナ内からは A と同じくローカルパスに見える。ただし<strong>認証情報を compose ファイルに書く</strong>ことになり、ホスト OS の cifs カーネルモジュールにも依存する。</p>
+<h4>C: Python の smbprotocol / smbclient で直接叩く</h4>
+<p>マウントを一切せず、Python ライブラリが TCP(445) で SMB を直接喋る。UNC を <code>smb://...</code> に読み替えてアクセスする。</p>
+<pre><code data-lang="python">import smbclient
+
+# 認証情報を先に設定（AD なし NAS は guest でいけることが多い）
+smbclient.ClientConfig(username="guest", password="")
+
+# UNC \\nas01\share\data\report.xlsx を smb:// に読み替えて開く
+with smbclient.open_file(r"\\nas01\share\data\report.xlsx", mode="rb") as f:
+    data = f.read()</code></pre>
+<p><code>smbclient</code> は組み込みの <code>open()</code> に近い API を提供し、低レベルな <code>smbprotocol</code> の上に乗っている。 <strong>OS にもコンテナ設定にも手を入れず、アプリのコードだけで完結する</strong>のが最大の特徴。</p>
+<h4>3 方式の比較</h4>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">観点</th><th scope="col">A: OS mount</th><th scope="col">B: Docker mount</th><th scope="col">C: smbprotocol</th></tr></thead><tbody><tr><td>マウント要否</td><td>要</td><td>要</td><td><strong>不要</strong></td></tr><tr><td>認証情報の置き場所</td><td>fstab / credentials ファイル</td><td>compose ファイル</td><td><strong>アプリのコード / Secret</strong></td></tr><tr><td>OS・カーネル依存</td><td>あり (cifs モジュール)</td><td>あり (ホストの cifs)</td><td><strong>なし</strong></td></tr><tr><td>速度</td><td>速い</td><td>速い</td><td>やや遅い</td></tr><tr><td>疎結合・可搬性</td><td>低 (OS 設定に紐づく)</td><td>中</td><td><strong>高</strong></td></tr><tr><td>パス</td><td>ローカルパスに見える</td><td>ローカルパスに見える</td><td>UNC を都度指定</td></tr></tbody></table></div>
+<p>「<strong>マウントを一切使わない</strong>」を完全に満たすのは <strong>C だけ</strong>。 A/B は高速だが、認証情報を fstab や compose に書く必要があり、OS や権限まわりに依存する。デプロイ先の環境が変わると設定を作り直すことになりやすい。</p>
+<p>一方 smbprotocol（C）は多少遅いものの、認証情報をアプリ側（Secret 管理など）から渡せて疎結合。 Docker / Linux でもそのまま動く可搬性があり、「コードを持っていけばどこでも動く」状態を作りやすい。</p>
+<h3>guest 認証について</h3>
+<p>Active Directory（ドメイン）が無い NAS では、<strong>guest 認証で読み書きできる</strong>ことがある。簡易な TeraStation 系 NAS などが典型で、ユーザー管理をしていない共有に対してはこれが刺さる。</p>
+<p>smbclient の場合、通信の前に <code>ClientConfig</code> で資格情報を設定しておく。</p>
+<pre><code data-lang="python">import smbclient
+
+# guest はユーザー名 "guest" + 空パスワード、が通ることが多い
+smbclient.ClientConfig(username="guest", password="")</code></pre>
+<p>もちろんセキュリティ的には推奨されないが、AD の無い閉じた社内 LAN の NAS では実運用でよく使われる。逆に AD 参加の共有では、ドメインユーザーの資格情報（<code>DOMAIN\user</code>）が必要になる。</p>
+<h3>透過ラッパーの設計</h3>
+<p>実装上のコツは、<strong>パスの種類によってバックエンドを自動で振り分けるラッパー</strong>を用意すること。</p>
+<ul class="note-list"><li>パスが <strong>UNC</strong>（<code>\\</code> で始まる）なら → smbprotocol / smbclient で開く</li><li>パスが <strong>ローカルパス</strong> なら → 標準ライブラリ（<code>open()</code> など）で開く</li></ul>
+<p>こうしておくと、呼び出し側は「共有かローカルか」を意識せずに同じ関数を使える。ローカルでの開発時はローカルパス、本番の Linux/Docker では UNC、とパスを差し替えるだけで動く。</p>
+<pre><code data-lang="python">import os
+import smbclient
+
+def open_any(path, mode="rb"):
+    # UNC パスなら SMB 経由、ローカルパスなら標準の open
+    if path.startswith("\\\\") or path.startswith("//"):
+        return smbclient.open_file(path, mode=mode)
+    return open(path, mode=mode)</code></pre>
+<h4>注意: UNC パスの分解は自前ヘルパーで</h4>
+<p>ひとつ落とし穴がある。UNC パスは Linux の <code>os.path</code> では<strong>セパレータの扱いが違って壊れる</strong>。 Linux の <code>os.path</code> はセパレータを <code>/</code> として扱うため、<code>\\server\share\...</code> のような <code>\</code> 区切りの UNC を <code>os.path.dirname()</code> などに渡すと期待どおりに分解できない。</p>
+<p>そのため、UNC パスの「サーバー名」「共有名」「サブパス」への分解は、<code>os.path</code> に頼らず<strong>自前のヘルパー</strong>で行うのが安全。（この UNC パス分解の詳細は別ノートで扱う。）</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>Windows のファイル共有は <strong>SMB</strong>（旧称 <strong>CIFS</strong>）プロトコルで提供され、<strong>UNC</strong>（<code>\\server\share\path</code>）でアクセスする。UNC はパスの書式であってプロトコルではない。</li><li>Linux から使う方式は 3 系統。<strong>A: OS の CIFS マウント</strong> / <strong>B: Docker volume の cifs マウント</strong> / <strong>C: smbprotocol での直叩き</strong>。</li><li>「マウントを使わない」を完全に満たすのは <strong>C</strong> のみ。A/B は速いが認証を fstab/compose に書き、OS・権限に依存する。C は多少遅いが、認証をコード（Secret 等）から渡せて疎結合・可搬。</li><li><strong>AD の無い NAS は guest 認証</strong>で読み書きできることがある。<code>ClientConfig(username=..., password=...)</code> を通信前に設定しておく。</li><li>実装は <strong>UNC ならsmbprotocol、ローカルなら標準ライブラリ</strong>と透過的に振り分けるラッパーが便利。ただし UNC はセパレータ違いで <code>os.path</code> が壊れるので、パス分解は自前ヘルパーにする。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

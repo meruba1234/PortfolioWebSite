@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>subprocess と環境変数の伝播 — env を明示指定すると親を継がない — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Python から別のプログラム（子プロセス）を起動して処理を任せる場面はよくある。 そのとき「親プロセスが持っている設定を、子プロセスにどう渡すか」という問題が出てくる。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="subprocess と環境変数の伝播 — env を明示指定すると親を継がない — SkillShowcase" property="og:title"/>
+<meta content="Python から別のプログラム（子プロセス）を起動して処理を任せる場面はよくある。 そのとき「親プロセスが持っている設定を、子プロセスにどう渡すか」という問題が出てくる。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-subprocess-env-propagation.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-subprocess-env-propagation.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>subprocess と環境変数の伝播 — env を明示指定すると親を継がない</h2>
+<h3>背景</h3>
+<p>Python から別のプログラム（子プロセス）を起動して処理を任せる場面はよくある。そのとき「親プロセスが持っている設定を、子プロセスにどう渡すか」という問題が出てくる。</p>
+<p>一番移植性が高くて確実なのが <strong>環境変数</strong> を経由する方法だが、 <code>subprocess.run(..., env=...)</code> の書き方を一つ間違えると、子プロセス側で「あるはずの設定が空っぽ」になり、原因が分からず悩むことになる。</p>
+<p>このノートは、その渡し方と落とし穴、そして「多段で渡ると途中で消える」問題を整理しておくもの。</p>
+<h3>環境変数とは（前提）</h3>
+<p>環境変数は、プロセスが持っている <strong>「名前 = 値」の小さなメモ帳</strong> のようなもの。プロセスを起動すると、親のメモ帳が <strong>子にコピーされて引き継がれる</strong>（デフォルトの動作）。</p>
+<p>これを使うと、コードを書き換えずに外から挙動を切り替えられる。たとえば <code>PATH</code>（実行ファイルの探索先）や <code>PYTHONPATH</code>（Python の import 探索先）も環境変数。</p>
+<h3>子プロセスに環境変数を渡す</h3>
+<p>Python では <code>subprocess</code> を使って子プロセスを起動する。子に渡したい設定を <code>env=</code> に辞書で指定し、子は <code>os.environ.get(...)</code> で受け取る。</p>
+<p>親プロセス（呼び出す側）:</p>
+<pre><code data-lang="python">import subprocess
+
+subprocess.run(
+    ["python", "child.py"],
+    env={"RUN_SOURCE": "manual"},   # 子に渡したい環境変数
+)</code></pre>
+<p>子プロセス（<code>child.py</code>、呼ばれる側）:</p>
+<pre><code data-lang="python">import os
+
+source = os.environ.get("RUN_SOURCE", "unknown")
+print(source)   # → "manual"</code></pre>
+<p>親子は別プロセスなので、変数やオブジェクトを直接共有できない。環境変数は <strong>どの言語・どの OS でも通用する</strong> ので、プロセス間で「ちょっとした状態」を渡す最も移植性の高い手段になる。</p>
+<h3>落とし穴: env= を明示すると親を引き継がない</h3>
+<p>ここが最大の罠。</p>
+<p><code>env=</code> を <strong>省略</strong> すると、子は親の環境変数をまるごと引き継ぐ。しかし <code>env=</code> に辞書を <strong>明示指定</strong> すると、その辞書が <strong>子の環境変数のすべて</strong> になる。つまり親が持っていた <code>PATH</code> や <code>PYTHONPATH</code> は <strong>引き継がれず消える</strong>。</p>
+<pre><code data-lang="python"># NG: これだと子の環境変数は RUN_SOURCE だけ。PATH すら無い
+subprocess.run(["python", "child.py"], env={"RUN_SOURCE": "manual"})</code></pre>
+<p>結果、子プロセスで <code>python が見つからない</code>、<code>ModuleNotFoundError</code> といった一見無関係なエラーが出て、原因が「環境変数を上書きしてしまったこと」だと気づきにくい。</p>
+<p>正解は <strong>親の環境をコピーしてから、必要な分だけ足す</strong> こと。</p>
+<pre><code data-lang="python">import os
+
+# OK: 親の os.environ を展開してマージし、そこに追加・上書きする
+subprocess.run(
+    ["python", "child.py"],
+    env={**os.environ, "RUN_SOURCE": "manual"},
+)</code></pre>
+<p><code>{**os.environ, "RUN_SOURCE": "manual"}</code> は「親の環境変数を全部コピーして、そのうえで <code>RUN_SOURCE</code> を追加（同名なら上書き）」という意味。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">書き方</th><th scope="col">子が受け取る環境変数</th></tr></thead><tbody><tr><td><code>env=</code> を省略</td><td>親と同じ（全部引き継ぐ）</td></tr><tr><td><code>env={"FOO": "bar"}</code></td><td><code>FOO</code> <strong>だけ</strong>。PATH 等は消える</td></tr><tr><td><code>env={**os.environ, "FOO": "bar"}</code></td><td>親の全部 + <code>FOO</code>（安全）</td></tr></tbody></table></div>
+<h3>モード切替に使う（手動実行か定期実行か）</h3>
+<p>環境変数は「実行モードの伝播」に向いている。</p>
+<p>たとえば、同じスクリプトを</p>
+<ul class="note-list"><li>人が画面から手で起動したとき → <code>RUN_SOURCE=manual</code></li><li>スケジューラが自動で起動したとき → <code>RUN_SOURCE=scheduled</code></li></ul>
+<p>と起動経路ごとに違う値をセットしておけば、スクリプト側は <code>os.environ.get("RUN_SOURCE")</code> を見るだけで「今は手動なのか自動なのか」を判断して振る舞いを変えられる。</p>
+<pre><code data-lang="python">if os.environ.get("RUN_SOURCE") == "manual":
+    # 手動実行のときだけ確認ダイアログや詳細ログを出す、など
+    ...</code></pre>
+<p>ここで注意したいのは、<strong>起動経路が違うと渡ってくる環境変数も変わる</strong> ということ。「手動 UI から起動したときは動くのに、スケジューラ経由だと挙動が違う」という現象は、たいてい「経路ごとにセットされる環境変数が違う」ことが原因。コードは同じでも、入力（環境変数）が違えば結果は変わる。</p>
+<h3>多段で伝播すると途中で途切れる</h3>
+<p>環境変数は「親 → 子」でコピーされて伝わるが、 <strong>プロセスの連鎖が長くなると、どこか 1 段で途切れると末端に届かない</strong>。</p>
+<p>ジョブ実行基盤（Prefect のようなワークフローツール）では、実行が次のように何段も受け渡される。</p>
+<pre><code data-lang="">デプロイ定義（この環境変数を渡す、という設定）
+  └→ run 生成（実行インスタンスを作る）
+       └→ worker 起動（実際にプロセスを立てる）
+            └→ subprocess（さらに子プロセスを起動）</code></pre>
+<p>このどこか 1 段で環境変数のマージを忘れたり、値を空で渡したりすると、 <strong>末端のスクリプトに届く頃には空っぽ</strong> になる。</p>
+<p>しかも末端だけ見ていると「なぜか設定が来ていない」としか分からない。だから調査は <strong>1 段ずつ「ここでは値が入っているか」を確認して、どの段で消えたかを特定する</strong> のが定石。</p>
+<pre><code data-lang="">デプロイ定義  : RUN_SOURCE=manual  ← ここにはある
+run          : RUN_SOURCE=manual  ← まだある
+worker       : RUN_SOURCE=(空)    ← ★ここで消えた！ 犯人はこの段
+subprocess   : RUN_SOURCE=(空)</code></pre>
+<p>上の例なら、worker がサブプロセスを起こすときに <code>env=</code> を上書きして親の環境を捨てている、といった原因に絞り込める。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>子プロセスに設定を渡すなら <strong>環境変数</strong>（<code>subprocess</code> の <code>env=</code> → 子は <code>os.environ.get</code>）。言語・OS を問わず使える最も移植性の高い手段。</li><li><strong><code>env=</code> を明示指定すると親の環境変数を引き継がない</strong>。<code>PATH</code>/<code>PYTHONPATH</code> まで消える。<code>env={**os.environ, "FOO": "bar"}</code> とマージするのが安全。</li><li>「手動か定期実行か」などのモード切替も環境変数で渡せる。<strong>起動経路が違うと渡る環境変数も変わる</strong> ので、経路ごとの挙動差はまずここを疑う。</li><li>環境変数は連鎖のどこか 1 段で途切れると末端に届かない。多段（デプロイ → run → worker → subprocess）で渡るときは、<strong>どの段で消えたかを 1 段ずつ確認する</strong>。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

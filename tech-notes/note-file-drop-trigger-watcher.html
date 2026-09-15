@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>ファイルドロップ型トリガー（watcher）で疎結合にジョブを起動する — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="「処理を実行したいホスト」と「実行をお願いしたい端末」が別、という状況はよくある。 たとえば重い処理は Python が入った専用ホストで動かしたいが、起動のきっかけは Python も何も入っていない事務端末や、別シス…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="ファイルドロップ型トリガー（watcher）で疎結合にジョブを起動する — SkillShowcase" property="og:title"/>
+<meta content="「処理を実行したいホスト」と「実行をお願いしたい端末」が別、という状況はよくある。 たとえば重い処理は Python が入った専用ホストで動かしたいが、起動のきっかけは Python も何も入っていない事務端末や、別シス…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-file-drop-trigger-watcher.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-file-drop-trigger-watcher.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">インフラ</span></div>
+<h2>ファイルドロップ型トリガー（watcher）で疎結合にジョブを起動する</h2>
+<h3>背景</h3>
+<p>「処理を実行したいホスト」と「実行をお願いしたい端末」が別、という状況はよくある。たとえば重い処理は Python が入った専用ホストで動かしたいが、起動のきっかけは Python も何も入っていない事務端末や、別システムのバッチから投げたい、というケースだ。</p>
+<p>素直に考えると「呼び出し側から実行ホストへリモートでコマンドを叩く」ことになるが、これは Windows 環境だと意外と面倒で、認証・権限・対話プロンプトの壁にぶつかる。そこで <strong>ファイルドロップ型トリガー（watcher）</strong> という、共有フォルダ（SMB）だけで成立する軽量な疎結合パターンが効いてくる。</p>
+<h3>起動手段の比較</h3>
+<p>まず、リモートからジョブを起動する代表的な手段を並べて比較する。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">手段</th><th scope="col">認証・前提</th><th scope="col">長所</th><th scope="col">短所</th></tr></thead><tbody><tr><td>PsExec</td><td>管理者資格情報を渡す</td><td>手軽に任意コマンド実行</td><td><strong>パスワード管理が課題</strong>（平文で渡りがち）、AV に誤検知されやすい</td></tr><tr><td>OpenSSH</td><td>Windows 標準搭載、鍵認証可</td><td>鍵で安全、標準ツール</td><td><strong>対話プロンプトが苦手</strong>、Windows 側のシェル挙動にクセ</td></tr><tr><td>管理共有 <code>\\host\C$</code></td><td>admin 権限が必須</td><td>追加ソフト不要でファイル配置</td><td>admin 前提でハードルが高い、実行トリガーには別途工夫が要る</td></tr><tr><td>ファイルドロップ型</td><td>SMB 共有への読み書きだけ</td><td>ポート開放不要・どの端末からでも起動可</td><td>対話不可・ホスト停止に気づけない・監視間隔の遅延</td></tr></tbody></table></div>
+<p>上3つは「呼び出し側が実行ホストに踏み込んで直接コマンドを走らせる」発想で、どうしても認証や権限の設計が重くなる。ファイルドロップ型は発想を逆転させ、 <strong>実行ホスト側が自分から共有フォルダを見に行く</strong>（ポーリングする）ことで、呼び出し側は「ファイルを1つ置くだけ」に責務を縮小する。</p>
+<h3>ファイルドロップ型の仕組み</h3>
+<p>実行ホストに常駐プロセス（watcher）を1つ置く。役割はシンプルで、共有フォルダの <code>triggers/</code> を一定間隔でポーリングし、トリガーファイルを見つけたら本処理を起動する、というだけだ。</p>
+<pre><code data-lang="">共有フォルダ（SMB）
+  \\host\share\
+    triggers/    ← 呼び出し側がトリガーファイルを置く
+    processed/   ← 処理済みトリガーの退避先
+    done/        ← 完了通知（.done ファイル）</code></pre>
+<p>流れは次のとおり。</p>
+<ol class="note-list"><li><strong>呼び出し側</strong>：<code>triggers/job_20260709_120000.trigger</code> のようなファイルを置く</li></ol>
+<p>（中身に引数を JSON などで書いておくと、パラメータも渡せる）。</p>
+<ol class="note-list"><li><strong>watcher</strong>：ポーリングでトリガーを検知。</li><li><strong>watcher</strong>：トリガーを <code>processed/</code> へ退避してから、本処理を起動。</li><li><strong>watcher</strong>：本処理が終わったら <code>done/job_20260709_120000.done</code> を生成。</li><li><strong>呼び出し側</strong>：対応する <code>.done</code> ファイルが現れるのを待ち、完了を確認する。</li></ol>
+<p>呼び出し側は「置く」と「done を待つ」しかしない。ネットワーク的には SMB のファイル読み書きだけで、リモート実行 API もポートも要らない。</p>
+<h3>利点と欠点</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">観点</th><th scope="col">内容</th></tr></thead><tbody><tr><td>利点：ポート開放不要</td><td>SMB さえ通っていればよく、ファイアウォールに穴を開けない</td></tr><tr><td>利点：SMB だけで完結</td><td>追加のミドルウェア（キュー基盤等）が不要</td></tr><tr><td>利点：起動元を選ばない</td><td>Python すら無い端末・別システムのバッチからでも「ファイルを置く」だけで起動できる</td></tr><tr><td>欠点：対話不可</td><td>実行時にプロンプトで入力を求められない。<strong>引数だけで処理が完結する設計が前提</strong></td></tr><tr><td>欠点：死活が見えない</td><td>実行ホストや watcher が停止していても、呼び出し側は「done が来ない」ことしか分からない。タイムアウト設計が必須</td></tr><tr><td>欠点：遅延</td><td>ポーリング間隔ぶんだけ起動が遅れる（数秒〜数十秒）</td></tr></tbody></table></div>
+<p>「対話不可」は特に効いてくる制約で、途中で <code>y/n</code> を聞くようなスクリプトはこの方式に乗らない。すべての入力をトリガーファイルの中身か、固定の引数で与えきる必要がある。</p>
+<h3>移動順序の注意（不整合を防ぐ）</h3>
+<p>このパターンでいちばん事故りやすいのが、<strong>トリガーファイルの移動・処理・記録の順序</strong>だ。順序を誤ると、「処理は失敗したのにトリガーだけ消えた」という不整合が起きる。</p>
+<p>たとえば次の順序は危ない。</p>
+<pre><code data-lang="">悪い例:
+  1. トリガーを processed/ へ移動  ← 先に消してしまう
+  2. 本処理を起動 → 失敗して例外
+  → トリガーは既に消えているので、誰も再実行できないし、失敗した記録も残らない</code></pre>
+<p>「トリガーを消す＝この仕事は片付いた」という意味を持たせるなら、 <strong>片付いたことが確定してから消す</strong>のが基本だ。設計の勘どころは以下。</p>
+<ul class="note-list"><li>トリガーの退避は「処理が成功した後」に行い、失敗時は <code>triggers/</code> に残す（または <code>failed/</code> へ）。</li><li>ただし、残したままだと次のポーリングで<strong>同じトリガーを二重起動</strong>しかねない。検知した瞬間に「処理中」を示す印（<code>.lock</code> や <code>.processing</code> へのリネーム）を付け、完了・失敗の結果に応じて <code>processed/</code> か <code>failed/</code> へ確定移動する、という 2段階にすると安全。</li><li>ファイル移動は同一ボリューム内ならアトミックに近いので、「コピーしてから消す」より「rename で状態フォルダを移す」ほうが中間状態を作りにくい。</li></ul>
+<p>要は <strong>検知（処理中マーク）→ 処理 → 結果に応じた確定移動 → done 生成</strong> の順序を、どこで中断しても不整合が残らないように並べる、という設計問題になる。</p>
+<h3>一般化</h3>
+<p>これは要するに、<strong>メッセージキューが使えない／導入が大げさな環境における、軽量な疎結合ジョブ起動パターン</strong>だ。</p>
+<p>本格的にやるなら「呼び出し側がキューにメッセージを積む → 実行側が購読して処理」というメッセージキュー（ジョブキュー）を使う。ファイルドロップ型は、その構図をそっくりファイルシステムで代用したものと見ると理解しやすい。</p>
+<ul class="note-list"><li><code>triggers/</code> = キューにメッセージを積む</li><li>watcher のポーリング = コンシューマの購読</li><li><code>processed/</code> への退避 = ack（処理済み確認）</li><li><code>.done</code> ファイル = 処理結果の返信</li></ul>
+<p>小規模な社内自動化のように、専用のキュー基盤を立てるほどでもないが、端末とホストを疎結合にしたい、という場面にちょうど収まる。共有フォルダという「どの環境にもだいたいある」インフラだけで成立するのが最大の強みだ。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>実行環境を持たない端末からジョブを起動したいとき、PsExec（パスワード管理）・ OpenSSH（対話が苦手）・管理共有（admin 権限）はそれぞれ壁がある。</li><li><strong>ファイルドロップ型トリガー</strong>は、実行ホストに watcher を常駐させ、共有フォルダの <code>triggers/</code> をポーリング → 検知 → 本処理起動 → <code>processed/</code> へ退避 → <code>.done</code> で完了通知、という流れで、<strong>SMB だけで疎結合な起動</strong>を実現する。</li><li>利点はポート開放不要・起動元を選ばない。欠点は対話不可・死活が見えない・監視間隔の遅延。</li><li>最大の落とし穴は移動順序。<strong>検知（処理中マーク）→ 処理 → 結果で確定移動 → done</strong> の順に並べ、どこで中断しても「トリガーだけ消える」不整合を残さないよう設計する。</li><li>位置づけとしては、メッセージキューの軽量な代替。大げさな基盤なしで疎結合を得たいときの定石。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

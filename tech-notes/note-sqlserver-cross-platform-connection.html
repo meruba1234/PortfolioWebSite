@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>SQL Server にクロスプラットフォーム接続（ODBC Driver 18 / TrustServerCertificate / Linux） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="開発は Windows PC で行い、本番は Linux コンテナ（Docker）で動かす、という構成はよくある。 このとき、どちらの環境からも同じ SQL Server（同じ DB）に Python から繋ぎたい。 理…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="SQL Server にクロスプラットフォーム接続（ODBC Driver 18 / TrustServerCertificate / Linux） — SkillShowcase" property="og:title"/>
+<meta content="開発は Windows PC で行い、本番は Linux コンテナ（Docker）で動かす、という構成はよくある。 このとき、どちらの環境からも同じ SQL Server（同じ DB）に Python から繋ぎたい。 理…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-sqlserver-cross-platform-connection.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-sqlserver-cross-platform-connection.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">データベース</span></div>
+<h2>SQL Server にクロスプラットフォーム接続（ODBC Driver 18 / TrustServerCertificate / Linux）</h2>
+<h3>背景</h3>
+<p>開発は Windows PC で行い、本番は Linux コンテナ（Docker）で動かす、という構成はよくある。このとき、どちらの環境からも同じ SQL Server（同じ DB）に Python から繋ぎたい。理想は「コードは 1 本、環境差はドライバのインストールだけ」で済ませること。</p>
+<p>Python から SQL Server へ繋ぐ定番は <code>pyodbc</code> + Microsoft 純正の ODBC ドライバだが、バージョン 18 で暗号化まわりの既定が変わったこと、Linux でのドライバ準備、そして OS による文字コードの挙動差を押さえておくと事故らない。</p>
+<h3>pyodbc と ODBC ドライバ</h3>
+<p>Python 側は <code>pyodbc</code> を使い、実際の SQL Server との通信は OS にインストールした ODBC ドライバが担当する。接続文字列の <code>DRIVER=...</code> でどのドライバを使うか指定する。</p>
+<pre><code data-lang="python">import pyodbc
+
+conn = pyodbc.connect(
+    "DRIVER={ODBC Driver 18 for SQL Server};"
+    "SERVER=dbhost,1433;"
+    "DATABASE=mydb;"
+    "UID=myuser;"
+    "PWD=secret;"
+)</code></pre>
+<p><code>pyodbc</code> はあくまで Python から ODBC を叩くための薄い層で、「ドライバ本体」は別途 OS にインストールが必要という点を混同しないこと。</p>
+<h3>Driver 18 は暗号化が既定で必須</h3>
+<p>ODBC Driver 18 から、既定値が <code>Encrypt=yes</code>（暗号化必須）に変わった。 17 以前は <code>Encrypt=no</code> が既定だったので、17 で動いていた接続文字列を 18 にそのまま持ってくると、証明書検証で弾かれて繋がらないことがある。</p>
+<p>社内でよくあるのは、SQL Server が<strong>自己署名証明書</strong>を使っているケース。このとき、クライアントは証明書チェーンを信頼できないため検証に失敗する。検証を回避するには <code>TrustServerCertificate=yes</code> を付ける。</p>
+<pre><code data-lang="python">conn = pyodbc.connect(
+    "DRIVER={ODBC Driver 18 for SQL Server};"
+    "SERVER=dbhost,1433;"
+    "DATABASE=mydb;"
+    "UID=myuser;PWD=secret;"
+    "Encrypt=yes;"
+    "TrustServerCertificate=yes;"
+)</code></pre>
+<p>注意点として、<code>TrustServerCertificate=yes</code> は「通信自体は暗号化するが、相手の証明書が本物かは確認しない」という妥協。これは<strong>社内 LAN で相手が信頼できる前提</strong>だから許される。公開ネットワーク越しの接続では中間者攻撃を防げないので使わないこと。本来は正規の証明書を入れて検証させるのが正道。</p>
+<h3>Linux コンテナでは msodbcsql18 を入れる</h3>
+<p>Linux でも Microsoft が ODBC ドライバを配布している。パッケージ名は <code>msodbcsql18</code>（Driver 18 の実体）で、これと <code>unixODBC</code>（ODBC ランタイム）を入れれば、Windows とまったく<strong>同じ接続文字列</strong>で pyodbc から繋げる。</p>
+<p>Debian/Ubuntu 系コンテナなら、Microsoft のリポジトリを追加してからインストールするイメージ（apt の場合の例）:</p>
+<pre><code data-lang="dockerfile"># Microsoft パッケージリポジトリを追加した上で
+RUN ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc</code></pre>
+<p>ライセンス同意のため <code>ACCEPT_EULA=Y</code> を渡す必要がある点だけ注意。これでコンテナ内の pyodbc からも <code>DRIVER={ODBC Driver 18 for SQL Server}</code> が解決できるようになる。</p>
+<h3>接続文字列はドライバ優先順位で組む</h3>
+<p>環境によって入っているドライバのバージョンが違う（Driver 18 のマシンもあれば 17 しかないマシンもある）ことを想定し、優先順位で探して組むと環境差に強い。</p>
+<pre><code data-lang="python">import pyodbc
+
+def pick_driver():
+    installed = pyodbc.drivers()
+    for name in ("ODBC Driver 18 for SQL Server",
+                 "ODBC Driver 17 for SQL Server"):
+        if name in installed:
+            return name
+    raise RuntimeError("SQL Server 用 ODBC ドライバが見つかりません")
+
+driver = pick_driver()
+conn = pyodbc.connect(
+    f"DRIVER={{{driver}}};"
+    "SERVER=dbhost,1433;"
+    "DATABASE=mydb;"
+    "UID=myuser;PWD=secret;"
+    "Encrypt=yes;TrustServerCertificate=yes;"
+)</code></pre>
+<p><code>pyodbc.drivers()</code> でインストール済みドライバ名の一覧が取れるので、 Driver 18 を最優先、無ければ 17 …とフォールバックする。 f-string 内で <code>{ODBC Driver 18 ...}</code> の波括弧をリテラルとして出すには <code>{{</code> <code>}}</code> とエスケープする点に注意。</p>
+<h3>OS 差の注意：数値は合うが I/O 層で差が出る</h3>
+<p>同じコード・同じ接続文字列でも、<strong>文字コード（codec）まわりは OS で挙動が変わる</strong>ことがある。ドライバやロケールの既定エンコーディングが Windows と Linux で異なるため、日本語などマルチバイト文字の読み書きで文字化けやデコードエラーが Linux 側だけで起きる、といったケースがある。</p>
+<p>ポイントは、<strong>数値集計の結果が完全一致していても、文字列 I/O 層では差が出得る</strong> ということ。「金額の合計は Windows も Linux も一致したから移植 OK」ではなく、文字列カラムの取り込み・出力も別途確認する必要がある。 codec の具体的な設定（<code>setencoding</code> / <code>setdecoding</code> 等）は別ノートで詳述する。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>Python → SQL Server は <code>pyodbc</code> + Microsoft 純正 ODBC ドライバ。<code>DRIVER={ODBC Driver 18 for SQL Server}</code> を接続文字列に書く。</li><li>Driver 18 は既定で <code>Encrypt=yes</code>。自己署名証明書の社内 DB には <code>TrustServerCertificate=yes</code> を付けて検証を回避する（社内 LAN 前提の妥協。公開網では使わない）。</li><li>Linux コンテナは <code>msodbcsql18</code> + <code>unixODBC</code> を入れれば Windows と同じ接続文字列で繋がる。</li><li>ドライバは優先順位（18 → 17 …）で <code>pyodbc.drivers()</code> から選ぶと環境差に強い。</li><li>数値が一致しても文字コードは OS で挙動が変わる。I/O 層の検証は別途行う。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

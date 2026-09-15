@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Windows Update トラブルシューティング — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="KB5083769 (2026-04) のインストールがエラー 0x80073712 で繰り返し失敗。各種修復手順を試した。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Windows Update トラブルシューティング — SkillShowcase" property="og:title"/>
+<meta content="KB5083769 (2026-04) のインストールがエラー 0x80073712 で繰り返し失敗。各種修復手順を試した。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-windows-update-troubleshooting.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-windows-update-troubleshooting.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Windows管理</span></div>
+<h2>Windows Update トラブルシューティング</h2>
+<h3>学んだきっかけ</h3>
+<p>KB5083769 (2026-04) のインストールがエラー 0x80073712 で繰り返し失敗。各種修復手順を試した。</p>
+<h3>エラーコード 0x80073712</h3>
+<p><strong>意味：</strong> コンポーネントストアの破損（Component store corruption）</p>
+<p>Windowsのシステムファイルが壊れていて、更新プログラムが正しくインストールできない状態。</p>
+<h3>修復手順（段階的に試す）</h3>
+<h4>1. DISM + sfc（まず試す）</h4>
+<pre><code data-lang="cmd">DISM /Online /Cleanup-Image /RestoreHealth
+sfc /scannow</code></pre>
+<ul class="note-list"><li>DISM: Windows Updateから正しいファイルをダウンロードしてコンポーネントストアを修復</li><li>sfc: システムファイルをスキャンして破損を修復</li><li><strong>DISMを先に実行すること</strong>（sfcが参照するストアを先に直す必要がある）</li></ul>
+<h4>2. Windows Updateキャッシュのクリア</h4>
+<pre><code data-lang="cmd">net stop wuauserv
+net stop bits
+rd /s /q C:\Windows\SoftwareDistribution
+net start wuauserv
+net start bits</code></pre>
+<ul class="note-list"><li>ダウンロード済みの壊れた更新ファイルを削除して最初からやり直す</li></ul>
+<h4>3. Microsoft Updateカタログから手動インストール</h4>
+<ul class="note-list"><li><code>https://www.catalog.update.microsoft.com/</code> からKB番号で検索</li><li>OS・アーキテクチャに合った <code>.msu</code> ファイルをダウンロード</li><li>ダブルクリックでインストール（Windows Updateを経由しない）</li><li>Microsoftの公式サイトなので安全</li></ul>
+<h4>4. ISOを修復ソースとしてDISM（有効な手段）★実戦で成功</h4>
+<p>通常のDISMはWindows Updateから修復ファイルを取得するが、Windows Update自体が壊れていると修復できない悪循環に陥る。その場合、<strong>ISOのinstall.wimを修復ソースとして指定</strong>すれば、ISO内のクリーンなシステム部品で修復できる。</p>
+<h5>手順</h5>
+<ol class="note-list"><li>Windows 11 ISOをダウンロード（Microsoft公式）</li></ol>
+<ul class="note-list"><li><code>https://www.microsoft.com/ja-jp/software-download/windows11</code></li><li>ファイルサイズ約8GB</li></ul>
+<ol class="note-list"><li>ISOをマウントまたは7-Zipで展開</li></ol>
+<p>```powershell # マウント（通常はこちら） Mount-DiskImage -ImagePath "C:\path\to\Win11.iso"</p>
+<p># マウント失敗時は7-Zipで展開 &amp; "C:\Program Files\7-Zip\7z.exe" x "C:\path\to\Win11.iso" -o"C:\Win11ISO" -y ```</p>
+<ol class="note-list"><li>install.wimのインデックス確認（OSエディションに合わせる）</li></ol>
+<p>``<code>powershell Get-WindowsImage -ImagePath "C:\Win11ISO\sources\install.wim" </code>``</p>
+<ul class="note-list"><li>Index 1: Home</li><li>Index 3: Pro（一般的な業務PC）</li><li>Index 5: Pro for Workstations</li></ul>
+<ol class="note-list"><li>DISMで修復（ISOを修復ソースに指定）</li></ol>
+<p>``<code>cmd dism /online /cleanup-image /restorehealth /source:wim:C:\Win11ISO\sources\install.wim:3 /limitaccess </code>``</p>
+<ul class="note-list"><li><code>:3</code> = Pro のインデックス</li><li><code>/limitaccess</code> = Windows Updateを使わずISOのみを使う</li></ul>
+<ol class="note-list"><li>sfc /scannow で仕上げ</li></ol>
+<ol class="note-list"><li>終了後、ISOとフォルダは削除してストレージ確保</li></ol>
+<h5>この方法が有効な理由</h5>
+<pre><code data-lang="">通常のDISM: Windows Update → 修復ファイル取得 → 修復
+　　　　　  （でも壊れてて失敗）
+
+ISO指定DISM: ISOのinstall.wim → クリーンな修復ファイル → 修復成功</code></pre>
+<p>ISOは「Windowsの健康な部品の引き出し」として使うだけ。OSの再インストールではなく、壊れた部品だけ交換するイメージ。所要時間は10〜20分。</p>
+<h4>5. インプレースアップグレード（最終手段）</h4>
+<ul class="note-list"><li>設定 → システム → 回復 → 「今すぐ再インストール」</li><li>Windowsのシステムファイルを全部入れ直す</li><li>アプリ、データ、設定は基本的にそのまま残る</li><li>所要時間：30分〜1時間</li><li><strong>業務時間外に実施すること</strong></li></ul>
+<h3>Windows Updateログの確認方法</h3>
+<pre><code data-lang="powershell"># ログファイルを生成（デスクトップにWindowsUpdate.logが出力される）
+Get-WindowsUpdateLog
+
+# エラーコードで絞り込み
+findstr /i "0x80073712" C:\Users\%USERNAME%\Desktop\WindowsUpdate.log</code></pre>
+<h3>「今すぐ再インストール」は何をするのか</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">入れ直されるもの</th><th scope="col">そのまま残るもの</th></tr></thead><tbody><tr><td>Windowsシステムファイル</td><td>インストールしたアプリ</td></tr><tr><td>Windows標準アプリ</td><td>デスクトップ・ドキュメントのファイル</td></tr><tr><td></td><td>ユーザーアカウント・パスワード</td></tr><tr><td></td><td>ネットワーク設定</td></tr><tr><td></td><td>証明書ストア</td></tr></tbody></table></div>
+<p><strong>注意：</strong> 一部のWindows設定やデバイスドライバーがリセットされる可能性あり</p>
+<h3>放置するという選択肢</h3>
+<ul class="note-list"><li>次の月例パッチ（翌月）で累積更新に含まれて自然に解決されることも多い</li><li>急ぎでなければ無理に修復しなくてもよい</li></ul>
+<h3>用語集</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">用語</th><th scope="col">意味</th></tr></thead><tbody><tr><td>コンポーネントストア（WinSxS）</td><td>Windowsのシステム部品（DLL、設定等）が保存される倉庫。<code>C:\Windows\WinSxS</code> にある</td></tr><tr><td>DISM</td><td>Deployment Image Servicing and Management。Windowsイメージ・コンポーネントストアの管理ツール</td></tr><tr><td>sfc</td><td>System File Checker。システムファイルの破損を検出・修復するツール</td></tr><tr><td>サービシングスタック</td><td>Windowsが更新プログラムを適用するための仕組み。これ自体が壊れると更新できなくなる</td></tr><tr><td>install.wim</td><td>ISOの中に入っている、Windowsの全システムファイルがまとまったイメージファイル</td></tr><tr><td>WIMイメージ</td><td>Windows Imaging Format。Windowsインストール用のイメージ形式</td></tr><tr><td>SoftwareDistribution</td><td>Windows Updateがダウンロードした更新ファイルを一時保存するフォルダ。<code>C:\Windows\SoftwareDistribution</code></td></tr><tr><td>0x80073712</td><td>エラーコード「ERROR_SXS_COMPONENT_STORE_CORRUPT」= コンポーネントストア破損</td></tr></tbody></table></div>
+<h3>実戦メモ：修復で注意すること</h3>
+<h4>ストレージ不足に注意</h4>
+<ul class="note-list"><li>ISO（8GB）+ 展開フォルダ（17GB）+ パッチ本体（5GB）で、<strong>最低でも30GB程度の空き容量が必要</strong></li><li>作業前にディスク使用量を確認すること</li><li>DISMが途中で失敗する原因にもなる</li></ul>
+<h4>SoftwareDistribution削除時の注意</h4>
+<ul class="note-list"><li>PowerShellの <code>Remove-Item</code> ではハードリンクの扱いで失敗することがある</li><li>cmdの <code>rd /s /q</code> の方が確実</li><li>必ず先に <code>net stop wuauserv</code> と <code>net stop bits</code> でサービスを止める ``<code>cmd net stop wuauserv net stop bits cmd /c "rd /s /q C:\Windows\SoftwareDistribution" net start wuauserv net start bits </code>``</li></ul>
+<h4>最終的に効いた手順（2026-04-17〜18 実戦記録）</h4>
+<p>KB5083769 が何度も <code>0x80073712</code> で失敗 → 以下の手順で解決：</p>
+<ol class="note-list"><li><code>DISM /RestoreHealth</code> （通常版）→ 「完了」と出るが実は修復不十分</li><li><code>sfc /scannow</code> → ファイル修復</li><li>Windows Update再試行 → 失敗継続</li><li>ISOダウンロード（Windows 11 25H2 multi-edition）</li><li>7-Zipで展開（マウントが失敗したため）</li><li><code>DISM /RestoreHealth /source:wim:...install.wim:3 /limitaccess</code> → 成功</li><li><code>sfc /scannow</code> → 違反なし</li><li>ISO・展開フォルダ削除（ストレージ確保）</li><li>SoftwareDistribution削除（キャッシュリセット）</li><li>Windows Update再試行 → <strong>KB5083769 インストール成功</strong></li></ol>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

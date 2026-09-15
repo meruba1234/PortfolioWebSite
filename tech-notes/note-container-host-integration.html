@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>コンテナからホスト/別コンテナの処理を呼ぶ手段の分類 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="コンテナの中で動いているプロセスから、「コンテナの外にある処理」を呼びたくなる場面は多い。たとえば次のようなケースだ。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="コンテナからホスト/別コンテナの処理を呼ぶ手段の分類 — SkillShowcase" property="og:title"/>
+<meta content="コンテナの中で動いているプロセスから、「コンテナの外にある処理」を呼びたくなる場面は多い。たとえば次のようなケースだ。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-container-host-integration.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-container-host-integration.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">インフラ</span></div>
+<h2>コンテナからホスト/別コンテナの処理を呼ぶ手段の分類</h2>
+<h3>背景</h3>
+<p>コンテナの中で動いているプロセスから、「コンテナの外にある処理」を呼びたくなる場面は多い。たとえば次のようなケースだ。</p>
+<ul class="note-list"><li>ホスト側にしかないツールやスクリプトを実行したい</li><li>依存ライブラリが重すぎるので、その処理だけ別コンテナに分離して呼び出したい</li><li>ホスト上の別サービスに仕事を依頼したい</li></ul>
+<p>こういうとき、まず思いつくのが SSH でホストに入って叩く方法だが、実は SSH は数ある手段の「一実装」にすぎない。手段を体系的に整理しておかないと、「とりあえず SSH」のように反射的に選んでしまい、後で権限や結合度の問題に悩むことになる。ここでは選択肢を3系統に分類して整理する。</p>
+<h3>コンテナ外の処理を呼ぶ3系統</h3>
+<p>コンテナ内から外の処理を呼ぶ手段は、大きく次の3系統に整理できる。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">系統</th><th scope="col">代表的な実装</th><th scope="col">仕組み</th><th scope="col">向いている用途</th></tr></thead><tbody><tr><td>ネットワーク経由</td><td>SSH / HTTP API / メッセージキュー</td><td>相手をネットワーク上のサービスとして扱い、プロトコルで通信する</td><td>疎結合にしたい、相手が別ホストでもよい、非同期にしたい</td></tr><tr><td>Docker socket 経由</td><td><code>docker exec</code> / Docker API</td><td>ホストの Docker デーモンを操作し、兄弟コンテナを起動・実行する</td><td>依存ライブラリを別コンテナに分離して呼び出す等</td></tr><tr><td>マウント経由</td><td>bind mount + スクリプト実行</td><td>ホストのパスをコンテナに見せ、そこにあるスクリプトを直接実行する</td><td>ホスト上の既存スクリプトを軽く呼びたい</td></tr></tbody></table></div>
+<p>ポイントは、<strong>SSH はネットワーク経由という系統の一実装でしかない</strong>ということ。「外の処理を呼ぶ = SSH」ではなく、「まずどの系統か」を選び、その中で実装を選ぶ、という順で考えると迷いが減る。</p>
+<h4>ネットワーク経由</h4>
+<p>相手をネットワーク上のサービスとみなして通信する。SSH はそのうちの一つで、ほかにも HTTP API を叩く、メッセージキュー（ジョブキュー）にタスクを積むなどがある。</p>
+<pre><code data-lang="text">[コンテナ] --HTTP/SSH/MQ--&gt; [ホストや別コンテナ上のサービス]</code></pre>
+<p>相手の内部実装を知らなくても、決められたプロトコルさえ守れば呼べる。3系統の中でもっとも疎結合で、相手が同じホストにいる必要すらない。</p>
+<h4>Docker socket 経由</h4>
+<p>ホストの <code>/var/run/docker.sock</code> をコンテナにマウントすると、そのコンテナから Docker デーモンを操作できるようになる。これにより、コンテナの中から <code>docker exec</code> で「兄弟コンテナ」を起動・実行できる。</p>
+<pre><code data-lang="bash"># ホストの docker.sock をコンテナにマウントする例
+docker run -v /var/run/docker.sock:/var/run/docker.sock myimage
+
+# コンテナ内から兄弟コンテナのコマンドを実行
+docker exec sibling-container python heavy_task.py</code></pre>
+<p>たとえば「メイン処理は軽いコンテナで動かしたいが、ある処理だけ重い依存ライブラリを必要とする」ようなとき、その重い処理を別コンテナに分離しておき、docker.sock 経由で呼び出す、という設計ができる。</p>
+<h4>マウント経由</h4>
+<p>bind mount でホスト側のディレクトリをコンテナに見せておき、そこに置いたスクリプトをコンテナ内から実行する。</p>
+<pre><code data-lang="bash">docker run -v /opt/host-scripts:/scripts myimage /scripts/run.sh</code></pre>
+<p>一番シンプルだが、コンテナとホストのファイル配置が密結合になりやすく、実行環境（ホスト側にそのスクリプトの依存が揃っているか）にも依存する。</p>
+<h3>docker.sock マウントの権限に注意</h3>
+<p>docker.sock 経由は便利だが、<strong>セキュリティ上とても重い選択</strong>であることを忘れてはいけない。</p>
+<p>docker.sock をマウントするということは、そのコンテナに <strong>ホストの Docker デーモンを自由に操作する権限を与える</strong>ということだ。Docker デーモンは通常 root 権限で動いているため、docker.sock を握ったコンテナは、</p>
+<ul class="note-list"><li>ホストのファイルシステムを丸ごとマウントした新コンテナを起動する</li><li>特権コンテナを立ち上げる</li></ul>
+<p>といったことができてしまい、実質的に <strong>ほぼ root 相当の権限</strong>を持つことになる。つまり「コンテナで隔離しているつもり」が崩れる。</p>
+<p>このため docker.sock のマウントは、<strong>自分で管理している信頼できるコンテナに限る</strong>べきで、外部から持ち込んだイメージや、信頼度の低いコンテナには絶対に渡さない。</p>
+<h3>補足: コンテナ内の hostname はホストの識別に使えない</h3>
+<p>コンテナの中で <code>socket.gethostname()</code> を呼ぶと、ホスト名ではなく <strong>Container ID</strong>（コンテナ起動時に割り振られるランダムな ID）が返ってくる。</p>
+<pre><code data-lang="python">import socket
+print(socket.gethostname())  # -&gt; 例: 3f7a1c9b2e04 (Container ID)</code></pre>
+<p>そのため、「どのホスト上で動いているか」「どの役割のコンテナか」といった意味のあるラベルを hostname から得ようとしても、うまくいかない。ログに識別子を残したい、環境ごとに分岐したい、といった場合は、<strong>意味のあるラベルは環境変数で注入する</strong>のが定石だ。</p>
+<pre><code data-lang="bash">docker run -e HOST_ROLE=batch-node -e ENV_NAME=prod myimage</code></pre>
+<h3>選択軸</h3>
+<p>3系統のどれを選ぶかは、次のような軸で判断するとよい。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">軸</th><th scope="col">内容</th><th scope="col">傾向</th></tr></thead><tbody><tr><td>疎結合さ</td><td>相手の内部実装にどれだけ依存するか</td><td>ネットワーク経由がもっとも疎、マウント経由が密</td></tr><tr><td>権限の強さ</td><td>与えてしまう権限の大きさ</td><td>docker.sock は強すぎる（ほぼ root）。安易に選ばない</td></tr><tr><td>レイテンシ</td><td>呼び出しにかかる時間</td><td>ネットワーク越しは遅くなりうる、ローカル実行は速い</td></tr><tr><td>対話性</td><td>応答をやり取りしながら進めたいか</td><td>SSH や HTTP は対話的、メッセージキューは投げっぱなし（非同期）向き</td></tr></tbody></table></div>
+<p>たとえば「相手が別ホストでもよく、疎結合にしたい」ならネットワーク経由、「重い依存だけ切り出したい」なら docker.sock 経由、というように軸に照らして選ぶ。特に権限の軸は見落としやすいので、docker.sock を選ぶときは「本当にこの強さが必要か」を必ず問い直す。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>コンテナ内から外の処理を呼ぶ手段は、<strong>ネットワーク経由 / docker.sock 経由 / マウント経由</strong>の3系統に整理できる。SSH はネットワーク経由の一実装にすぎない。</li><li>迷ったら「まずどの系統か」を選び、その中で実装を選ぶ、という順で考えると反射的な選択を避けられる。</li><li><strong>docker.sock のマウントはほぼ root 相当の権限</strong>を渡すことになるため、信頼できるコンテナに限る。</li><li>コンテナ内の <code>socket.gethostname()</code> は Container ID を返す。意味のあるラベルは<strong>環境変数で注入</strong>する。</li><li>選択は「疎結合さ・権限・レイテンシ・対話性」の軸で判断する。とくに権限の軸を忘れない。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

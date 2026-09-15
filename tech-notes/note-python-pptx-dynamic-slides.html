@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>python-pptx でスライドを動的に生成・分割する — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="定型フォーマットのスライドを、内容に応じて何十枚も自動生成したいことがある。 たとえば「1項目 = 1カード」で並べた資料を、項目数が増減してもレイアウトが崩れないように吐き出したい、といった状況だ。 手作業でコピペして…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="python-pptx でスライドを動的に生成・分割する — SkillShowcase" property="og:title"/>
+<meta content="定型フォーマットのスライドを、内容に応じて何十枚も自動生成したいことがある。 たとえば「1項目 = 1カード」で並べた資料を、項目数が増減してもレイアウトが崩れないように吐き出したい、といった状況だ。 手作業でコピペして…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-python-pptx-dynamic-slides.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-python-pptx-dynamic-slides.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>python-pptx でスライドを動的に生成・分割する</h2>
+<h3>背景</h3>
+<p>定型フォーマットのスライドを、内容に応じて何十枚も自動生成したいことがある。たとえば「1項目 = 1カード」で並べた資料を、項目数が増減してもレイアウトが崩れないように吐き出したい、といった状況だ。手作業でコピペしていると、項目が増えたときに枚数調整や章番号のふり直しが地獄になる。</p>
+<p>こういうときに使えるのが <code>python-pptx</code> というライブラリで、PowerPoint ファイル (.pptx) をコードから組み立てられる。ただし一つ大きな落とし穴があって、python-pptx には <strong>レイアウトエンジンがない</strong>。テキストがボックスに収まるか、何行で折り返すか、はみ出すかを PowerPoint 本体のように計算してくれない。つまり「どこで改ページするか」「ボックスをどれだけ高くするか」は自分で見積もる必要がある。ここが今回の学びの中心になる。</p>
+<h3>python-pptx の基本</h3>
+<p>まずテンプレートとなる .pptx を開き、そこにスライドや図形を足していくのが基本形だ。図形・テキストボックス・テーブルを座標指定で配置していく。</p>
+<pre><code data-lang="python">from pptx import Presentation
+from pptx.util import Inches, Pt, Emu
+
+# テンプレートを開く（空の Presentation() でも可）
+prs = Presentation("template.pptx")
+
+# レイアウト（白紙など）を選んでスライド追加
+blank_layout = prs.slide_layouts[6]
+slide = prs.slides.add_slide(blank_layout)
+
+# テキストボックスを座標指定で追加
+# 引数は left, top, width, height の順
+box = slide.shapes.add_textbox(
+    left=Inches(0.5), top=Inches(0.5),
+    width=Inches(9), height=Inches(1),
+)
+tf = box.text_frame
+tf.word_wrap = True          # ボックス幅で折り返す
+p = tf.paragraphs[0]
+run = p.add_run()
+run.text = "見出しテキスト"
+run.font.size = Pt(18)
+
+prs.save("output.pptx")</code></pre>
+<p>ポイントは座標・サイズの単位だ。内部的にはすべて <strong>EMU (English Metric Unit)</strong> という整数単位で扱われる。直接 EMU を書くと桁が大きくて扱いづらいので、<code>Inches()</code> / <code>Pt()</code> / <code>Cm()</code> といったヘルパーで指定する。これらは EMU を返す関数なので、<code>Inches(1) + Pt(6)</code> のように足し算もできる（下の高さ計算で使う）。</p>
+<h3>コンテンツ量に応じてスライドを自動分割する</h3>
+<p>項目リストを渡すと、1枚に収まるだけ詰めて、あふれたら次スライドへ送る、という分割を自前で組む。考え方はシンプルで、「そのスライドの残り高さ」を持っておき、カードを1枚置くたびに減らしていく。次のカードを置くと下端をはみ出すなら、新しいスライドを作ってそこから続ける。</p>
+<pre><code data-lang="python">SLIDE_HEIGHT = Inches(7.5)      # スライドの高さ（4:3 なら 7.5in）
+TOP_MARGIN = Inches(0.8)        # 上余白（見出し領域など）
+BOTTOM_MARGIN = Inches(0.5)     # 下余白
+CARD_GAP = Inches(0.15)         # カード間の隙間
+
+def build_slides(prs, items):
+    slide = None
+    cursor = 0                  # 現在の縦位置（EMU）
+
+    for item in items:
+        card_h = estimate_card_height(item)   # ← 後述
+
+        # 1枚目、または次カードが下端を超えるなら改ページ
+        if slide is None or cursor + card_h &gt; SLIDE_HEIGHT - BOTTOM_MARGIN:
+            slide = prs.slides.add_slide(prs.slide_layouts[6])
+            cursor = TOP_MARGIN
+
+        add_card(slide, top=cursor, height=card_h, item=item)
+        cursor += card_h + CARD_GAP</code></pre>
+<p>折り返し行数の見積もりは「1行あたり何文字入るか」を係数で持っておくのがコツだ。フォントサイズとボックス幅から、その行に入る概算文字数を出し、テキスト長を割って行数にする。</p>
+<pre><code data-lang="python">def estimate_lines(text, box_width_in, font_pt):
+    # 1文字のおおよその横幅（全角基準）。フォントに応じて実測で調整する係数。
+    char_width_in = font_pt / 72 * 1.0     # 全角はほぼ 1em ≒ font_pt 分
+    chars_per_line = max(1, int(box_width_in / char_width_in))
+    # 明示改行も行数に効くので分けて数える
+    lines = 0
+    for segment in text.split("\n"):
+        lines += max(1, -(-len(segment) // chars_per_line))  # 切り上げ除算
+    return lines</code></pre>
+<p><code>-(-a // b)</code> は切り上げ除算のイディオムで、<code>math.ceil(a / b)</code> と同じ意味になる。半角と全角が混在するなら、半角は 0.5 文字として数えるなど係数を足す。ここは正確な値は出ないので、実際に生成した .pptx を開いて「思ったより詰まる/あふれる」を見ながら係数を詰めていく。</p>
+<h3>ボックスの高さを行数から動的に算出する</h3>
+<p>カードやテキストボックスの高さは、固定値ではなく「文字サイズ × 行数 + 余白」で計算する。行の高さはフォント pt に行間係数を掛けたものが目安になる。</p>
+<pre><code data-lang="python">LINE_SPACING = 1.2      # 行間（120%）
+PADDING = Pt(6)         # ボックス内の上下パディング合計
+
+def estimate_card_height(item):
+    lines = estimate_lines(item["body"], box_width_in=8.5, font_pt=14)
+    line_h = Pt(14 * LINE_SPACING)       # 1行の高さを EMU で
+    body_h = Emu(int(line_h) * lines)
+    title_h = Pt(18 * LINE_SPACING)      # 見出し1行ぶん
+    return Emu(int(title_h) + int(body_h) + int(PADDING) * 2)</code></pre>
+<p><code>Pt()</code> などは EMU（整数）を返すので、<code>int()</code> してから掛け算・足し算し、最後に <code>Emu()</code> で包み直すと安全だ。こうしておけば、本文が長いカードは自動的に背が高くなり、短いカードは詰まる。そしてこの高さがそのまま前節の分割ロジックに効くので、「背の高いカードが下端近くに来たら次ページへ送られる」という挙動が自然に成立する。</p>
+<h3>2段ヘッダの結合セルテーブル</h3>
+<p>表を出す場合、python-pptx の <code>add_table</code> でグリッドを作り、セルを結合してヘッダを2段にしたり、行に縞模様（ゼブラ）を付けたりできる。テーブル自体の高さも、行数に応じて調整する。</p>
+<pre><code data-lang="python">from pptx.dml.color import RGBColor
+
+def add_table(slide, top, rows, cols, data):
+    row_h = Pt(20)
+    tbl_h = Emu(int(row_h) * rows)
+    shape = slide.shapes.add_table(
+        rows, cols,
+        left=Inches(0.5), top=top,
+        width=Inches(9), height=tbl_h,
+    )
+    table = shape.table
+
+    # 上段ヘッダを横方向に結合（例: 先頭2列を1つの見出しにまとめる）
+    a = table.cell(0, 0)
+    b = table.cell(0, 1)
+    a.merge(b)
+    a.text = "分類"
+
+    # ゼブラ模様: 偶数行だけ薄い背景色にする
+    for r in range(2, rows):        # ヘッダ2段ぶんを飛ばす
+        if r % 2 == 0:
+            for c in range(cols):
+                fill = table.cell(r, c).fill
+                fill.solid()
+                fill.fore_color.rgb = RGBColor(0xF2, 0xF2, 0xF2)</code></pre>
+<p><code>merge()</code> は結合範囲の左上セルに対して呼び、そのセルにテキストを入れる。行数が動的に変わるテーブルでも、<code>row_h × rows</code> で全体高さを出しておけば、後続要素の縦位置計算に組み込める。</p>
+<h3>章番号をパラメータ化して繰り上げる</h3>
+<p>スライドを途中に挿入したり削除したりすると、章番号や目次がずれる。章番号を <strong>ハードコードせずパラメータ（変数）で持つ</strong> ようにしておくと、並び替えに追従できる。</p>
+<pre><code data-lang="python">def render_chapters(prs, chapters):
+    toc = []                        # 目次を同時に組み立てる
+    for idx, ch in enumerate(chapters, start=1):
+        title = f"第{idx}章 {ch['title']}"     # 番号は enumerate から自動採番
+        toc.append((idx, ch["title"]))
+        build_chapter_slide(prs, number=idx, title=title, body=ch["body"])
+    return toc</code></pre>
+<p>番号を <code>enumerate</code> の連番から生成しておけば、<code>chapters</code> リストの順番を入れ替える・要素を抜くだけで、章番号も目次も自動で繰り上がる。「第3章を消したら第4章以降を全部書き換える」といった手作業が消える。データ（章のリスト）と見た目（番号付きタイトル）を切り離すのがキモだ。</p>
+<h3>レイアウト計算は自前という前提を忘れない</h3>
+<p>繰り返しになるが、python-pptx はブラウザや PowerPoint 本体のようにレイアウトを計算してくれない。折り返し・はみ出し・改ページはすべて自分の見積もりロジックが担う。だから最初から完璧な数式を作ろうとせず、次の順で進めるのが現実的だ。</p>
+<ol class="note-list"><li>ざっくりした係数（1行あたり文字数、行高さ係数）で組む</li><li>生成した .pptx を実際に開いて、詰まりすぎ／あふれを目視する</li><li>係数を少しずつ直して、狙いの見た目に寄せる</li></ol>
+<p>フォントの種類や全角・半角比率で最適な係数は変わるので、「実測で調整する定数」だと割り切っておくとよい。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><code>python-pptx</code> はテンプレ .pptx を開いて図形・テキスト・テーブルを座標指定で足していくライブラリ。</li><li>座標・サイズの内部単位は EMU。直接書かず <code>Inches()</code> / <code>Pt()</code> / <code>Cm()</code> ヘルパーで指定し、<code>int()</code> で崩して計算する。</li><li>python-pptx にレイアウトエンジンはないので、折り返し行数・ボックス高さ・改ページは <strong>自前で見積もる</strong>。</li><li>行数は「1行あたり文字数」の係数から、高さは「フォント pt × 行数 + 余白」から動的に算出する。</li><li>スライド分割は「残り高さを持ち、あふれたら次スライド」というカーソル方式で組む。</li><li>テーブルはセル <code>merge()</code> で2段ヘッダ、行の背景色でゼブラ、<code>row_h × rows</code> で全体高さを算出。</li><li>章番号は <code>enumerate</code> の連番で採番し、データ側の並びを変えるだけで目次・番号が自動で繰り上がる設計にする。</li><li>係数は「実測で詰める定数」と割り切り、生成物を開いて調整するループを回す。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

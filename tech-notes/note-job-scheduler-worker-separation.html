@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>ジョブ基盤の scheduler と worker の分離 — 「予定は作られるが実行されない」の切り分け — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="ジョブ自動化基盤を運用していると、「ジョブはちゃんと予定に入っているのに、いつまで経っても動かない」という状況に出くわす。ダッシュボードを見ると実行予定（run）はきれいに並んでいる。スケジュールの設定ミスにも見えない。…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="ジョブ基盤の scheduler と worker の分離 — 「予定は作られるが実行されない」の切り分け — SkillShowcase" property="og:title"/>
+<meta content="ジョブ自動化基盤を運用していると、「ジョブはちゃんと予定に入っているのに、いつまで経っても動かない」という状況に出くわす。ダッシュボードを見ると実行予定（run）はきれいに並んでいる。スケジュールの設定ミスにも見えない。…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-job-scheduler-worker-separation.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-job-scheduler-worker-separation.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">インフラ</span></div>
+<h2>ジョブ基盤の scheduler と worker の分離 — 「予定は作られるが実行されない」の切り分け</h2>
+<h3>背景</h3>
+<p>ジョブ自動化基盤を運用していると、「ジョブはちゃんと予定に入っているのに、いつまで経っても動かない」という状況に出くわす。ダッシュボードを見ると実行予定（run）はきれいに並んでいる。スケジュールの設定ミスにも見えない。なのに実行時刻を過ぎても状態が変わらず、ただ溜まっていく。</p>
+<p>このとき「スケジュールが壊れた」と考えて設定をいじり始めると、たいてい遠回りになる。この症状のほとんどは、スケジュールを作る側ではなく<strong>実行する側</strong>の問題だからだ。それを理解するには、多くのジョブ基盤が内部で 2 つの役割に分かれていることを知っておくとよい。</p>
+<h3>scheduler と worker は別物</h3>
+<p>ジョブ実行基盤（Prefect / Airflow のような製品や、広く見れば cron や CI ランナーも）は、ざっくり次の 2 つの役割に分かれている。</p>
+<ul class="note-list"><li><strong>scheduler（予定を作る側）</strong></li><li>「このジョブを、次はいつ走らせるか」を計算する。</li><li>その結果を「実行予定（Scheduled state の run）」として登録する。</li><li>ここまでが仕事。<strong>実際にジョブ本体のコードを走らせることはしない。</strong></li></ul>
+<ul class="note-list"><li><strong>worker（予定を拾って実行する側）</strong></li><li>キュー（Work Pool / ワークキュー）を購読し、Scheduled になった run を拾い上げる。</li><li>拾った run のジョブ本体を、自分のプロセス／マシン上で実際に実行する。</li><li>実行結果（成功・失敗）を基盤に書き戻す。</li></ul>
+<p>重要なのは、<strong>この 2 つはネットワーク越しに疎結合であることが多い</strong>という点だ。scheduler は中央のサーバー上に、worker は別のマシンやコンテナ上に、というように物理的に離れて動く。両者は「キューにある予定」を介してだけつながっている。</p>
+<pre><code data-lang="">[scheduler] --(予定を登録)--&gt; [キュー / Work Pool] &lt;--(予定を購読・実行)-- [worker]
+   予定を作るだけ                中継地点                    実際に走らせる</code></pre>
+<p>だから片方が生きていても、もう片方が死んでいればジョブは進まない。特に <strong>scheduler が正常でも worker が落ちていれば、予定は作られ続けるが誰も実行しない</strong>、という状態が起きる。</p>
+<h3>溜まる症状の読み方</h3>
+<p>「予定は作られるが実行されない」の典型的なサインはこうだ。</p>
+<ul class="note-list"><li>run が <code>Scheduled</code>（実行待ち）状態のまま、いつまでも次の状態（<code>Running</code> / <code>Completed</code>）に進まない。</li><li>run の<strong>開始時刻（start）が空（None）</strong>のまま。＝「まだ誰も走らせ始めていない」。</li><li>時間が経つほど、実行されない予定がキューにどんどん<strong>積み上がっていく</strong>。</li></ul>
+<p>この「Scheduled のまま start=None が溜まる」という並び方を見たら、まず疑うべきは <strong>worker が起動していない／キューを購読できていない</strong> ことだ。scheduler は健気に予定を作り続けているので、予定の数はむしろ増える。これはスケジュール設定が壊れている兆候ではなく、<strong>実行部隊が不在</strong>の兆候である。</p>
+<p>逆に、run が <code>Running</code> で止まっている・<code>Crashed</code> や <code>Failed</code> になっている場合は worker は動いている（拾えている）ので、原因はジョブ本体のコードや実行環境側にある。<strong>「拾われていない」のか「拾われた後にこけた」のか</strong>で切り分け先がまったく違う。</p>
+<h3>切り分けの手順</h3>
+<ol class="note-list"><li><strong>まず worker プロセスが生きているかを、scheduler とは独立に確認する。</strong></li></ol>
+<ul class="note-list"><li>scheduler（中央サーバー）の画面が正常に見えることは、worker の生死を何も保証しない。別物なので別々に確認する。</li><li>worker が動いているホスト側でプロセスの生存を見る（プロセス一覧、コンテナの起動状態、worker のハートビート／最終ポーリング時刻など）。</li></ul>
+<ol class="note-list"><li><strong>run の状態と start の有無を見る。</strong></li></ol>
+<ul class="note-list"><li><code>Scheduled</code> + <code>start=None</code> が溜まる → worker 不在を強く疑う（上記の通り）。</li><li><code>Running</code> のまま固まる／<code>Crashed</code> → worker は動いている。ジョブ本体・実行環境を疑う。</li></ul>
+<ol class="note-list"><li><strong>worker がどのキュー（Work Pool）を購読しているかを確認する。</strong></li></ol>
+<ul class="note-list"><li>worker は生きていても、ジョブが投入されるキューと<strong>別のキューを購読していれば</strong>永遠に拾わない。</li><li>Pool 名・キュー名の食い違いは「worker は Running なのに特定ジョブだけ動かない」という形で出る。</li></ul>
+<ol class="note-list"><li><strong>worker を復帰させ、溜まった予定が拾われて start が入るかを見る。</strong></li></ol>
+<p>補足として、この Pool／キューの仕組みは障害切り分けだけでなく<strong>設計にも使える</strong>。同じ基盤に対して、中央側とは別に特定ホスト上にも worker を立て、ジョブを Pool 名で振り分けられる。「このジョブはこのマシンで動かしたい」（そのマシンにしかない資源やアプリを使う等）というとき、対応する Pool を購読する worker をそのホストに置けばよい。</p>
+<h3>コード反映のタイミング</h3>
+<p>worker が「いつジョブ本体のコードを読むか」も、運用でよく混乱する点なので押さえておく。構成によって反映のされ方が違う。</p>
+<ul class="note-list"><li><strong>worker が実行のたびに最新コードを取得する構成</strong>（例: 実行直前にリポジトリを pull してから走らせる）</li><li>ジョブ本体のコードを直しても、<strong>worker 自体の再起動は不要</strong>。次の実行時に新しいコードが読まれる。</li></ul>
+<ul class="note-list"><li><strong>worker が起動時に読んだコードを使い続ける構成</strong>（pull しない／イメージに焼き込む等）</li><li>コードを直して push しても、<strong>worker を入れ替え／再起動しない限り反映されない</strong>。「直したのに変わらない」の典型。</li></ul>
+<p>そして、どちらの構成であっても共通して言えるのは、<strong>実行中の run や、実行が始まる直前の run には変更は反映されない</strong>ということ。反映されるのは早くても<strong>次回スケジュール分から</strong>だと考えておく。急ぎで直したいときは「今動いている run には効かない」を前提に、次回に確実に乗せることを狙う。</p>
+<h3>一般化</h3>
+<p>ここで見た切り分けは Prefect などの特定製品に限った話ではない。「<strong>予定を作る側</strong>」と「<strong>実際に実行する側</strong>」が分かれている基盤には、広く同じ考え方が通じる。</p>
+<ul class="note-list"><li><strong>cron</strong> — crontab（予定の定義）は生きていても、実行を担う cron デーモンが止まっていれば何も走らない。</li><li><strong>CI ランナー</strong> — パイプラインはキューに積まれる（予定）が、ランナー（実行機）がオフライン／別ラベルを待っていればジョブは pending のまま溜まる。</li><li><strong>メッセージキューのワーカー</strong> — プロデューサ（投入側）が元気でも、コンシューマ（ワーカー）が落ちていればメッセージが処理されず滞留する。</li></ul>
+<p>いずれも症状は同じ形をとる。<strong>「投入・予定は正常、でも消化されず溜まっていく」</strong>。そのときの初手は毎回同じで、<strong>予定を作る側とは独立に、実行する側（worker / ランナー / コンシューマ / デーモン）が生きているかを確認する</strong>こと。さらに「生きているのに拾わない」なら、購読先のキュー／ラベル／Pool の食い違いを疑う。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>ジョブ基盤は「予定を作る scheduler」と「予定を拾って走らせる worker」に分かれ、両者はキューを介した疎結合であることが多い。</li><li>run が <code>Scheduled</code> のまま <code>start=None</code> で溜まるのは、scheduler ではなく <strong>worker が不在／別キューを購読</strong> のサイン。</li><li>切り分けの初手は「worker が生きているか」を scheduler とは独立に確認すること。次に「拾われていない」のか「拾われた後にこけた」のかを状態で分ける。</li><li>コードの反映タイミングは構成次第（実行毎に pull するか否か）。ただし共通して、実行中／直前の run には効かず、反映は次回スケジュールから。</li><li>これは cron・CI ランナー・メッセージキューにも通じる普遍的な切り分け方。「投入は正常、消化されず溜まる」を見たら、まず実行側の生死を疑う。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

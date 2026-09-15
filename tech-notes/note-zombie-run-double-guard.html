@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>ゾンビ化したジョブ実行を止める二重ガード（実行側 timeout ＋ 監視側 automation） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="ワークフローエンジンやジョブ基盤で自動化を運用していると、ジョブの1回の実行（run）が「Running（実行中）」のまま延々と終わらず居座る現象に出くわす。実際にはもう処理は動いていないのに、状態だけが更新されず「実行…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="ゾンビ化したジョブ実行を止める二重ガード（実行側 timeout ＋ 監視側 automation） — SkillShowcase" property="og:title"/>
+<meta content="ワークフローエンジンやジョブ基盤で自動化を運用していると、ジョブの1回の実行（run）が「Running（実行中）」のまま延々と終わらず居座る現象に出くわす。実際にはもう処理は動いていないのに、状態だけが更新されず「実行…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-zombie-run-double-guard.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-zombie-run-double-guard.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">インフラ</span></div>
+<h2>ゾンビ化したジョブ実行を止める二重ガード（実行側 timeout ＋ 監視側 automation）</h2>
+<h3>背景</h3>
+<p>ワークフローエンジンやジョブ基盤で自動化を運用していると、ジョブの1回の実行（run）が「Running（実行中）」のまま延々と終わらず居座る現象に出くわす。実際にはもう処理は動いていないのに、状態だけが更新されず「実行中」に見える。これがいわゆる「ゾンビ化した run」だ。放置すると、次のスケジュール実行が始まっても前の実行が生きている扱いになり、同じ処理が二重に走ったり、資源（CPU・メモリ・I/O・DBコネクション）を食い合ったりする。</p>
+<p>なぜこうなるのか、そしてどう止めるのかを整理しておく。</p>
+<h3>本文</h3>
+<h4>なぜゾンビ化するのか</h4>
+<ul class="note-list"><li>分散ジョブ基盤では、実行を実際に走らせるのは <strong>worker（実行プロセス）</strong> で、状態を管理するのは <strong>サーバ（オーケストレータ）</strong> と役割が分かれている。</li><li>worker が実行の途中で落ちたり再起動されたりすると、その run の「終わった／失敗した」という<strong>最終状態をサーバに報告できない</strong>まま消える。</li><li>サーバから見ると、最後に受け取った状態が <code>Running</code> のままなので、いつまでも実行中として残り続ける。これがゾンビ化の正体。</li><li>典型的なトリガーは <strong>デプロイ</strong>。新しいコードを配る際に worker を再起動すると、ちょうどその時走っていた run が道連れになる。深夜バッチ中のメンテ、コンテナの入れ替え、OOM Kill なども同じ結果を招く。</li><li>ポイントは「<strong>実行主体（worker）は落ちうる</strong>」という前提。落ちること自体は防ぎきれないので、落ちた後の後始末を仕組みで用意する。</li></ul>
+<h4>防御その1: 実行側ガード（ジョブ自身の timeout）</h4>
+<ul class="note-list"><li>ジョブ定義そのものに<strong>タイムアウト</strong>を設定する（例: <code>timeout_seconds</code> のようなパラメータ）。</li><li>「このジョブが N 秒を超えたら、自分自身を打ち切る」という自爆スイッチをジョブに埋め込むイメージ。</li><li>通常はこれで十分。想定より長引いた実行が、自分の判断で Failed / Cancelled に落ちてくれる。</li><li>ただし弱点がある。<strong>実行側が自壊できる状態にあること</strong>が前提だ。プロセスが応答不能になっていたり、外部 I/O（ネットワーク・ファイル共有・DB）で無限に待たされていたりすると、タイムアウトの判定コード自体が動かず、自爆スイッチが押されない。</li></ul>
+<h4>防御その2: 監視側ガード（サーバ側の automation ルール）</h4>
+<ul class="note-list"><li>そこで、<strong>実行主体の外側から</strong>強制的に止める仕組みを重ねる。</li><li>サーバ側（オーケストレータ）の自動化ルールとして「<strong>ある run が N 分以上 Running のままなら、強制的に Cancel する</strong>」を設定する。</li><li>これは worker のプロセスが生きていようが死んでいようが関係なく、サーバが状態を見て判断するので、<strong>実行側が自壊できないケースの最後の砦</strong>になる。</li><li>監視側は「状態が古いまま更新されていない」という外形だけで判断できるのが強み。</li></ul>
+<h4>なぜ二重にするのか</h4>
+<ul class="note-list"><li>実行側 timeout だけだと、<strong>プロセスが応答不能なゾンビ</strong>を取りこぼす（自爆スイッチが押せない）。</li><li>監視側 automation だけだと、<strong>強制 Cancel まで N 分待つ</strong>必要があり、その間は資源を握られる。また監視ルールは全体に一律なので、ジョブごとの細かい時間設計には向かない。</li><li>両方あると、まず実行側が自分の裁量で早めに畳み、それが効かない異常系だけを監視側がまとめて刈り取る、という<strong>役割分担</strong>になる。片方だけでは必ず漏れる穴を、もう片方が塞ぐ。</li></ul>
+<h4>紛らわしい挙動: Crash 後の自動再投入</h4>
+<ul class="note-list"><li>一部の基盤では、Crash した run が<strong>同一の run ID のまま後刻に自動で再投入（retry）</strong>されることがある。</li><li>このとき UI 上の「開始時刻」が過去の最初の起動時刻を指したままに見えることがあり、「なぜこんな昔から動きっぱなしなのか」と混乱しやすい。実際には途中で落ちて、後から同じ ID で再開されている。</li><li>さらに厄介なのは、<strong>再投入のタイミングが他のジョブと重なる</strong>と、ディスク／ネットワーク I/O が飽和し、それが引き金で別のジョブも遅延・失敗する、という<strong>連鎖故障</strong>が起きうる点。「1個のゾンビ」で終わらず、資源競合で被害が広がる。</li></ul>
+<h4>一般化</h4>
+<ul class="note-list"><li>この二重ガードの考え方は特定製品に限らない。<strong>「実行主体が落ちうる」あらゆる自動実行基盤</strong>に通じる。</li><li>cron: スクリプト側に自前の timeout（<code>timeout</code> コマンド等）を持たせつつ、監視で長時間プロセスを検出して kill する。</li><li>CI/CD: ジョブ単位の timeout 設定 ＋ パイプライン全体の上限。</li><li>ワークフローエンジン全般: タスクの timeout ＋ 実行時間ベースの自動キャンセルルール。</li><li>共通の原則は「<strong>実行側で自律的に畳む</strong>」＋「<strong>監視側で外から刈り取る</strong>」を両輪で持つこと。hung（ハングした）ジョブ対策の定石として覚えておくとよい。</li></ul>
+<h3>まとめ</h3>
+<ul class="note-list"><li>worker がデプロイ等で再起動されると、report できなかった run が <code>Running</code> のまま残る（ゾンビ化）。放置は資源の二重消費を招く。</li><li>対策は二段構え。実行側にジョブ自身の timeout を持たせ、監視側にサーバの自動 Cancel ルールを重ねる。</li><li>実行側は普段の主役だが、応答不能だと自壊できない。監視側はそれを外から刈り取る最後の砦。だから両方いる。</li><li>Crash 後に同一 ID で自動再投入されると開始時刻が過去に見えて混乱し、他ジョブと重なると I/O 飽和の連鎖故障を招くことがある。</li><li>「実行主体が落ちうる」基盤（cron・CI・各種ワークフローエンジン）すべてに効く、汎用の hung ジョブ対策である。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

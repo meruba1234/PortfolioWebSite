@@ -51,7 +51,7 @@
 <p>結論を先に言うと、<strong>ファイルコピーが改行を変えたのではなく、Git の設定 <code>core.autocrlf=true</code> がコミット時に改行コードを変換していた</strong>のが原因だった。</p>
 <h3>改行コードとは</h3>
 <p>テキストファイルの「行の終わり」を表す制御文字。OS によって標準が違う。</p>
-<table class="impact-table"><thead><tr><th scope="col">記号</th><th scope="col">正式名</th><th scope="col">バイト</th><th scope="col">主なOS</th></tr></thead><tbody><tr><td><strong>CRLF</strong></td><td>Carriage Return + Line Feed</td><td><code>0D 0A</code>（2バイト）</td><td>Windows</td></tr><tr><td><strong>LF</strong></td><td>Line Feed</td><td><code>0A</code>（1バイト）</td><td>Linux / macOS</td></tr></tbody></table>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">記号</th><th scope="col">正式名</th><th scope="col">バイト</th><th scope="col">主なOS</th></tr></thead><tbody><tr><td><strong>CRLF</strong></td><td>Carriage Return + Line Feed</td><td><code>0D 0A</code>（2バイト）</td><td>Windows</td></tr><tr><td><strong>LF</strong></td><td>Line Feed</td><td><code>0A</code>（1バイト）</td><td>Linux / macOS</td></tr></tbody></table></div>
 <p>見た目は同じ「改行」でも、中身のバイトが違う。だから中身が同一に見えるファイルでも改行コードが違えば「別物（差分あり）」と判定されることがある。</p>
 <h3>まず大前提：単純なファイルコピーでは改行は変わらない</h3>
 <p>Explorer のコピー＆ペースト、<code>copy</code> / <code>xcopy</code> / <code>robocopy</code>、共有フォルダ（SMB）経由のコピーは <strong>バイト列をそのまま複製する</strong>ので、改行コードも BOM も一切変わらない。Windows→Windows でも同じ。</p>
@@ -59,7 +59,7 @@
 <ul class="note-list"><li><strong>Git</strong>（<code>core.autocrlf</code> の設定による自動変換）← 今回の犯人</li><li>エディタの保存（メモ帳・VSCode などが別の改行で再保存）</li><li>テキストの<strong>コピペ</strong>（ファイルではなく中身をクリップボード／ターミナル経由で移す）</li><li>PowerShell の <code>Set-Content</code> / <code>Out-File</code> / リダイレクト（CRLF や BOM が付いたり変わる）</li></ul>
 <h3>Git が改行を変換する仕組み（core.autocrlf）</h3>
 <p>Git には改行コードを自動変換する設定 <code>core.autocrlf</code> がある。値は3種類。</p>
-<table class="impact-table"><thead><tr><th scope="col">設定</th><th scope="col">コミット時（add）</th><th scope="col">取り出し時（checkout）</th><th scope="col">リポジトリ内部の保存形</th></tr></thead><tbody><tr><td><strong><code>true</code></strong></td><td><strong>CRLF → LF に変換</strong></td><td>LF → CRLF に戻す</td><td><strong>LF</strong></td></tr><tr><td><code>input</code></td><td>CRLF → LF に変換</td><td>変換しない</td><td>LF</td></tr><tr><td><code>false</code></td><td>変換しない</td><td>変換しない</td><td>元のまま（CRLF なら CRLF）</td></tr></tbody></table>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">設定</th><th scope="col">コミット時（add）</th><th scope="col">取り出し時（checkout）</th><th scope="col">リポジトリ内部の保存形</th></tr></thead><tbody><tr><td><strong><code>true</code></strong></td><td><strong>CRLF → LF に変換</strong></td><td>LF → CRLF に戻す</td><td><strong>LF</strong></td></tr><tr><td><code>input</code></td><td>CRLF → LF に変換</td><td>変換しない</td><td>LF</td></tr><tr><td><code>false</code></td><td>変換しない</td><td>変換しない</td><td>元のまま（CRLF なら CRLF）</td></tr></tbody></table></div>
 <p>ポイント：<strong><code>true</code> は「元が CRLF でも、保存時に LF へ剥がす」</strong>。「リポジトリ内部は LF、手元の作業フォルダは CRLF」という振り分けを自動でやる設定。（Windows 開発者が LF リポジトリに参加するための折衷案）</p>
 <h3>なぜ Git はわざわざ LF に正規化するのか</h3>
 <p>Git はもともと Linux／複数OSでの共同開発のために作られたツール。</p>
@@ -69,7 +69,7 @@
 <p>→ これは<strong>複数OS開発を前提にした汎用的な思想</strong>。 <strong>Windows 専用プロジェクト</strong>では LF 正規化の恩恵はなく、「リポジトリ ≠ 本番」のズレを生むだけ。</p>
 <h3>実例：3か所を測ると状態が違った</h3>
 <p>同じ 1 ファイルを、3つの場所で改行コードを実測した結果：</p>
-<table class="impact-table"><thead><tr><th scope="col">版</th><th scope="col">改行コード</th><th scope="col">備考</th></tr></thead><tbody><tr><td>本番共有フォルダ（原本）</td><td><strong>CRLF</strong></td><td>Visual Studio 標準</td></tr><tr><td>手元の作業フォルダ（clone した物）</td><td><strong>CRLF</strong></td><td>本番と<strong>バイト単位で完全一致</strong></td></tr><tr><td>Git 内部（＝リポジトリの正本）</td><td><strong>LF</strong></td><td>ここだけ本番と違う</td></tr></tbody></table>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">版</th><th scope="col">改行コード</th><th scope="col">備考</th></tr></thead><tbody><tr><td>本番共有フォルダ（原本）</td><td><strong>CRLF</strong></td><td>Visual Studio 標準</td></tr><tr><td>手元の作業フォルダ（clone した物）</td><td><strong>CRLF</strong></td><td>本番と<strong>バイト単位で完全一致</strong></td></tr><tr><td>Git 内部（＝リポジトリの正本）</td><td><strong>LF</strong></td><td>ここだけ本番と違う</td></tr></tbody></table></div>
 <ul class="note-list"><li><strong>「手元 vs 本番」は一致</strong>していた（<code>cmp</code> で完全一致）。</li><li><strong>「Git の中身 vs 本番」がズレている</strong>のが実態。</li><li><code>core.autocrlf=true</code> が checkout 時に LF→CRLF に戻すので、手元は本番と一致して<strong>見える</strong>。でもリポジトリの正本は LF になっている。</li></ul>
 <p>だから「CodeCommit の Web 画面で見る」「autocrlf=false の別PCで clone する」など <strong>Git の中身を直接見る経路</strong>だと LF で出てきて、本番の CRLF と「改行が違う」と言われる。</p>
 <h3>確認コマンド（実習）</h3>
@@ -86,7 +86,7 @@ git config --show-origin core.autocrlf
 cmp "本番パス/対象.vb" "手元パス/対象.vb"</code></pre>
 <h3>全員・リポジトリ単位で改行を固定したいなら .gitattributes</h3>
 <p>改行の扱いを決める方法は2種類あり、<strong>置き場所（＝効く範囲）が違う</strong>。</p>
-<table class="impact-table"><thead><tr><th scope="col">方法</th><th scope="col">実体</th><th scope="col">効く範囲</th><th scope="col">clone で伝わるか</th></tr></thead><tbody><tr><td><code>core.autocrlf</code></td><td>Git の <strong>config</strong>（<code>.gitconfig</code> / <code>.git/config</code>）</td><td><strong>そのPC・そのユーザーだけ</strong></td><td>伝わらない</td></tr><tr><td><code>.gitattributes</code></td><td>リポジトリに<strong>コミットするファイル</strong></td><td><strong>リポジトリ全体（全員）</strong></td><td>伝わる</td></tr></tbody></table>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">方法</th><th scope="col">実体</th><th scope="col">効く範囲</th><th scope="col">clone で伝わるか</th></tr></thead><tbody><tr><td><code>core.autocrlf</code></td><td>Git の <strong>config</strong>（<code>.gitconfig</code> / <code>.git/config</code>）</td><td><strong>そのPC・そのユーザーだけ</strong></td><td>伝わらない</td></tr><tr><td><code>.gitattributes</code></td><td>リポジトリに<strong>コミットするファイル</strong></td><td><strong>リポジトリ全体（全員）</strong></td><td>伝わる</td></tr></tbody></table></div>
 <ul class="note-list"><li><strong><code>core.autocrlf</code> はローカル設定</strong>。clone しても付いてこないし、CodeCommit でも管理されない。 → 人によって挙動が変わる。</li><li><strong><code>.gitattributes</code> はリモート（CodeCommit）にコミットで入る</strong>ので、誰が clone しても同じ改行ルールが強制される。各PCの autocrlf より優先される。</li></ul>
 <p>Windows 専用プロジェクトで本番（CRLF）と一致させたいなら <code>.gitattributes</code> で CRLF 固定にする：</p>
 <pre><code data-lang="gitattributes">* text=auto eol=crlf

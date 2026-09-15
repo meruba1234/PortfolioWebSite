@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>標準出力のバッファリング — バックグラウンド実行で print が出ない — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="スクリプトをバックグラウンドで動かして、ログをファイルに残そうとしたときのこと。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="標準出力のバッファリング — バックグラウンド実行で print が出ない — SkillShowcase" property="og:title"/>
+<meta content="スクリプトをバックグラウンドで動かして、ログをファイルに残そうとしたときのこと。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-stdout-buffering.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-stdout-buffering.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>標準出力のバッファリング — バックグラウンド実行で print が出ない</h2>
+<h3>背景</h3>
+<p>スクリプトをバックグラウンドで動かして、ログをファイルに残そうとしたときのこと。</p>
+<pre><code data-lang="">python worker.py &gt; worker.log 2&gt;&amp;1 &amp;</code></pre>
+<p>処理は明らかに走っている（CPU も使っているし、後で結果ファイルもできる）のに、 <code>worker.log</code> を開いても中身が空。しばらく待ってようやく大量の行がドバッと出る。あるいはプロセスが終わるまで一切出てこない。</p>
+<p>「print を書いたのに出ない＝コードのバグ？」と疑ってログの位置を直したり、 print を増やしたりして時間を溶かしがちだが、これは多くの場合コードのせいではない。犯人は <strong>標準出力のバッファリング</strong> という仕組みである。</p>
+<h3>なぜ端末とパイプで挙動が違うのか</h3>
+<p>print した文字は、実はすぐには外に書き出されていない。いったんプログラム内部の「バッファ（ためておく箱）」に貯められ、ある条件を満たしたタイミングでまとめて出力先に流される。</p>
+<p>このバッファの流し方（＝いつ吐き出すか）が、<strong>出力先が何かによって自動で切り替わる</strong>。</p>
+<ul class="note-list"><li>出力先が <strong>端末（TTY）</strong> のとき → <strong>行バッファ</strong> 改行が来るたびに吐き出す。だから対話的に実行すると print が即座に画面に出る。</li><li>出力先が <strong>パイプ・リダイレクト・ファイル</strong> のとき → <strong>ブロックバッファ</strong> 箱が一杯（数 KB 単位）になるまで貯め込み、一杯になった時点でまとめて吐き出す。一杯にならなくても、プロセスが正常終了するときには残りを吐き出す（フラッシュする）。</li></ul>
+<p>つまり、端末に直接出すときは軽快に流れて見えるのに、 <code>&gt; file.log</code> やパイプ <code>| tee</code> を挟んだ瞬間に「箱が一杯になるまで沈黙」へと切り替わる。これが「プロセスは動いているのにログが空」の正体である。バックグラウンド実行・パイプ処理・別プログラムからのサブプロセス起動で頻出する。</p>
+<p>なぜこんな仕様かというと、出力を1文字ずつ書き出すのは遅く、まとめて書いた方が効率が良いから。端末は「人が見るので即応性優先」、ファイルやパイプは「機械が受けるので効率優先」と、用途に合わせて既定値を変えている。</p>
+<h3>対処法</h3>
+<p>出力先がファイル・パイプでも即座に吐き出させたい、という指定をすればよい。方法は複数ある。</p>
+<h4>1. 起動時に unbuffered モードにする（<code>-u</code>）</h4>
+<p>一番手軽で確実。Python を <code>-u</code> 付きで起動すると、バッファリングを無効化して即書き出しになる。</p>
+<pre><code data-lang="">python -u worker.py &gt; worker.log 2&gt;&amp;1 &amp;</code></pre>
+<p>スクリプト側を一切いじらず、起動コマンドだけで直せるのが利点。バックグラウンドジョブやサービス化するときはこれを既定にしておくと事故らない。</p>
+<h4>2. print のたびにフラッシュする（<code>flush=True</code>）</h4>
+<p>特定の print だけ確実に出したいとき。</p>
+<pre><code data-lang="python">print("処理を開始しました", flush=True)</code></pre>
+<p><code>flush=True</code> は「この print はためずに今すぐ吐き出せ」という指示。ループの進捗表示など、リアルタイムに見たい行だけ付ける使い方もできる。</p>
+<h4>3. stdout を行バッファに設定し直す</h4>
+<p>スクリプトの先頭で一度だけ設定すれば、以降の print は全部行バッファ扱いになる。</p>
+<pre><code data-lang="python">import sys
+sys.stdout.reconfigure(line_buffering=True)</code></pre>
+<p>これを入れておけば、出力先がファイルでも端末のときと同じ「改行ごとに吐き出す」挙動になる。</p>
+<h3>stderr という抜け道</h3>
+<p>もう一つ知っておくと便利なのが、<strong>標準エラー出力（stderr）は通常バッファされない</strong>という点。</p>
+<p>print は既定で標準出力（stdout）に出るが、エラーや警告は stderr に出すのが慣習で、 stderr は「異常はすぐ見せたい」ため即書き出しになっている。</p>
+<pre><code data-lang="python">import sys
+print("進捗: 100件処理", file=sys.stderr)</code></pre>
+<p>リアルタイム性がどうしても欲しいログを stderr に回す、という手が使える。ただし本来 stderr はエラー用なので、通常ログまで全部 stderr に流すのは行儀が良くない。基本は <code>-u</code> や <code>flush=True</code> で stdout 側を直し、stderr はあくまで補助的な逃げ道と考えるとよい。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>標準出力は、出力先が端末なら<strong>行バッファ</strong>、ファイル・パイプなら<strong>ブロックバッファ</strong>に自動で切り替わる。</li><li>ブロックバッファでは print してもすぐには出ず、箱が一杯になるかプロセス終了時にまとめて出る。これが「動いているのにログが空」の正体。</li><li>対処は <code>python -u</code>（起動時に無効化）、<code>print(..., flush=True)</code>（都度吐き出し）、 <code>sys.stdout.reconfigure(line_buffering=True)</code>（行バッファ化）のいずれか。</li><li>stderr は通常バッファされないので、即時性が要るログの逃げ道に使える。</li><li>ログが出ないときは、コードのバグより先に <strong>バッファリングを疑う</strong> と早く解決できる。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

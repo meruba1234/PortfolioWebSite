@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Linux の「詰まり」診断 — D state / iowait / swap による I/O 飽和 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="「サーバが妙に重い。応答が返ってこない処理がある」——けれど top を見ると CPU 使用率（us + sy）はガラ空き、ロードアベレージだけが異様に高い。こういう状況で「CPU が足りない」「DB がロックしている」…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Linux の「詰まり」診断 — D state / iowait / swap による I/O 飽和 — SkillShowcase" property="og:title"/>
+<meta content="「サーバが妙に重い。応答が返ってこない処理がある」——けれど top を見ると CPU 使用率（us + sy）はガラ空き、ロードアベレージだけが異様に高い。こういう状況で「CPU が足りない」「DB がロックしている」…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-linux-io-saturation-diagnosis.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-linux-io-saturation-diagnosis.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">インフラ</span></div>
+<h2>Linux の「詰まり」診断 — D state / iowait / swap による I/O 飽和</h2>
+<h3>背景</h3>
+<p>「サーバが妙に重い。応答が返ってこない処理がある」——けれど <code>top</code> を見ると CPU 使用率（<code>us</code> + <code>sy</code>）はガラ空き、ロードアベレージだけが異様に高い。こういう状況で「CPU が足りない」「DB がロックしている」と決め打ちすると原因を外す。</p>
+<p>CPU が空いているのにプロセスが進まないとき、真っ先に疑うべきは <strong>ディスク I/O の飽和</strong> だ。プロセスは計算しているのではなく、ストレージからのデータ到着を「待たされて」動けなくなっている。この状態のサインが、プロセスの <strong>D state</strong> と、システム全体の <strong>iowait</strong> である。</p>
+<p>以下、D state の意味 → 確認コマンド → swap と I/O 飽和がなぜ連鎖するか → 対処 → 終了処理に失敗した残骸プロセスの見分け方、の順に整理する。</p>
+<h3>D state（uninterruptible sleep）とは</h3>
+<p><code>ps</code> や <code>top</code> でプロセスの状態コードが <code>D</code> になっているのは、<strong>割り込み不可能なスリープ (uninterruptible sleep)</strong> の状態だ。</p>
+<p>主なプロセス state コードを並べると次のとおり。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">state</th><th scope="col">意味</th><th scope="col">ざっくり</th></tr></thead><tbody><tr><td><code>R</code></td><td>Running / Runnable</td><td>実行中、または実行待ち行列にいる</td></tr><tr><td><code>S</code></td><td>Interruptible sleep</td><td>何かのイベント待ち。シグナルで起こせる（通常の待機）</td></tr><tr><td><code>D</code></td><td><strong>Uninterruptible sleep</strong></td><td><strong>カーネル内の I/O 完了待ち。シグナルでも起こせない</strong></td></tr><tr><td><code>Z</code></td><td>Zombie</td><td>終了したが親が回収 (wait) していない</td></tr><tr><td><code>T</code></td><td>Stopped</td><td>ジョブ制御で停止中</td></tr></tbody></table></div>
+<p><code>D</code> が重要なのは、たいてい <strong>ストレージ I/O の完了待ち</strong>だからだ。プロセスはカーネルに「このページを読んでくれ」と頼み、ディスクからデータが返ってくるまで文字どおり身動きが取れない。<code>kill -9</code> すら効かない（起こせないので死ねない）のはこのためだ。</p>
+<h4>wchan で待ち箇所を確認する</h4>
+<p>そのプロセスが「カーネルのどの関数で寝ているか」は <strong>wchan (wait channel)</strong> でわかる。</p>
+<pre><code data-lang="">$ ps -eo pid,stat,wchan:32,comm
+  PID STAT WCHAN                            COMMAND
+ 4821 D    folio_wait_bit_common            some_worker
+ 4822 D    folio_wait_bit_common            some_worker
+ 1200 S    ep_poll                          nginx</code></pre>
+<p><code>folio_wait_bit_common</code>（旧カーネルでは <code>wait_on_page_bit</code> 等）は、<strong>ページキャッシュ上のページの I/O が終わるのを待っている</strong>という意味だ。つまりこのプロセスは「ディスクが遅い / 詰まっている」から止まっている。CPU 100% でもなければ DB のロック競合でもない。ストレージが律速だというサインだ。</p>
+<p>単一プロセスだけ見るなら <code>/proc</code> から直接読める。</p>
+<pre><code data-lang="">$ cat /proc/4821/wchan
+folio_wait_bit_common</code></pre>
+<p class="note">ポイント: <code>D</code> state のプロセスが並んでいて wchan が I/O 待ち系なら、犯人はアプリのロジックではなくストレージ層。「アプリを再起動」ではなく「ディスクの負荷」を見に行く。</p>
+<h3>裏取り — iowait を測る</h3>
+<p>D state は「個々のプロセスが I/O 待ち」というミクロの証拠。次にシステム全体で I/O が飽和しているかをマクロで裏取りする。見るべき指標は 3 つ。</p>
+<h4>1. <code>top</code> の <code>wa</code>（iowait）</h4>
+<pre><code data-lang="">%Cpu(s):  3.1 us,  1.2 sy,  0.0 ni, 12.4 id, 83.0 wa,  0.3 hi,  0.0 si</code></pre>
+<p><code>wa</code>（iowait）は、<strong>CPU がヒマ (idle) なのに、I/O の完了待ちで先に進めない時間の割合</strong>だ。上の例のように <code>wa</code> が 80% 超で <code>us</code>/<code>sy</code> が数 % なら、CPU は余っているのにディスク待ちで詰まっている典型。<code>id</code>（idle）ではなく <code>wa</code> に張り付くのがミソ。</p>
+<h4>2. <code>iostat -x</code> の <code>%util</code></h4>
+<p>デバイスごとの飽和度を見るなら <code>iostat</code>（<code>sysstat</code> パッケージ）が決定打。</p>
+<pre><code data-lang="">$ iostat -x 1
+Device   r/s    w/s   rkB/s   wkB/s  await  aqu-sz  %util
+sda    412.0   88.0  52736.0  1408.0  38.20    9.85  99.7</code></pre>
+<ul class="note-list"><li><code>%util</code> … そのデバイスが I/O を処理していた時間の割合。<strong>99〜100% ならほぼ飽和</strong>（これ以上流しても捌けない）。</li><li><code>await</code> … 1 リクエストあたりの平均応答時間 (ms)。大きいほど遅い。</li><li><code>aqu-sz</code> … 平均キュー長。リクエストが行列を作って待っている。</li></ul>
+<p><code>%util</code> が張り付いていれば、ディスクが物理的に処理能力の上限に達している。</p>
+<h4>3. <code>vmstat</code> の <code>b</code> と <code>wa</code></h4>
+<p>全体傾向をざっと掴むなら <code>vmstat</code>。</p>
+<pre><code data-lang="">$ vmstat 1
+procs -----------memory---------- ---swap-- -----io---- --system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  8 512000  81000  2000 400000  120  480  9800   140  900 1500  3  2 11 84  0</code></pre>
+<ul class="note-list"><li><code>b</code> … <strong>uninterruptible sleep (= D state) にいるプロセス数</strong>。ここが常に大きいと I/O 待ちのプロセスが溜まっている。</li><li><code>wa</code> … iowait（top と同じ意味）。</li><li><code>si</code> / <code>so</code> … swap in / swap out（後述、ここが動いていると要注意）。</li></ul>
+<p>3 つとも同じ方向を指す（<code>wa</code> 高い・<code>%util</code> 飽和・<code>b</code> 多い）なら、診断は「I/O 飽和」で確定に近い。</p>
+<h3>swap が I/O 飽和を連鎖させる仕組み</h3>
+<p>「なぜ急にディスクが詰まったのか」の裏に <strong>swap</strong> が絡んでいることが多い。ここが本質的にいやらしいポイントだ。</p>
+<h4>メモリの奪い合い → ページの追い出し</h4>
+<p>物理メモリ (RAM) が足りなくなると、カーネルは当面使っていないメモリページを <strong>swap 領域（ディスク上）に退避 (swap out)</strong> して空きを作る。</p>
+<p>たとえば <strong>RSS が巨大なプロセス（大きなデータを抱えた DB プロセスなど）</strong> が RAM を握ると、他の（無関係な）プロセスのページが押し出されて swap に追い出される。</p>
+<h4>追い出されたページの読み戻しがディスク I/O を生む</h4>
+<p>問題はここから。swap に追い出されたページに再びアクセスすると、カーネルはそれを <strong>ディスクから読み戻す (swap in)</strong> 必要がある。メモリアクセスのつもりが、裏でディスク I/O に化ける。</p>
+<ul class="note-list"><li>swap in / out はそれ自体がディスク I/O。→ ディスクの帯域を食う。</li><li>ディスクが混むと、swap と<strong>無関係な通常の read/write まで待たされる</strong>。</li><li>その結果、メモリを奪われた側だけでなく、<strong>まったく別の軽い処理まで I/O 待ちで固まる</strong>。</li></ul>
+<p>これが <strong>連鎖遅延</strong> だ。「1 つの重いプロセスがメモリを食う」→「他プロセスが swap に落ちる」→「読み戻しでディスクが飽和」→「システム全体が D state で詰まる」。犯人（メモリを食ったプロセス）と被害者（固まった無関係な処理）が別なので、被害者側だけ見ると原因がわからない。</p>
+<pre><code data-lang="">[重い DB プロセス: 大 RSS]  ── RAM を占有 ──▶  他プロセスのページが swap out
+                                                   │
+                              再アクセス ◀─────────┘
+                                   │ swap in（ディスク read）
+                                   ▼
+                          ディスク %util 飽和
+                                   │
+                                   ▼
+              無関係な処理まで I/O 待ち (D state) で固まる ← 連鎖遅延</code></pre>
+<p><code>vmstat</code> の <code>si</code>/<code>so</code> が継続的に動いている、<code>free -h</code> で <code>Swap</code> の <code>used</code> が増え続けている、といった兆候があれば swap 起因を疑う。</p>
+<pre><code data-lang="">$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:            15Gi        13Gi       200Mi        50Mi       1.8Gi       800Mi
+Swap:          4.0Gi       3.2Gi       800Mi</code></pre>
+<p><code>available</code> が枯渇し <code>Swap used</code> が積み上がっていれば、メモリ不足 → swap → I/O 飽和のシナリオに乗っている可能性が高い。</p>
+<h3>対処候補</h3>
+<p>原因（誰が RAM を食い、何が I/O を飽和させているか）を掴んだうえで、状況に応じて選ぶ。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">対処</th><th scope="col">内容</th><th scope="col">効くケース</th></tr></thead><tbody><tr><td><strong>スケジュールをずらす</strong></td><td>重いバッチ同士・重い処理と DB の高負荷時間帯が重ならないよう時間を分散する</td><td>特定時刻に I/O 競合が集中している</td></tr><tr><td><strong><code>vm.swappiness</code> を下げる</strong></td><td>ページをどれだけ積極的に swap out するかの傾向値 (0〜100)。下げるとスワップアウトを抑え、なるべく RAM に留める</td><td>まだ RAM に余地があるのに早々に swap している</td></tr><tr><td><strong>メモリを増やす</strong></td><td>物理 RAM を増設する。根本解決</td><td>恒常的にメモリが足りず swap 常用になっている</td></tr></tbody></table></div>
+<p><code>vm.swappiness</code> の確認と一時変更:</p>
+<pre><code data-lang="">$ cat /proc/sys/vm/vm.swappiness        # 現在値（多くのディストリで既定 60）
+60
+$ sudo sysctl vm.swappiness=10          # 一時的に下げる（再起動で戻る）</code></pre>
+<p>恒久化するなら <code>/etc/sysctl.d/*.conf</code> に <code>vm.swappiness = 10</code> を記述する。</p>
+<p class="note">注意: <code>swappiness</code> を下げるのは「swap を使う原因（メモリ不足）」の対症療法。RAM が本当に足りていないなら、下げすぎると今度は OOM Killer が走る。根本はメモリ増設やメモリを食う処理の見直し。</p>
+<h3>補足 — 残骸プロセスの見分け方</h3>
+<p>I/O 診断でプロセス一覧を眺めていると、たまに <strong>RSS が極端に小さい（数十 KB）</strong> とか、<strong>メモリ表示が <code>N/A</code></strong> になっているプロセスに出くわす。これは正常稼働ではなく、<strong>終了処理に失敗した残骸（孤立プロセスやゾンビ）</strong> の可能性がある。</p>
+<ul class="note-list"><li><strong>ゾンビ (<code>Z</code>)</strong> … 実体は終了済み。プロセステーブルにエントリだけ残っている。親が <code>wait()</code> で回収していないため成仏できない状態。メモリはほぼ消費していない（だから RSS が異様に小さい / N/A）。CPU も食わない。</li><li><strong>孤立 (orphan)</strong> … 親が先に死に、<code>init</code>/systemd (PID 1) に引き取られたプロセス。こちらは通常再回収されるが、中途半端な状態で残ることがある。</li></ul>
+<p>見分け方の例:</p>
+<pre><code data-lang="">$ ps -eo pid,ppid,stat,rss,comm
+  PID  PPID STAT   RSS COMMAND
+ 7788     1 Z        0 old_worker &lt;defunct&gt;   ← rss=0, STAT=Z, &lt;defunct&gt; がゾンビの目印</code></pre>
+<p><code>STAT</code> に <code>Z</code>、コマンド名に <code>&lt;defunct&gt;</code>、<code>RSS</code> が 0 なら典型的なゾンビ。ゾンビ自体はリソースをほぼ食わないので直接の I/O 犯人ではないが、<strong>大量に溜まっているなら「親プロセスが子を回収できていない = どこかで終了処理が壊れている」というサイン</strong>。I/O 飽和の真犯人を探す前に、まず「このプロセスは生きて働いているのか、死にきれない残骸か」を切り分けておくと、無駄な調査を減らせる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>CPU が空いているのにサーバが重いなら、まず <strong>I/O 飽和</strong> を疑う。CPU 不足や DB ロックと決め打ちしない。</li><li>プロセスの <strong><code>D</code> state（uninterruptible sleep）</strong> で wchan が <code>folio_wait_bit_common</code> 等になっているのは、<strong>カーネルのストレージ I/O 完了待ちで動けない</strong>サイン。</li><li>裏取りは 3 点セット: <code>top</code> の <strong><code>wa</code>（iowait）</strong> が高い / <code>iostat -x</code> の <strong><code>%util</code> が 99〜100%</strong> / <code>vmstat</code> の <strong><code>b</code>（blocked）</strong> が多い。<code>ps -eo pid,stat,wchan,comm</code> や <code>cat /proc/&lt;pid&gt;/wchan</code> で待ち箇所を特定。</li><li><strong>swap は I/O を連鎖させる</strong>。大 RSS のプロセスが RAM を握る → 他プロセスのページが swap out → 読み戻しでディスク I/O 発生 → 無関係な処理まで I/O 待ちで固まる。犯人と被害者が別なのがやっかい。</li><li>対処は <strong>スケジュールをずらす / <code>vm.swappiness</code> を下げる / メモリを増やす</strong>。swappiness を下げるのは対症療法で、根本はメモリ不足の解消。</li><li><strong>RSS が極端に小さい / メモリ N/A のプロセスは残骸（ゾンビ・孤立）の疑い</strong>。働いているプロセスと死にきれないプロセスを切り分けてから真犯人を追う。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>短いIDの照合と正規表現の落とし穴（部分一致の誤ヒット・findall の順序） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="伝票番号や商品コードなど、桁数の少ない ID 同士を突き合わせる処理はよくある。 「片方のデータに現れた ID を、もう片方のテキストや DB カラムから探して一致を判定する」 というシンプルな照合だ。ところが、この「探…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="短いIDの照合と正規表現の落とし穴（部分一致の誤ヒット・findall の順序） — SkillShowcase" property="og:title"/>
+<meta content="伝票番号や商品コードなど、桁数の少ない ID 同士を突き合わせる処理はよくある。 「片方のデータに現れた ID を、もう片方のテキストや DB カラムから探して一致を判定する」 というシンプルな照合だ。ところが、この「探…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-regex-id-matching-pitfalls.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-regex-id-matching-pitfalls.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>短いIDの照合と正規表現の落とし穴（部分一致の誤ヒット・findall の順序）</h2>
+<h3>背景</h3>
+<p>伝票番号や商品コードなど、桁数の少ない ID 同士を突き合わせる処理はよくある。「片方のデータに現れた ID を、もう片方のテキストや DB カラムから探して一致を判定する」というシンプルな照合だ。ところが、この「探す」を素朴に実装すると、</p>
+<ul class="note-list"><li>本当は別物なのに<strong>一致したと誤判定される（誤ヒット）</strong></li><li>本当は同じなのに<strong>見つからない（ヒット漏れ）</strong></li></ul>
+<p>という両方向のバグが起きる。とくに ID が短い（4桁程度）と、より長い数字列の一部にたまたま含まれてしまったり、相手側の書式（ハイフンやスペース入り）とズレて拾えなかったりする。ここでは、その落とし穴と対策を順に整理する。</p>
+<h3>部分一致は危険 — 短いIDは長い数字列に埋もれる</h3>
+<p>SQL の <code>LIKE '%1234%'</code> や Python の <code>'1234' in s</code> は「部分文字列として含まれるか」を見る。短い ID だと、まったく無関係な長い数字列の中に偶然含まれてしまう。</p>
+<pre><code data-lang="python">target = "1234"
+
+# 誤ヒット: 別の伝票番号 12345678 の中に 1234 が含まれる
+"1234" in "12345678"   # True （本当は別の番号なのに一致してしまう）
+"1234" in "0012340056" # True （途中に紛れ込んでいるだけ）</code></pre>
+<p>逆に、相手側の書式が違うと今度は<strong>ヒット漏れ</strong>する。</p>
+<pre><code data-lang="python"># ヒット漏れ: 接頭辞やスペースが入ると単純一致では拾えない
+"1234" in "INF-1234"   # True （これはたまたま拾えるが…）
+"1234" in "12 34"      # False （スペースが混入すると取りこぼす）</code></pre>
+<p>部分一致は「緩すぎて誤ヒット」しつつ「書式差には脆くて漏れる」という、一番厄介な外し方をする。</p>
+<h3>対策1: 正規表現の境界で前後が数字でないことを保証する</h3>
+<p>「その ID の前後が数字でないこと」を後読み <code>(?&lt;!\d)</code> と先読み <code>(?!\d)</code> で保証すると、長い数字列への埋もれ込みを弾ける。</p>
+<pre><code data-lang="python">import re
+
+pattern = r"(?&lt;!\d)1234(?!\d)"
+
+bool(re.search(pattern, "12345678"))   # False （前後が数字なので不一致）
+bool(re.search(pattern, "伝票 1234 の件")) # True  （独立した 1234 として一致）
+bool(re.search(pattern, "No.1234-05"))  # True  （前後が数字でなければOK）</code></pre>
+<p><code>\b</code>（単語境界）でも似たことはできるが、<code>\b</code> は「単語文字（英数字・アンダースコア）との境目」なので、<code>ABC1234</code> のように英字が隣接するケースを弾けない。「前後が<strong>数字</strong>でないこと」を厳密に言いたいなら <code>(?&lt;!\d)…(?!\d)</code> の方が意図に忠実。</p>
+<h3>対策2: 桁数の下限を設ける</h3>
+<p>そもそも短すぎる ID は照合キーとして信頼できない。「5桁未満は照合に使わない」といった下限を設けるだけで、偶然一致の母数を大きく減らせる。</p>
+<pre><code data-lang="python">def is_usable_key(code: str) -&gt; bool:
+    digits = re.sub(r"\D", "", code)  # 数字以外を除去
+    return len(digits) &gt;= 5           # 5桁未満はキーにしない</code></pre>
+<p>短い ID しか無い場合は、ID 単独ではなく「日付＋ID」「取引先＋商品コード」のように複合キーにして識別性を上げる、という設計判断もここで検討する。</p>
+<h3>対策3: 突合の前に両側を正規化してから完全一致で比べる</h3>
+<p>一番の本質的対策は、「探す（部分一致）」のをやめて「そろえて（正規化して）完全一致で比べる」に切り替えること。区切り記号・空白を除去し、必要なら桁数をゼロ埋めでそろえてから比較する。</p>
+<pre><code data-lang="python">def normalize_code(code: str) -&gt; str:
+    # 区切り記号・空白・接頭辞を除去して数字だけにし、桁数をそろえる
+    digits = re.sub(r"\D", "", code)   # "INF-1234" -&gt; "1234", "12 34" -&gt; "1234"
+    return digits.zfill(8)             # 8桁ゼロ埋めで書式を統一
+
+normalize_code("INF-1234") == normalize_code("00001234")  # True
+normalize_code("1234")     == normalize_code("12345678")  # False （別物と正しく判定）</code></pre>
+<p>こうすると「INF-1234」も「12 34」も「00001234」も同じキーに落ち、かつ長い番号との誤ヒットも起きない。誤ヒットと漏れの両方を同時に潰せるのが強み。</p>
+<h3>findall の順序の罠 — result[0] は「最初に出た値」であって「正解」ではない</h3>
+<p>複数マッチを拾う <code>re.findall</code> は、<strong>文書内に出現した順</strong>でリストを返す。「たぶん先頭が目的の値だろう」と <code>result[0]</code> を採ると、たまたま先に出てきた無関係な数字を掴むことがある。</p>
+<pre><code data-lang="python">text = "受付 9999 / 伝票番号 1234 / 数量 12"
+
+nums = re.findall(r"(?&lt;!\d)\d+(?!\d)", text)
+# ['9999', '1234', '12']  ← あくまで出現順。先頭 = 正解ではない
+
+nums[0]  # '9999' （受付番号であって、欲しい伝票番号ではない）</code></pre>
+<p>ここで「<code>[0]</code> を <code>[1]</code> にすればいい」と位置で対処するのは対症療法で、テキストの体裁が変わった瞬間に崩れる。正しくは<strong>採用ロジック側</strong>を明示する。</p>
+<pre><code data-lang="python"># ラベルの直後の値だけを狙う（優先順位・フィルタを採用ロジックに書く）
+m = re.search(r"伝票番号\s*(?&lt;!\d)(\d+)(?!\d)", text)
+denpyo = m.group(1) if m else None   # '1234'</code></pre>
+<p>期待と違う要素が選ばれるときは、抽出の<strong>並び順</strong>を疑う前に、「どれを採るか」の判断（ラベル一致・桁数・優先順位）を書いていない＝採用ロジック側のバグ、と考えるのが正しい切り分けだ。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>短い ID の照合で <code>LIKE '%…%'</code> や <code>in</code> の部分一致は、長い数字列への<strong>埋もれ込みで誤ヒット</strong>し、書式差で<strong>漏れる</strong>。両方向に外す。</li><li>境界 <code>(?&lt;!\d)…(?!\d)</code> で前後が数字でないことを保証すると、埋もれ込みを弾ける。<code>\b</code> より意図に忠実。</li><li>桁数の下限（例: 5桁未満はキーにしない）で偶然一致の母数を減らす。短ければ複合キー化も検討。</li><li>本質対策は「探す」をやめて「正規化して完全一致」。区切り・空白除去＋桁数そろえで、誤ヒットと漏れを同時に潰せる。</li><li><code>re.findall</code> は<strong>出現順</strong>で返る。<code>result[0]</code> は「最初の値」であって「正解」ではない。ズレたら抽出順ではなく採用ロジック（ラベル・優先順位・フィルタ）側を疑う。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

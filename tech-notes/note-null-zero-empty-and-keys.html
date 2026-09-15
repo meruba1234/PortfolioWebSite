@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>DB の NULL / 0 / 空欄は別物 — 値の読み方と大きなキーの型 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="「画面では空欄なのに、その列で絞り込もうとしても件数が合わない」——こういう食い違いは、DB の中身を 見た目のまま 想像したときに起きる。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="DB の NULL / 0 / 空欄は別物 — 値の読み方と大きなキーの型 — SkillShowcase" property="og:title"/>
+<meta content="「画面では空欄なのに、その列で絞り込もうとしても件数が合わない」——こういう食い違いは、DB の中身を 見た目のまま 想像したときに起きる。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-null-zero-empty-and-keys.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-null-zero-empty-and-keys.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">データベース</span></div>
+<h2>DB の NULL / 0 / 空欄は別物 — 値の読み方と大きなキーの型</h2>
+<h3>背景</h3>
+<p>「画面では空欄なのに、その列で絞り込もうとしても件数が合わない」——こういう食い違いは、DB の中身を <strong>見た目のまま</strong> 想像したときに起きる。</p>
+<ul class="note-list"><li>画面の空欄が、DB では <code>NULL</code> なのか、整数 <code>0</code> なのか、空文字 <code>''</code> なのかは実物を見ないと分からない。</li><li>伝票番号のような大きなキーで結合しようとすると、型の想定違いで桁あふれしたり、結合そのものが空振りしたりする。</li></ul>
+<p>この 2 つは別の話に見えて、根っこは同じ「<strong>列の値と型を推測で決めず、定義と実データで裏取りする</strong>」という一点にある。</p>
+<h3>NULL / 0 / 空欄 は別物</h3>
+<p>まず、この 3 つは意味も挙動も違う。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">値</th><th scope="col">意味</th><th scope="col">集計での扱い</th><th scope="col">判定方法</th></tr></thead><tbody><tr><td><code>NULL</code></td><td>値が「未設定・不明」</td><td><code>SUM</code>/<code>AVG</code> から除外、<code>COUNT(col)</code> で数えない</td><td><code>col IS NULL</code></td></tr><tr><td><code>0</code></td><td>「ゼロ」という確定した値</td><td><code>SUM</code> に 0 として参加、<code>COUNT(col)</code> で数える</td><td><code>col = 0</code></td></tr><tr><td><code>''</code> (空文字)</td><td>長さ 0 の文字列 (文字列型のみ)</td><td>数値ではない</td><td><code>col = ''</code></td></tr></tbody></table></div>
+<p>要注意なのは次の点。</p>
+<ul class="note-list"><li><strong>NULL は <code>=</code> で比較できない。</strong> <code>col = NULL</code> は常に「不明」となり 1 件もヒットしない。必ず <code>IS NULL</code> / <code>IS NOT NULL</code> を使う。</li><li><strong>画面の空欄 = NULL とは限らない。</strong> 業務システムでは、未入力を <code>0</code> で埋めて保存する設計や、そもそも列に <code>NOT NULL</code> 制約があって <strong>NULL が 1 件も存在しない</strong> テーブルも珍しくない。</li><li>だから「NULL のとき〜」という条件分岐を足す前に、<strong>その列に本当に NULL があるのか</strong> を先に確かめる。</li></ul>
+<h3>Nz() を通すと空欄と 0 が潰れる</h3>
+<p>レガシーな VBA / Access 系のコードには、<code>Nz()</code> のような <strong>「NULL や空を 0 に変換する」関数</strong> がよく出てくる。</p>
+<pre><code data-lang="vba">' 元の値が NULL でも空でも、0 に変換して次へ渡す
+qty = Nz(rs!数量, 0)</code></pre>
+<p>これを通した後の値を CSV や別テーブルに書き出すと、こうなる。</p>
+<pre><code data-lang="">元データ:  NULL  → Nz → 0
+元データ:  (空)  → Nz → 0
+元データ:  0     → Nz → 0</code></pre>
+<p>つまり <strong>「元が空だったのか、元から 0 だったのか」を後から区別できなくなる</strong>。下流でこのデータを見て「0 が多いな」と思っても、それが本当の 0 なのか、Nz で潰れた空欄なのかは追えない。</p>
+<ul class="note-list"><li>レガシーからの移行・照合作業では、<code>Nz()</code> や類似の変換を <strong>どこで通しているか</strong> を先に把握しておく。</li><li>元の空欄と 0 を区別したいなら、変換前の生データ側で確認するしかない。</li></ul>
+<h3>値の分布を必ず確認する</h3>
+<p>推測でなく、実データの件数を見る。1 本のクエリで NULL 件数と 0 件数を並べれば、その列の実態が分かる。</p>
+<pre><code data-lang="sql">SELECT
+    COUNT(*)                                    AS total,
+    SUM(CASE WHEN amount IS NULL THEN 1 ELSE 0 END) AS null_count,
+    SUM(CASE WHEN amount = 0     THEN 1 ELSE 0 END) AS zero_count,
+    SUM(CASE WHEN amount &gt; 0     THEN 1 ELSE 0 END) AS positive_count
+FROM order_detail;</code></pre>
+<ul class="note-list"><li><code>null_count = 0</code> なら、この列に NULL 判定を足すのは無駄 (むしろ誤解の元)。</li><li><code>zero_count</code> が多ければ、「空欄」の正体は 0 だった可能性が高い。</li><li>この一手間で、「NULL かつ〜」のような <strong>不要・的外れな条件分岐</strong> を書かずに済む。</li></ul>
+<h3>大きな整数キーは decimal で定義されることがある</h3>
+<p>伝票番号などが 18 桁級になると、一般的な 32bit <code>int</code> (上限 約 21 億) はもちろん、64bit <code>bigint</code> の範囲すら意識が要る。実務では、桁数を確実に収めるために <strong><code>decimal(18,0)</code> (小数点以下 0 桁の固定長数値)</strong> で定義されているケースがある。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">型</th><th scope="col">おおよその上限</th><th scope="col">18 桁キーを入れられるか</th></tr></thead><tbody><tr><td><code>int</code> (32bit)</td><td>約 21 億 (10 桁)</td><td>不可 (桁あふれ)</td></tr><tr><td><code>bigint</code> (64bit)</td><td>約 922 京 (19 桁)</td><td>可</td></tr><tr><td><code>decimal(18,0)</code></td><td>18 桁ちょうど</td><td>可 (桁数を明示的に固定)</td></tr></tbody></table></div>
+<p>ここでハマるのが <strong>アプリ側のキャスト</strong>。</p>
+<pre><code data-lang="python"># NG: decimal(18,0) の 18 桁キーを int に入れて桁あふれ / 精度落ち
+denpyou_no = int(row["denpyou_no"])
+
+# OK: 文字列として扱う (計算しないキーなら数値化しない)
+denpyou_no = str(row["denpyou_no"])</code></pre>
+<ul class="note-list"><li>キーは <strong>計算対象ではなく識別子</strong> なので、無理に数値型へ変換しない。文字列のまま扱うのが安全。</li><li>突き合わせ (JOIN やマージ) で「合致するはずなのに 0 件」のときは、<strong>両側の型・桁・前ゼロ (先頭の 0) の有無</strong> を疑う。</li></ul>
+<h3>複合主キーと CREATE TABLE で裏取りする</h3>
+<p>伝票系のテーブルは、1 列では一意にならず、複数列の組み合わせ (<strong>複合主キー</strong>) で 1 行を特定する設計が多い。例えば次のような組み合わせ。</p>
+<pre><code data-lang="">(営業所コード, 伝票日付, 伝票番号, カード番号, 枝番)</code></pre>
+<p>WHERE 句の絞り込みや、テーブル同士の結合キーを推測するとき、この構成を <strong>当てずっぽうで決めない</strong>。<code>CREATE TABLE</code> の定義を見れば裏が取れる。</p>
+<pre><code data-lang="sql">CREATE TABLE order_detail (
+    office_cd    CHAR(4)        NOT NULL,   -- 営業所コード
+    order_date   DATE           NOT NULL,   -- 伝票日付
+    order_no     DECIMAL(18,0)  NOT NULL,   -- 伝票番号 (18 桁 → decimal)
+    card_no      CHAR(10)       NOT NULL,   -- カード番号
+    branch_no    INT            NOT NULL,   -- 枝番
+    amount       DECIMAL(12,0)  NULL,       -- 金額 (NULL 許容)
+    PRIMARY KEY (office_cd, order_date, order_no, card_no, branch_no)
+);</code></pre>
+<p>この定義 1 枚から、次のことが一度に読める。</p>
+<ul class="note-list"><li><strong>PRIMARY KEY の列並び</strong> = 一意化の単位。結合キー・重複判定の候補はまずここ。</li><li><strong>NOT NULL / NULL</strong> = その列に NULL があり得るか (上の例なら <code>amount</code> だけ NULL があり得る、キー列は全て NOT NULL)。</li><li><strong>型と桁</strong> = <code>order_no</code> が <code>decimal(18,0)</code> なので、アプリ側で int キャストしてはいけないと分かる。</li></ul>
+<p>「この列で結合できるはず」「この列は NULL があるはず」という <strong>推測を、定義で裏取りする</strong> のが確実。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><code>NULL</code> / <code>0</code> / 空文字は別物。画面の空欄がどれなのかは実データを見るまで分からない。NULL は <code>=</code> でなく <code>IS NULL</code> で判定する。</li><li><code>Nz()</code> 系の変換を通すと、空欄と 0 が同一化して後から区別できなくなる。移行・照合では変換箇所を先に把握する。</li><li>条件分岐を足す前に、NULL 件数 vs 0 件数の <strong>分布を 1 本のクエリで確認</strong> し、不要な「NULL かつ〜」を書かない。</li><li>18 桁級の大きなキーは <code>decimal(18,0)</code> で定義され得る。int キャストで桁あふれさせず、計算しないキーは文字列で扱う。</li><li>伝票系は複合主キーで一意化されることが多い。<code>CREATE TABLE</code> の型・NOT NULL・PRIMARY KEY を読めば、WHERE 句や結合キーの推測を裏取りできる。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>公開鍵暗号とデジタル署名 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Windows Update KB5083769 (2026-04) により、RDPファイル接続時にセキュリティ警告が表示されるようになった。対策としてRDPファイルにデジタル署名を付与する作業を通じて、公開鍵暗号の仕組…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="公開鍵暗号とデジタル署名 — SkillShowcase" property="og:title"/>
+<meta content="Windows Update KB5083769 (2026-04) により、RDPファイル接続時にセキュリティ警告が表示されるようになった。対策としてRDPファイルにデジタル署名を付与する作業を通じて、公開鍵暗号の仕組…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-public-key-cryptography.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-public-key-cryptography.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">セキュリティ</span></div>
+<h2>公開鍵暗号とデジタル署名</h2>
+<h3>学んだきっかけ</h3>
+<p>Windows Update KB5083769 (2026-04) により、RDPファイル接続時にセキュリティ警告が表示されるようになった。対策としてRDPファイルにデジタル署名を付与する作業を通じて、公開鍵暗号の仕組みを学んだ。</p>
+<h3>公開鍵暗号とは</h3>
+<p>暗号化と復号に「異なる2つの鍵」を使う方式。</p>
+<ul class="note-list"><li><strong>秘密鍵（Private Key）</strong> — 本人だけが持つ鍵。絶対に外部に漏らしてはいけない。</li><li><strong>公開鍵（Public Key）</strong> — 誰にでも配布できる鍵。配布しても安全。</li></ul>
+<p>この2つは数学的にペアになっており、片方で暗号化したものはもう片方でしか復号できない。</p>
+<h3>身近な例え</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">暗号の世界</th><th scope="col">身近な例え</th></tr></thead><tbody><tr><td>秘密鍵</td><td>実印（本人だけが持つ）</td></tr><tr><td>公開鍵</td><td>印鑑証明書（役所に届け出て誰でも照合できる）</td></tr><tr><td>署名済みファイル</td><td>実印が押された契約書</td></tr><tr><td>証明書のインストール</td><td>「この印鑑証明書を信頼する」と登録すること</td></tr></tbody></table></div>
+<h3>デジタル署名の仕組み</h3>
+<h4>署名する側（管理者）</h4>
+<pre><code data-lang="">ファイルの内容 → ハッシュ値を計算 → 秘密鍵で暗号化 → 署名データ</code></pre>
+<h4>検証する側（利用者）</h4>
+<pre><code data-lang="">署名データ → 公開鍵で復号 → ハッシュ値を比較 → 一致すれば「改ざんなし＋信頼できる発行元」</code></pre>
+<h3>再署名が必要になる理由</h3>
+<p>署名データの正体は「ファイルの中身のハッシュ値を秘密鍵で暗号化したもの」。</p>
+<ul class="note-list"><li>ファイルの中身が1文字でも変わる → ハッシュ値が変わる</li><li>古い署名データのハッシュ値と一致しなくなる → 「改ざんされた」と判定される</li><li>だから同じ秘密鍵で新しい署名データを作り直す = <strong>再署名</strong></li></ul>
+<p><strong>再署名で変わるもの：</strong> 署名データだけ <strong>変わらないもの：</strong> 秘密鍵、公開鍵、証明書すべてそのまま</p>
+<p>印鑑で例えると、契約書の内容を書き換えたら、同じ実印でもう一度押し直すのと同じ。</p>
+<h3>CA（Certificate Authority / 認証局）とは</h3>
+<p><strong>CA = Certificate Authority（認証局）</strong> — 証明書を発行する権限を持つ機関。</p>
+<h4>自己署名 vs CA発行 の違い</h4>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col"></th><th scope="col">自己署名証明書</th><th scope="col">CA発行の証明書</th></tr></thead><tbody><tr><td>作成</td><td>PowerShell 1行で即作成</td><td>認証局に申請、審査、費用あり</td></tr><tr><td>信頼性</td><td>自分で「自分は信頼できる」と言っているだけ</td><td>第三者機関が身元を保証</td></tr><tr><td>社外への効力</td><td>なし</td><td>あり</td></tr><tr><td>社内利用</td><td>配布すれば十分</td><td>オーバースペック</td></tr><tr><td>CAサーバー</td><td>不要</td><td>必要（外部CAまたは社内CA）</td></tr></tbody></table></div>
+<h4>自己署名証明書のポイント</h4>
+<ul class="note-list"><li>作ること自体は誰でもできる（「私は○○です」と自称しているだけ）</li><li><strong>各PCにインストールして初めて信頼される</strong></li><li>外部の誰かが同じ名前で証明書を作っても、インストールしない限り信頼されない</li></ul>
+<h4>CAサーバー（AD CS）が必要になるケース</h4>
+<p>社内でCAサーバーを立てる = Active Directory証明書サービス（AD CS）を使う。</p>
+<p><strong>CAサーバーが必要な場面：</strong></p>
+<ul class="note-list"><li>社内で大量の証明書を発行・管理したいとき（例：全社員にクライアント証明書を配布）</li><li>Wi-Fiの802.1X認証（証明書ベースのネットワーク認証）</li><li>社内WebサーバーのSSL証明書を自前で発行</li><li>VPNの証明書認証</li></ul>
+<p><strong>CAサーバーなしでできること：</strong></p>
+<ul class="note-list"><li>Active Directoryのユーザー管理、GPO → CAなしで動く</li><li>自己署名証明書の発行 → PowerShellだけでOK</li></ul>
+<h4>Active Directory と CA の関係</h4>
+<ul class="note-list"><li><strong>ADはCAサーバーなしでも使える</strong>（ユーザー管理、GPO配布など）</li><li>CAサーバーはADの必須コンポーネントではない</li><li>「証明書を組織的に大量管理する」必要が出たときに初めてCAサーバーを検討する</li></ul>
+<h3>証明書ファイルの種類</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">拡張子</th><th scope="col">中身</th><th scope="col">用途</th></tr></thead><tbody><tr><td><code>.cer</code></td><td>公開鍵のみ</td><td>配布用。誰に渡しても安全</td></tr><tr><td><code>.pfx</code></td><td>秘密鍵＋公開鍵</td><td>バックアップ用。パスワード保護。厳重管理</td></tr></tbody></table></div>
+<h3>証明書の保管場所（Windows）</h3>
+<ul class="note-list"><li><code>certmgr.msc</code>（証明書マネージャー）→「個人」→「証明書」に秘密鍵付きで保管</li><li>資格情報マネージャー（ID/パスワード）とは別物</li></ul>
+<h3>実際にやったこと（RDP署名の例）</h3>
+<ol class="note-list"><li>PowerShellで自己署名証明書を作成（<code>New-SelfSignedCertificate</code>）</li><li><code>rdpsign</code> コマンドでRDPファイルに署名</li><li>公開鍵（<code>.cer</code>）を各PCの「信頼された発行元」にインストール</li><li>署名済みRDPファイルを配布</li></ol>
+<p>→ セキュリティパッチ適用後も警告なしでRDP接続が可能になった</p>
+<h3>関連コマンド</h3>
+<pre><code data-lang="powershell"># 自己署名証明書の作成
+New-SelfSignedCertificate -Subject "CN=名前" -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(10)
+
+# RDPファイルに署名
+rdpsign /sha256 &lt;Thumbprint&gt; "ファイル.rdp"
+
+# 証明書のエクスポート（公開鍵のみ）
+Export-Certificate -Cert $cert -FilePath "output.cer"
+
+# 証明書のエクスポート（秘密鍵付き）
+Export-PfxCertificate -Cert $cert -FilePath "output.pfx" -Password $password</code></pre>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>bisect で「基準日以前の最新」を高速に選ぶ（二分探索） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="「価格改定履歴」や「税率の変更履歴」のように、ある値が時点によって切り替わるデータを扱う場面は多い。 たとえば適用開始日ごとに単価が並んだ履歴があり、「2026-07-01 時点で有効な単価はいくつか」を求めたい。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="bisect で「基準日以前の最新」を高速に選ぶ（二分探索） — SkillShowcase" property="og:title"/>
+<meta content="「価格改定履歴」や「税率の変更履歴」のように、ある値が時点によって切り替わるデータを扱う場面は多い。 たとえば適用開始日ごとに単価が並んだ履歴があり、「2026-07-01 時点で有効な単価はいくつか」を求めたい。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-bisect-time-series-lookup.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-bisect-time-series-lookup.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>bisect で「基準日以前の最新」を高速に選ぶ（二分探索）</h2>
+<h3>背景</h3>
+<p>「価格改定履歴」や「税率の変更履歴」のように、ある値が時点によって切り替わるデータを扱う場面は多い。たとえば適用開始日ごとに単価が並んだ履歴があり、「2026-07-01 時点で有効な単価はいくつか」を求めたい。</p>
+<p>これは「指定日以前で、最も新しいレコードを 1 件選ぶ」という操作になる。履歴を先頭から順に見ていく線形スキャンでも書けるが、履歴が長くなると 1 件引くたびに全件を舐めることになり遅い。履歴が適用日でソート済みなら、二分探索（<code>bisect</code>）を使って O(log n) で一発で選べる。</p>
+<h3>二分探索とは</h3>
+<p>ソート済みの列に対して、探索範囲を毎回半分に絞り込みながら目的の位置を見つける手法。 n 件を順番に見る線形探索が O(n) なのに対し、二分探索は O(log n)。たとえば 100 万件でも約 20 回の比較で目的地に到達できる。</p>
+<p>Python では標準ライブラリ <code>bisect</code> がこれを提供する。要素そのものを探すのではなく、「ソート順を保ったままなら、この値はどこに挿入されるか（挿入位置）」を返すのがポイント。</p>
+<h3>bisect_right / bisect_left と「添字 -1」で直近を引く</h3>
+<p>有効日でソートされた日付リストに対し、<code>bisect_right(dates, d)</code> は「d を挿入しても昇順が保たれる一番右の位置」を返す。この戻り値から 1 を引くと、「d 以下（d を含む）の最後の要素」の添字になる。これがまさに「指定日以前の直近レコード」だ。</p>
+<pre><code data-lang="python">from bisect import bisect_right
+
+# 適用開始日でソート済みの価格改定履歴（同じキーの商品に対する履歴）
+history_dates  = ["2026-01-01", "2026-04-01", "2026-07-01"]
+history_prices = [       100,          120,          135  ]
+
+def price_on(target_date: str) -&gt; int | None:
+    # target_date 以下で最後の要素の添字を得る
+    idx = bisect_right(history_dates, target_date) - 1
+    if idx &lt; 0:
+        return None  # 履歴の開始より前 = 有効な値なし
+    return history_prices[idx]
+
+print(price_on("2026-06-15"))  # -&gt; 120  (04-01 適用ぶんが有効)
+print(price_on("2026-07-01"))  # -&gt; 135  (当日ちょうどの改定を含む)
+print(price_on("2025-12-31"))  # -&gt; None (履歴開始前)</code></pre>
+<p><code>bisect_left</code> と <code>bisect_right</code> は、探索値がリスト内の要素とちょうど一致したときの扱いが違う。</p>
+<ul class="note-list"><li><code>bisect_right(dates, d)</code>: 一致要素の <strong>右側</strong> の位置を返す。<code>-1</code> すると「d 当日を含む」直近になる。</li><li><code>bisect_left(dates, d)</code>:  一致要素の <strong>左側</strong> の位置を返す。<code>-1</code> すると「d より前（当日を除く）」の直近になる。</li></ul>
+<p>「改定日当日から新価格を適用する」なら <code>bisect_right</code>、「改定日当日はまだ旧価格」なら <code>bisect_left</code> を使う。境界日をどう数えるかで結果が 1 件ずれるので、仕様（当日を含むか含まないか）を必ず確認してから選ぶ。</p>
+<h3>key 引数でオブジェクトのリストをそのまま探索する（Python 3.10+）</h3>
+<p>日付だけの並列リストを別に持たなくても、履歴レコードのリストに対して <code>key=</code> で探索キーを指定できる。</p>
+<pre><code data-lang="python">from bisect import bisect_right
+from dataclasses import dataclass
+
+@dataclass
+class PriceRecord:
+    start_date: str
+    price: int
+
+# start_date でソート済みであること
+history = [
+    PriceRecord("2026-01-01", 100),
+    PriceRecord("2026-04-01", 120),
+    PriceRecord("2026-07-01", 135),
+]
+
+def price_on(target_date: str) -&gt; int | None:
+    idx = bisect_right(history, target_date, key=lambda r: r.start_date) - 1
+    if idx &lt; 0:
+        return None
+    return history[idx].price</code></pre>
+<p><code>key=</code> は Python 3.10 で追加された。3.9 以前では日付だけを抜き出した別リストを作って探索する。</p>
+<h3>前提と使いどころ</h3>
+<ul class="note-list"><li><strong>必ず事前にソート済みであること。</strong> 二分探索はソート済みを前提にするので、未ソートのまま使うと誤った結果を返す。取得時に <code>ORDER BY</code> する、または一度だけ <code>sort()</code> しておく。</li><li><strong>キーごとに履歴を分けて持つと引きやすい。</strong> 「得意先 × 商品」のように単価が相手ごとに違うなら、<code>(得意先, 商品) -&gt; ソート済み履歴</code> の辞書にしておき、キーで履歴を取り出してから二分探索する。全レコードを 1 本の列に混ぜると探索前に絞り込みが必要になる。</li><li>同じ履歴を何度も引くなら、辞書化 + ソートの初期コストは一度で済み、以降は 1 件あたり O(log n) で回収できる。</li></ul>
+<h3>まとめ</h3>
+<ul class="note-list"><li>ソート済みの履歴なら、<code>bisect</code> で「指定日以前の直近レコード」を O(log n) で選べる。線形スキャン O(n) より速い。</li><li><code>bisect_right(dates, d) - 1</code> が「d 当日を含む直近」の添字。<code>bisect_left</code> は当日を除く直近になり、境界の扱いが 1 件ずれる。</li><li>Python 3.10+ は <code>key=</code> でオブジェクトのリストをそのまま探索できる。</li><li>前提は「事前にソート済み」。キーごとに履歴を分けて持つと引きやすい。</li><li>価格・単価・税率・各種設定値など「その時点で有効な値を引く」場面に広く効く汎用パターン。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

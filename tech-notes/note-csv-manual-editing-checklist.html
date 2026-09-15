@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>CSV を手動で編集するときの注意点（かんたん版） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="CSV ファイルを人の手で直したり、2つのファイルをつなげたりするときの注意点をまとめたもの。 詳しい仕組みは CSV を手動で編集するときの落とし穴（詳細版） を参照。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="CSV を手動で編集するときの注意点（かんたん版） — SkillShowcase" property="og:title"/>
+<meta content="CSV ファイルを人の手で直したり、2つのファイルをつなげたりするときの注意点をまとめたもの。 詳しい仕組みは CSV を手動で編集するときの落とし穴（詳細版） を参照。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-csv-manual-editing-checklist.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-csv-manual-editing-checklist.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>CSV を手動で編集するときの注意点（かんたん版）</h2>
+<p>CSV ファイルを人の手で直したり、2つのファイルをつなげたりするときの注意点をまとめたもの。詳しい仕組みは <a href="note-csv-manual-editing-pitfalls.html">CSV を手動で編集するときの落とし穴（詳細版）</a> を参照。</p>
+<h3>1. 大原則 — CSV を Excel で開かない</h3>
+<p>CSV は「ただの文字が並んだテキストファイル」で、書式の情報を持っていない。 Excel はそれを<strong>勝手に解釈して書き換えてしまう</strong>ため、開いて保存しただけでデータが壊れる。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">元のデータ</th><th scope="col">Excel で開いて保存すると</th><th scope="col">影響</th></tr></thead><tbody><tr><td><code>00123</code></td><td><code>123</code></td><td>先頭のゼロが消える（コード類が全滅）</td></tr><tr><td><code>1-2</code></td><td><code>2001/1/2</code></td><td>日付に変わる</td></tr><tr><td><code>1234567890123456</code></td><td><code>1.23457E+15</code></td><td>指数表記になる／16桁目以降が 0 になる</td></tr><tr><td><code>(株)〇〇</code></td><td><code>(株)〇〇</code></td><td>ふりがな情報などが付加されることがある</td></tr><tr><td>Shift_JIS</td><td>UTF-8</td><td>取込先で全部文字化け</td></tr></tbody></table></div>
+<p><strong>「見るだけ」でも危険。</strong> 開いた後にうっかり保存すると壊れる。</p>
+<h3>2. 中身を見たい・直したいときはメモ帳で開く</h3>
+<p>メモ帳（またはサクラエディタ、VSCode）なら、値を勝手に変換しない。これが最大の利点。</p>
+<p>開き方: CSV ファイルを右クリック → 「プログラムから開く」 → 「メモ帳」</p>
+<h3>3. メモ帳で編集するときの3つの注意</h3>
+<p><strong>① 文字コードを変えない</strong> ウィンドウ右下に <code>ANSI</code> / <code>UTF-8</code> などの表示がある。<strong>開いたときの表示を覚えておき、保存後も同じか確認する。</strong> 社内の基幹システムが出す CSV はたいてい <code>ANSI</code>（＝Shift_JIS）。これが <code>UTF-8</code> に変わると、取込先で全部文字化けする。</p>
+<p><strong>② 1行目（見出し行）を触らない</strong> <code>［データ区分］,［伝票日付］,...</code> のような1行目は見出し。消したり増やしたりしない。</p>
+<p><strong>③ カンマの数を変えない</strong> 1行あたりのカンマの数は全行同じでなければならない。値の中にカンマを入れると列がずれるので、<strong>入力する値にカンマを含めない</strong>（<code>1,000</code> ではなく <code>1000</code>）。</p>
+<h3>4. 2つの CSV をつなげたいとき</h3>
+<p><strong>やり方</strong>: 1つ目のファイルの末尾に、2つ目のファイルの<strong>2行目以降</strong>（見出し行を除いた部分）を貼り付ける。</p>
+<p>つなげるときのチェック:</p>
+<ul class="note-list"><li>[ ] 2つのファイルの<strong>見出し行が完全に同じ</strong>か</li><li>[ ] 2つ目の<strong>見出し行を消した</strong>か（消し忘れるとデータの途中に見出しが混ざる）</li><li>[ ] 貼り付けた境目で<strong>行がくっついていない</strong>か（<code>...20260731D,20260731,...</code> のようになっていたらNG）</li><li>[ ] 完成後の行数が「Aの行数 ＋ Bの行数 − 1」になっているか</li></ul>
+<p class="note">手作業に自信がないときは、電算部に依頼すれば数分でつなげられる。行数・列数・重複のチェックまで含めて実施する。</p>
+<h3>5. 編集が終わったら必ず確認する3つ</h3>
+<ol class="note-list"><li><strong>行数</strong> — 想定どおりか（メモ帳の「表示 &gt; ステータスバー」で行番号が見える）</li><li><strong>文字コード</strong> — 開いたときと同じか（右下の表示）</li><li><strong>列のズレ</strong> — 最終行あたりをいくつか見て、カンマの数が揃っているか</li></ol>
+<h3>6. いちばん大事なこと</h3>
+<p><strong>編集する前に、必ず元ファイルをコピーして残す。</strong></p>
+<pre><code data-lang="">発注データ.csv           ← 原本（触らない）
+発注データ_編集用.csv     ← こっちを編集する</code></pre>
+<p>CSV の事故は「壊れたことに後から気づく」パターンがほとんどで、原本がないと復旧できない。コピーさえ残っていれば、何をやり直してもよい。</p>
+<h3>困ったら</h3>
+<ul class="note-list"><li>開いたら1列にまとまって表示される → 同じフォルダの「CSV_Excel表示トラブル解説_v2.docx」を参照（区切り位置で直せる）</li><li>文字化けした / コードのゼロが消えた → <strong>保存せずに閉じて、原本からやり直す</strong></li><li>つなげ方・分け方がわからない → 電算部へ。件数が多いほど手作業より確実で早い</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

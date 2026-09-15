@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>ブラウザキャッシュと no-store / ハードリロード — 「直したのに反映されない」 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Web アプリを修正してデプロイした。サーバ上のファイルは確かに新しくなっている。 なのにブラウザで開くと、以前のままの画面が表示される。CSS の色が変わっていない、 直したはずのボタンが古いラベルのまま、追加した要素…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="ブラウザキャッシュと no-store / ハードリロード — 「直したのに反映されない」 — SkillShowcase" property="og:title"/>
+<meta content="Web アプリを修正してデプロイした。サーバ上のファイルは確かに新しくなっている。 なのにブラウザで開くと、以前のままの画面が表示される。CSS の色が変わっていない、 直したはずのボタンが古いラベルのまま、追加した要素…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-browser-cache-no-store-reload.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-browser-cache-no-store-reload.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Web技術</span></div>
+<h2>ブラウザキャッシュと no-store / ハードリロード — 「直したのに反映されない」</h2>
+<h3>背景</h3>
+<p>Web アプリを修正してデプロイした。サーバ上のファイルは確かに新しくなっている。なのにブラウザで開くと、以前のままの画面が表示される。CSS の色が変わっていない、直したはずのボタンが古いラベルのまま、追加した要素がどこにもない——。</p>
+<p>「デプロイに失敗したのか」「ビルドがおかしいのか」と疑いたくなるが、多くの場合、原因は <strong>ブラウザが古いファイルをキャッシュ（保持）している</strong> だけだ。このズレの正体と、正しい切り分け方・対処法をまとめる。</p>
+<h3>「no-store を返しているのに古いまま」はなぜ起きるか</h3>
+<p>HTTP には、レスポンスをキャッシュしてよいかどうかを指示する <code>Cache-Control</code> ヘッダがある。</p>
+<pre><code data-lang="">Cache-Control: no-store</code></pre>
+<p><code>no-store</code> は「このレスポンスは一切保存するな」という強い指示だ。これを返していれば毎回サーバから取り直すはず——と思いがちだが、現実にはズレが残る。</p>
+<ul class="note-list"><li>ヘッダの適用対象と実際にブラウザが握っているものが食い違う。例: HTML には <code>no-store</code> を付けたが、そこから読み込む CSS/JS には付いておらず、そちらが古いまま使われる。</li><li>既にブラウザのキャッシュに入っていた古いレスポンスが、ヘッダ変更後も「まだ有効」と判断されて再利用される。</li><li>Service Worker やプロキシなど、ブラウザとサーバの間にある別のキャッシュ層が古いものを返している。</li></ul>
+<p>つまり <code>no-store</code> を付けたつもりでも、「今この画面に見えているもの」がどこ由来なのかを確認しないと、原因を取り違える。</p>
+<h3>切り分け: サーバが古いのか、ブラウザが古いのか</h3>
+<p>まずやるべきは <strong>サーバが実際に何を返しているか</strong> を、ブラウザの表示とは別ルートで直接確認することだ。</p>
+<p>方法1: DevTools の Network タブでレスポンス本文を見る。</p>
+<ol class="note-list"><li>F12 で DevTools を開く</li><li>Network タブを開いた状態でページを再読み込み</li><li>対象のリクエスト（HTML や CSS）を選び、Response タブで中身を確認</li><li>直したはずの要素・文言がその本文に入っているかを見る</li></ol>
+<p>方法2: ブラウザを介さず <code>curl</code> で生のレスポンスを取る。</p>
+<pre><code data-lang="bash"># ヘッダと本文の両方を確認（-i でヘッダ込み表示）
+curl -i https://example.com/app/
+
+# ヘッダだけ見たいとき
+curl -I https://example.com/app/
+
+# 目的の文言が本文に含まれるか（Windows の Git Bash でも動く）
+curl -s https://example.com/app/ | grep "新しいボタンのラベル"</code></pre>
+<p>判定は単純だ。</p>
+<ul class="note-list"><li>レスポンス本文に <strong>新しい内容が入っている</strong> → サーバは正しい。画面が古いのは <strong>ブラウザ（またはその手前）のキャッシュ</strong>。次章の対処へ。</li><li>レスポンス本文が <strong>まだ古い</strong> → サーバ側の問題。デプロイ未反映、ビルド漏れ、配信先ディレクトリ違いなどを疑う。</li></ul>
+<p>「画面が古い」だけで判断せず、必ずレスポンスの実体を見るのが鉄則。</p>
+<h3>対処: ハードリロードと Disable cache</h3>
+<p>サーバは正しいと分かったら、ブラウザにキャッシュを捨てさせて取り直させる。</p>
+<ul class="note-list"><li><strong>ハードリロード（スーパーリロード）</strong>: <code>Ctrl+F5</code>（多くのブラウザ）。キャッシュを無視してサーバから取り直す。Mac 系は <code>Cmd+Shift+R</code>。</li><li><strong>DevTools の Disable cache</strong>: DevTools を開き、Network タブの「Disable cache」にチェック。<strong>DevTools を開いている間だけ</strong> キャッシュを無効化する。開発中はこれを付けっぱなしにしておくと、毎回ハードリロードしなくて済む。</li></ul>
+<p>これで直れば、原因はキャッシュだったと確定できる。ただしこれは「自分の手元」の一時対処にすぎない。ユーザー全員がハードリロードしてくれるわけではないので、恒久対策が別途要る。</p>
+<h3>恒久対策: キャッシュバスティング（ファイル名にハッシュ）</h3>
+<p>配布先のユーザーに毎回ハードリロードを強いるのは非現実的だ。静的アセット（CSS/JS/画像）は <strong>ファイル名にハッシュを含める</strong> のが定石。内容が変わればファイル名が変わり、URL 自体が別物になるので、ブラウザは「見たことのない URL」として確実に取り直す。これをキャッシュバスティングと呼ぶ。</p>
+<pre><code data-lang="html">&lt;!-- 更新のたびに URL が変わらない: 古いキャッシュが再利用されやすい --&gt;
+&lt;link rel="stylesheet" href="/static/app.css"&gt;
+
+&lt;!-- 内容が変わると名前も変わる: 別 URL になり必ず再取得される --&gt;
+&lt;link rel="stylesheet" href="/static/app.9f3c1a2b.css"&gt;</code></pre>
+<ul class="note-list"><li>多くのビルドツール（バンドラ）は、この「内容ハッシュ付きファイル名」を自動生成する。</li><li>HTML 側はキャッシュさせず（毎回取り直す）、 HTML が参照する CSS/JS はハッシュ付きで長期キャッシュ、という組み合わせが基本形。 HTML は毎回最新を取り、その中の URL が変わることで新しいアセットへ切り替わる。</li><li>簡易的に <code>app.css?v=20260709</code> のようなクエリ文字列でバージョンを変える手もあるが、ファイル名ハッシュのほうが確実で扱いやすい。</li></ul>
+<h3>補足: 非 ASCII を URL に載せるときはエンコード</h3>
+<p>デバッグでクエリやパスに日本語などの非 ASCII を含めることがある。 URL に直接そのまま置くと化けたり弾かれたりするので、URL エンコードが要る。</p>
+<pre><code data-lang="bash"># 例: 検索語に日本語を渡す。--data-urlencode が安全
+curl -G "https://example.com/search" --data-urlencode "q=商品名"
+# → https://example.com/search?q=%E5%95%86%E5%93%81%E5%90%8D 相当に変換される</code></pre>
+<ul class="note-list"><li>JavaScript なら <code>encodeURIComponent("商品名")</code> でエンコードできる。</li><li>「手で組み立てた URL だと動かないが、ブラウザのアドレスバー経由だと動く」ときは、ブラウザが裏でエンコードしてくれているだけ、というケースが多い。</li></ul>
+<h3>まとめ</h3>
+<ul class="note-list"><li>「デプロイしたのに反映されない」の多くは、サーバではなく <strong>ブラウザのキャッシュ</strong> が原因。</li><li><code>Cache-Control: no-store</code> を返していても、対象範囲のズレや手前のキャッシュ層で古いまま残ることがある。</li><li>切り分けは <strong>レスポンスの実体を直接見る</strong>（DevTools の Response / <code>curl</code>）。新しい内容が入っていればサーバは正しく、犯人はブラウザ側。</li><li>手元の即時対処は <code>Ctrl+F5</code>（ハードリロード）と DevTools の「Disable cache」。</li><li>恒久対策は <strong>ファイル名ハッシュによるキャッシュバスティング</strong>。更新時に別 URL になり確実に取り直される。</li><li>URL に日本語など非 ASCII を載せるときは URL エンコードを忘れない。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

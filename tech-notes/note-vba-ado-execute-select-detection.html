@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>VBA/ADO の conn.Execute が Recordset を返す＝SELECT の見分け方 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="古い業務アプリは VBA（Excel/Access マクロ）から ADO 経由で DB にアクセスしていることが多い。こういうレガシー VBA を Python などに移植したり、読み取り専用ユーザーで動かせないか検討し…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="VBA/ADO の conn.Execute が Recordset を返す＝SELECT の見分け方 — SkillShowcase" property="og:title"/>
+<meta content="古い業務アプリは VBA（Excel/Access マクロ）から ADO 経由で DB にアクセスしていることが多い。こういうレガシー VBA を Python などに移植したり、読み取り専用ユーザーで動かせないか検討し…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-vba-ado-execute-select-detection.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-vba-ado-execute-select-detection.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">データベース</span></div>
+<h2>VBA/ADO の conn.Execute が Recordset を返す＝SELECT の見分け方</h2>
+<h3>背景</h3>
+<p>古い業務アプリは VBA（Excel/Access マクロ）から ADO 経由で DB にアクセスしていることが多い。こういうレガシー VBA を Python などに移植したり、読み取り専用ユーザーで動かせないか検討したりするとき、まず知りたいのは <strong>このアプリは DB を書き換えているのか、それとも読むだけなのか</strong> という一点だ。</p>
+<p>これはコメントや仕様書ではなく、<strong>コードの実挙動</strong>で裏取りしたい。仕様書が「参照専用」と書いていても、どこかで <code>UPDATE</code> を投げていたら意味がない。逆に、コードのすべてが読み取りだと確認できれば、「このアプリは読み取り専用ユーザーで動く＝編集権限のパスワードは不要」と根拠を持って言える。</p>
+<p>その判定に効くのが、ADO の <code>conn.Execute</code> の <strong>戻り値の受け方</strong> を見る、という小技だ。</p>
+<h3>Execute の戻り値で SELECT かを見分ける</h3>
+<p>ADO の <code>Connection.Execute(sql)</code> は、SQL の種類によって戻り値が変わる。</p>
+<ul class="note-list"><li><code>SELECT</code> は <strong>結果セット（Recordset）を返す</strong>。だから戻り値を受けるために <code>Set rs = conn.Execute(sql)</code> の形になる。</li><li><code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code> は結果セットを返さない。だから戻り値を受けず、<code>conn.Execute sql</code> の形（<code>Set</code> なし・カッコなしの文形式）で書かれる。</li></ul>
+<pre><code data-lang="vba">' SELECT — 結果を Recordset で受ける（読み取り）
+Dim rs As ADODB.Recordset
+Set rs = conn.Execute("SELECT 得意先CD, 得意先名 FROM M_得意先")
+Do Until rs.EOF
+    Debug.Print rs.Fields("得意先名").Value
+    rs.MoveNext
+Loop
+
+' UPDATE — 戻り値を受けない（書き込み）
+conn.Execute "UPDATE M_得意先 SET 住所 = '東京' WHERE 得意先CD = 100"</code></pre>
+<p><code>Set rs =</code> が付いているかどうかが、そのまま「読んでいるか／書いているか」のシグナルになる、というわけだ。VBA では戻り値を使う呼び出しはカッコ付き、使わない呼び出しはカッコなしの文形式になる文法の都合も、この見分けを後押ししてくれる。</p>
+<h3>全箇所を洗い出して「読み取り専用」を証明する</h3>
+<p>この見分け方が本当に力を発揮するのは、1 箇所ではなく <strong>コード中の全 <code>Execute</code> を洗ったとき</strong> だ。</p>
+<p>grep で <code>\.Execute</code> を全部拾い、それぞれが <code>Set rs = conn.Execute(...)</code> の形（＝ SELECT）になっているかを確認する。もし全箇所が Recordset 受けなら、<strong>このアプリは DB を一度も書き換えていない</strong>と言える。1 つでも <code>Set</code> なしの <code>conn.Execute</code> があれば、そこが書き込みの疑いポイントなので中身の SQL を確認する。</p>
+<pre><code data-lang=""># 全 Execute 箇所を洗い出す（PowerShell / ripgrep）
+rg -n "\.Execute" .\src\</code></pre>
+<p>洗い出しの結果がすべて SELECT だったら、これは強い証拠になる。「仕様書にそう書いてあるから」ではなく、「コードのすべての DB アクセスが読み取りだと確認したから」読み取り専用と結論できる。</p>
+<h3>権限最小化（least privilege）の根拠にする</h3>
+<p>この裏取りは、権限最小化の判断に直結する。</p>
+<p>DB アカウントには必要最小限の権限だけを与えるのが原則（least privilege）だ。アプリが読むだけなら、<code>SELECT</code> だけを許可した読み取り専用ユーザーで動かせばいい。そうすれば、万一コードがバグっても DB 側が書き込みを物理的に弾いてくれる。</p>
+<p>「このアプリは読み取り専用ユーザーで動かせるか？」という問いに、<code>Execute</code> の全数調査は <strong>コードの実挙動という一次情報</strong> で答えを出せる。編集権限つきのアカウントやそのパスワードを使い回す必要がなくなり、事故の芽をひとつ潰せる。</p>
+<h3>ADO の基礎と Recordset.Open の注意</h3>
+<p>前提として、ADO の主要オブジェクトの役割を押さえておく。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">オブジェクト</th><th scope="col">役割</th></tr></thead><tbody><tr><td><code>Connection</code></td><td>DB への接続。<code>conn.Execute</code> で SQL を投げる入口</td></tr><tr><td><code>Recordset</code></td><td>SELECT の結果セット。行を 1 件ずつ辿る（<code>MoveNext</code> / <code>EOF</code>）</td></tr><tr><td><code>Command</code></td><td>パラメータ付き SQL やストアドを実行する。<code>cmd.Execute</code> も同様に戻り値で判別できる</td></tr></tbody></table></div>
+<p>ここで <strong>注意点</strong> がひとつある。DB アクセスは <code>conn.Execute</code> だけとは限らない。Recordset を先に作って <code>rs.Open(sql, conn)</code> で開くパターンもある。</p>
+<pre><code data-lang="vba">' Recordset.Open 経由の SELECT — こちらも読み取り
+Dim rs As ADODB.Recordset
+Set rs = New ADODB.Recordset
+rs.Open "SELECT * FROM M_商品", conn, adOpenStatic, adLockReadOnly</code></pre>
+<p>つまり洗い出しでは <code>\.Execute</code> だけでなく <code>\.Open</code> も見る必要がある。<code>Recordset.Open</code> は基本 SELECT だが、<code>adLockReadOnly</code> 以外のロックモード（<code>adLockOptimistic</code> など）を指定して <code>rs.Update</code> で書き戻す使い方もありうるので、ロック指定と <code>.Update</code> の有無まで確認すると確実だ。<code>Execute</code> と <code>Open</code> の両輪で網羅する、と覚えておく。</p>
+<h3>移植時の使い所</h3>
+<p>レガシー VBA を Python などに移すとき、最初にやるべきは <strong>このアプリが DB を書き換えているかの判定</strong> だ。</p>
+<ul class="note-list"><li>全 <code>Execute</code> / <code>Open</code> を洗って、すべて読み取りだと分かれば、移植先も読み取り専用ユーザーで組める。接続情報も参照専用アカウントで済む。</li><li>書き込み箇所が見つかれば、そこがトランザクション・整合性・ロールバックを設計する必要のある要注意ポイントとして最初から浮かび上がる。</li></ul>
+<p>「まずコードから DB への影響範囲を確定させる」という下ごしらえが、移植の安全設計の出発点になる。<code>Execute</code> の戻り値という小さなシグナルが、その第一歩を支えてくれる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>ADO で <code>Set rs = conn.Execute(sql)</code>（戻り値を Recordset で受ける）は <strong>SELECT（読み取り）</strong>。<code>conn.Execute sql</code>（戻り値なし）は <code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code> の疑い。</li><li>全 <code>Execute</code> 箇所を洗って、すべてが Recordset 受けなら <strong>そのコードは読み取り専用ユーザーで動く</strong>と根拠を持って言える。</li><li>洗い出しでは <code>Recordset.Open</code> 経由の DB アクセスも見る（ロックモードと <code>.Update</code> の有無まで確認すると確実）。</li><li>コードの実挙動で裏取りできると、権限最小化の判断や移植の安全設計を、仕様書任せにせず一次情報で進められる。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

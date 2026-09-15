@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>設計原則・アーキテクチャ用語 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="ソフトウェア設計の会話で出てくる「○○結合」「○○度」系の用語をまとめる。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="設計原則・アーキテクチャ用語 — SkillShowcase" property="og:title"/>
+<meta content="ソフトウェア設計の会話で出てくる「○○結合」「○○度」系の用語をまとめる。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-design-principles.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-design-principles.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">用語集</span></div>
+<h2>設計原則・アーキテクチャ用語</h2>
+<p>ソフトウェア設計の会話で出てくる「○○結合」「○○度」系の用語をまとめる。</p>
+<h3>疎結合（そけつごう / loose coupling）</h3>
+<h4>ひとことで言うと</h4>
+<p>部品どうしが「相手の細かい中身を知らなくても使える」状態のこと。</p>
+<h4>もう少し詳しく</h4>
+<p>あるモジュール A が別のモジュール B を呼ぶとき、A が B の内部実装（変数名、データ構造、処理順序）に依存していなければ「疎結合」。</p>
+<p>逆に、B の中の特定のテーブル名やプライベートな関数名を A が直接触っていると「密結合（みつけつごう）」になる。</p>
+<p>疎結合にしておくと、</p>
+<ul class="note-list"><li>B の中身を書き換えても A を直さなくていい。</li><li>A をテストするときに B を偽物（モック）に差し替えやすい。</li><li>同じ A を別の B' に繋ぎ替えやすい。</li></ul>
+<p>実現する典型的な手段：</p>
+<ul class="note-list"><li>インターフェース（抽象クラス・プロトコル）を間に挟む。</li><li>関数の引数で依存物を受け取る（依存性注入 / DI）。</li><li>共通の中間データ形式（JSON、CSV、辞書）でやり取りする。</li></ul>
+<h4>業務での例</h4>
+<p>job-repo の <code>common/groupware.py</code> の <code>GroupwareMailSender</code> を、各 flow が直接呼んでいる構成は <strong>疎結合寄り</strong>。flow 側は「メールを下書き保存する」というインターフェースだけ知っていて、グループウェア の HTML 構造や Playwright のセレクタは知らなくていい。</p>
+<p>もし flow の中に Playwright のセレクタを直接書いていたら、グループウェア の画面が変わったとき全 flow を直す羽目になる。これが密結合。</p>
+<p>関連：凝集度、依存性注入</p>
+<h3>密結合（みつけつごう / tight coupling）</h3>
+<h4>ひとことで言うと</h4>
+<p>部品どうしが「相手の中身を知っていないと使えない」状態。疎結合の反対。</p>
+<h4>もう少し詳しく</h4>
+<p>密結合そのものが悪いわけではなく、「変更頻度が高い部分」と「変更したくない部分」が密結合になっていると壊れやすい、という話。</p>
+<p>社内ツールで使い捨てのスクリプトなら密結合のほうが速く書けることもある。長く保守するコードほど疎結合を意識する。</p>
+<h4>業務での例</h4>
+<p>昔の VBA で、フォーム上のテキストボックスの <code>Text</code> プロパティを直接 SQL の中に文字列連結していた書き方は密結合の典型。画面を変えると SQL も壊れる。</p>
+<h3>凝集度（こうしゅうど / cohesion）</h3>
+<h4>ひとことで言うと</h4>
+<p>1つのモジュール（クラス・ファイル）の中の処理が「どれくらい1つの目的に集中しているか」。</p>
+<h4>もう少し詳しく</h4>
+<p>凝集度が高い = そのファイルを見ると「これは○○をやるための部品だ」と一言で言える状態。</p>
+<p>凝集度が低い = 1つのファイルにメール送信もExcel処理もDBアクセスも入っていて、何屋なのか分からない状態。</p>
+<p>設計の合言葉：<strong>「疎結合・高凝集」</strong>。</p>
+<ul class="note-list"><li>モジュール内部の関係は密に（高凝集）。</li><li>モジュール同士の関係は疎に（疎結合）。</li></ul>
+<h4>業務での例</h4>
+<p>job-repo の <code>common/excel.py</code> は「Excel を読み書きする」だけに集中しているので高凝集。ここに 社内チャット 通知のコードを足し始めると凝集度が下がる。</p>
+<h3>依存性注入（DI / Dependency Injection）</h3>
+<h4>ひとことで言うと</h4>
+<p>部品が必要なものを「自分で作らず、外から渡してもらう」やり方。</p>
+<h4>もう少し詳しく</h4>
+<p>クラス A が中で <code>b = B()</code> と書いて B を作っていると、A は B に縛られる（密結合）。</p>
+<p>代わりに <code>def __init__(self, b): self.b = b</code> のように B を引数で受け取れば、テスト時には偽の B を渡せるし、本番では本物の B を渡せる。これが DI。</p>
+<p>Python では仰々しい DI フレームワークを入れなくても、<strong>コンストラクタや関数の引数で渡すだけ</strong>で十分なことが多い。</p>
+<h4>業務での例</h4>
+<p><code>PrefectEnvLoader</code> を flow に渡す書き方は DI 的。flow は「環境変数ローダーが来る」とだけ知っていれば、それが Prefect から取ってきたものでも <code>.env</code> から取ってきたものでも動く。</p>
+<h3>単一責任の原則（SRP / Single Responsibility Principle）</h3>
+<h4>ひとことで言うと</h4>
+<p>「1つのクラス（関数）には、変更理由が1つだけになるようにする」。</p>
+<h4>もう少し詳しく</h4>
+<p>「責任 = 変更を要求してくる人・理由」と考えるのがコツ。</p>
+<ul class="note-list"><li>営業部の都合で変えたくなる処理</li><li>経理部の都合で変えたくなる処理</li><li>システム部の都合で変えたくなる処理</li></ul>
+<p>この3つが1つのクラスに同居していると、誰かの要望で直したときに他の人の処理が壊れる。</p>
+<p>SRP は SOLID 原則の S。</p>
+<h4>業務での例</h4>
+<p>異常受注検知で「データを取得するクラス」「異常を判定するクラス」「カードを表示するクラス」を分けているのは SRP の考え方。判定ロジックを変えても表示は壊れない。</p>
+<h3>関心の分離（SoC / Separation of Concerns）</h3>
+<h4>ひとことで言うと</h4>
+<p>「種類の違う仕事は、別の場所に書く」。</p>
+<h4>もう少し詳しく</h4>
+<p>SRP に似ているが、SoC のほうがもっと大きな粒度の話。例えば、</p>
+<ul class="note-list"><li>画面表示の関心</li><li>業務ロジックの関心</li><li>データ保存の関心</li></ul>
+<p>を別レイヤーに分けるのが SoC。Web の MVC（Model-View-Controller）も SoC の一例。</p>
+<h4>業務での例</h4>
+<p>Flask アプリで、ルーティング（<code>@app.route</code>）と業務ロジック（計算）と DB アクセスを同じ関数にベタ書きすると SoC が崩れている。レイヤーを分けると、画面を変えても計算ロジックは触らずに済む。</p>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

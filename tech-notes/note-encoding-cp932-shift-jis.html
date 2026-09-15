@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>CP932 と Shift_JIS の違い・日本語ファイルの文字化け対処 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="日本語の Windows で作られた CSV やテキストファイルをプログラムで読もうとして、文字化けに悩まされた経験は誰にでもある。とりあえず shift_jis を指定してみたら一部の文字だけ例外で落ちたり、コンソール…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="CP932 と Shift_JIS の違い・日本語ファイルの文字化け対処 — SkillShowcase" property="og:title"/>
+<meta content="日本語の Windows で作られた CSV やテキストファイルをプログラムで読もうとして、文字化けに悩まされた経験は誰にでもある。とりあえず shift_jis を指定してみたら一部の文字だけ例外で落ちたり、コンソール…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-encoding-cp932-shift-jis.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-encoding-cp932-shift-jis.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>CP932 と Shift_JIS の違い・日本語ファイルの文字化け対処</h2>
+<h3>背景</h3>
+<p>日本語の Windows で作られた CSV やテキストファイルをプログラムで読もうとして、文字化けに悩まされた経験は誰にでもある。とりあえず <code>shift_jis</code> を指定してみたら一部の文字だけ例外で落ちたり、コンソールに出したら全部化けて見えたのにファイル自体は壊れていなかったり、という「一見同じに見えるけど原因が違う」トラブルが起きやすい。</p>
+<p>このノートは、そういう「日本語ファイルの文字化け」を切り分けるための土台を整理しておくものである。特に押さえたいのは次の3点。</p>
+<ul class="note-list"><li><strong>Shift_JIS と CP932 は同じではない</strong>（似ているが別物）</li><li><strong>エンコーディングは自動判定に頼らず明示する</strong>のが安全</li><li><strong>「化けている」問題には、データが壊れている場合と、表示だけの場合の2種類がある</strong></li></ul>
+<p>具体的な社名や案件は伏せ、一般的な例（<code>\\server\share</code> や「会社の基幹システム」など）で説明する。</p>
+<h3>Shift_JIS と CP932 の関係</h3>
+<p>まず用語を整理する。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">呼び名</th><th scope="col">実体</th><th scope="col">補足</th></tr></thead><tbody><tr><td>Shift_JIS</td><td>JIS 規格ベースの日本語エンコーディング</td><td>「素の」Shift_JIS。収録文字が狭い</td></tr><tr><td>CP932</td><td>Microsoft が拡張した Windows 版 Shift_JIS</td><td>機種依存文字・全角空白などを追加。別名 Windows-31J, MS932</td></tr></tbody></table></div>
+<p>ポイントは、<strong>CP932 は Shift_JIS の上位互換的な拡張</strong>だということ。日本語 Windows のメモ帳や Excel、そして多くの「会社の基幹システム」が吐き出す CSV・テキストは、UTF-8 ではなく <strong>実質 CP932</strong> であることが非常に多い。</p>
+<p>ここで落とし穴になるのが、Python の codec 名の扱いである。</p>
+<pre><code data-lang="python">raw = b"\x81\x40"  # CP932 における全角空白　のバイト列
+
+raw.decode("shift_jis")  # 文字によっては UnicodeDecodeError で落ちる
+raw.decode("cp932")      # 正しく読める</code></pre>
+<p><code>shift_jis</code> codec は「素の Shift_JIS」に近い範囲しか受け付けないため、Windows 由来のデータに含まれる拡張文字（全角空白 <code>　</code>、丸数字、一部の記号など）で例外になることがある。<strong>Windows が作ったファイルを読むなら、迷わず <code>cp932</code> を指定する</strong>のが正解。</p>
+<h3>なぜ「自動判定」に頼ってはいけないか</h3>
+<p>文字コードを推定してくれるライブラリ（<code>chardet</code> など）や、エディタの自動判別は便利だが、業務データの読み書きでは<strong>推定を信用しない</strong>方がよい。理由は2つ。</p>
+<ol class="note-list"><li><strong>推定は外れる</strong>。特に行数が少ない・英数字が多いファイルは、CP932 なのに別のコードと誤判定されることがある。</li><li><strong>既存システムとバイト単位で一致させたい場面がある</strong>。たとえば基幹システムが出力したファイルを読み、加工して、また同じシステムに取り込ませる場合、エンコーディングを1文字でも取り違えると、見た目が同じでもバイト列が変わり、取り込み側で弾かれたり別の文字に化けたりする。ここでの取り違えは致命傷になりやすい。</li></ol>
+<p>安全なパターンは「<strong>バイト列でそのまま読んで、明示的に decode する</strong>」こと。</p>
+<pre><code data-lang="python"># 推奨: バイナリで読んで、エンコーディングを明示する
+with open(path, "rb") as f:
+    raw = f.read()
+text = raw.decode("cp932")   # 何のコードで読んだか、コードに残る
+
+# 書き戻すときも明示する（相手が CP932 を期待しているなら）
+with open(out_path, "wb") as f:
+    f.write(text.encode("cp932"))</code></pre>
+<p><code>open(path, encoding="cp932")</code> と直接指定してもよいが、いずれにせよ<strong>「どのエンコーディングで読んだか」をコード上に明示する</strong>のが肝心で、環境やライブラリ任せの自動判定にしないことが要点である。</p>
+<h3>「文字化けに見える」問題は2種類ある</h3>
+<p>ここが一番ハマるところ。「画面に変な文字が出ている」とき、原因は大きく2つに分かれる。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">種類</th><th scope="col">何が起きているか</th><th scope="col">データの状態</th></tr></thead><tbody><tr><td>(a) 実データが壊れている</td><td>誤ったエンコーディングで decode/encode してしまった</td><td>ファイル・文字列そのものが破損</td></tr><tr><td>(b) 表示だけの問題</td><td>データは正常。コンソール（端末）の表示エンコードが合っていないだけ</td><td>データは無傷</td></tr></tbody></table></div>
+<p>(b) は特に紛らわしい。データは正しく読めているのに、それを <code>print()</code> したときに<strong>ターミナルの表示エンコードが違う</strong>せいで化けて見えるだけ、というケースがよくある。この場合ファイルを別の正しいツールで開けば普通に読める。</p>
+<h4>切り分け方</h4>
+<p>見た目に振り回されず、<strong>中身の実体を確認する</strong>。有効なのが <code>repr()</code> と、実際のコードポイント（U+XXXX）を見ることである。</p>
+<pre><code data-lang="python">s = "取"
+print(s)          # 端末次第で化けて見えることがある（あてにならない）
+print(repr(s))    # 'を' → '取' のように実体が見える
+print(hex(ord(s[0])))  # 0x53d6  ← U+53D6 = 「取」
+
+# バイト列で持っているなら、まず生バイトを見る
+print(raw[:20])   # b'\x8e\xe6...' のように生の姿を確認できる</code></pre>
+<p>たとえば文字列が内部的に <code>U+53D6</code>（「取」）を正しく保持していると確認できれば、データは壊れていない。あとは表示側（端末のコードページや出力先のエンコード）を直せばよい、と判断できる。逆に <code>repr()</code> の時点で意図しないコードポイントや <code>�</code>（置換文字）が出ていれば、それは (a) の実データ破損なので、読み込み時のエンコーディング指定にさかのぼって直す必要がある。</p>
+<p><strong>表示が化けている ≠ データが壊れている</strong>。この区別を最初につけるだけで、無駄に読み込み処理を書き直す事故を防げる。</p>
+<h3>関連する別テーマ（このノートの範囲外）</h3>
+<p>混同しやすいが、別の話として切り分けておく。</p>
+<ul class="note-list"><li><strong>Unicode NFKC 正規化</strong>: 全角と半角、合成済み文字と結合文字など、「見た目が近い別コードの表記揺れ」を吸収する処理。文字コード変換とは目的が違う（照合・検索のための正規化）。別テーマとして扱う。</li><li><strong>改行コード CRLF / LF</strong>: Windows と Unix の改行差の問題。文字化けと同時に遭遇しがちだが原因は別。詳細は別ノート <code>git-line-endings-crlf-lf.md</code> を参照。</li></ul>
+<h3>まとめ</h3>
+<p>覚え方として、次の3つを押さえておけば大きく外さない。</p>
+<ol class="note-list"><li><strong>Windows の日本語ファイルは <code>cp932</code> で読む</strong>。<code>shift_jis</code> は拡張文字で落ちる（全角空白 <code>　</code> が踏み絵）。CP932 = 拡張された Shift_JIS、と覚える。</li><li><strong>自動判定に頼らず、バイトで読んで明示 decode</strong>。既存システムとバイト一致させたいときほど、取り違えは致命傷。</li><li><strong>「化けて見える」ときは、まず <code>repr()</code> とコードポイント</strong>。データ破損 (a) か、表示だけ (b) かを切り分ける。表示が化けていてもデータは無事なことがある。</li></ol>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

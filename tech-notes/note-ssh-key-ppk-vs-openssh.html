@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>SSH 鍵の形式（PuTTY .ppk と OpenSSH）と変換・エージェント — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Windows で PuTTYgen を使って作った SSH 鍵（.ppk）を、そのまま git bash や WSL で使おうとすると弾かれる。逆に、git bash で作った id_ed25519 を PuTTY に…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="SSH 鍵の形式（PuTTY .ppk と OpenSSH）と変換・エージェント — SkillShowcase" property="og:title"/>
+<meta content="Windows で PuTTYgen を使って作った SSH 鍵（.ppk）を、そのまま git bash や WSL で使おうとすると弾かれる。逆に、git bash で作った id_ed25519 を PuTTY に…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-ssh-key-ppk-vs-openssh.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-ssh-key-ppk-vs-openssh.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">セキュリティ</span></div>
+<h2>SSH 鍵の形式（PuTTY .ppk と OpenSSH）と変換・エージェント</h2>
+<h3>背景</h3>
+<p>Windows で PuTTYgen を使って作った SSH 鍵（<code>.ppk</code>）を、そのまま git bash や WSL で使おうとすると弾かれる。逆に、git bash で作った <code>id_ed25519</code> を PuTTY に読ませようとしても開けない。これは SSH 鍵の「保存形式」が2系統あり、互いに互換がないためだ。片方で作った鍵をもう片方で使うには変換が必要になる。ここでは2形式の違い、変換方法、鍵を保持するエージェント、用途の向き、そして基本の運用ルールを整理する。</p>
+<h3>2つの鍵形式</h3>
+<p>SSH 鍵の保存形式には大きく2系統ある。</p>
+<ul class="note-list"><li><strong>PuTTY 独自形式（<code>.ppk</code> = PuTTY Private Key）</strong> Windows の PuTTY / PuTTYgen が使う独自形式。1ファイルの中に秘密鍵・公開鍵・コメントなどをまとめて持つ。PuTTY 系ツール以外は基本的に読めない。</li><li><strong>OpenSSH 形式</strong> git bash・WSL・Linux・macOS が標準で使う形式。<code>~/.ssh/</code> に秘密鍵（<code>id_ed25519</code>、<code>id_rsa</code> 等）と公開鍵（<code>id_ed25519.pub</code> 等）が別ファイルで置かれる。世の中の SSH サーバやツールが前提にしているのはこちら。</li></ul>
+<p>重要なのは、<strong>鍵ペアそのもの（数学的な鍵）が違うわけではなく、あくまで「ファイルへの入れ方（フォーマット）」が違う</strong>という点。だから中身は同じ鍵のまま、形式だけを変換して相互に使える。</p>
+<h3>変換方法</h3>
+<h4>PuTTYgen（GUI）で .ppk → OpenSSH</h4>
+<ol class="note-list"><li>PuTTYgen を起動し、<code>Load</code> で <code>.ppk</code> を読み込む（パスフレーズ付きなら入力）。</li><li>メニューの <code>Conversions</code> → <code>Export OpenSSH key</code> を選ぶ。</li><li>OpenSSH 形式の秘密鍵ファイルとして保存する（例: <code>id_ed25519</code>）。</li><li>公開鍵は PuTTYgen 画面上部のテキスト欄（<code>ssh-ed25519 AAAA...</code> の一行）をコピーして使う。</li></ol>
+<p>逆向き（OpenSSH → .ppk）も、PuTTYgen で <code>Load</code>（OpenSSH 秘密鍵を選ぶ）→ <code>Save private key</code> で <code>.ppk</code> として保存できる。</p>
+<h4>ssh-keygen（WSL / Linux）で変換</h4>
+<p>コマンドラインでも変換できる。既存の OpenSSH 秘密鍵から公開鍵を取り出す例:</p>
+<pre><code data-lang="bash"># 秘密鍵から公開鍵を再生成する（authorized_keys 登録用の一行が得られる）
+ssh-keygen -y -f ~/.ssh/id_ed25519 &gt; ~/.ssh/id_ed25519.pub</code></pre>
+<p>PuTTY 形式が絡む変換は、<code>putty-tools</code> パッケージの <code>puttygen</code> コマンドが使える。</p>
+<pre><code data-lang="bash"># .ppk を OpenSSH 秘密鍵に変換する
+puttygen my_key.ppk -O private-openssh -o id_ed25519
+
+# OpenSSH 秘密鍵を .ppk に変換する
+puttygen id_ed25519 -O private -o my_key.ppk</code></pre>
+<h3>鍵エージェント（Pageant / ssh-agent）と橋渡し</h3>
+<p>パスフレーズ付きの秘密鍵を毎回打たずに使うため、鍵をメモリに保持しておく「エージェント」がある。ここも2系統に分かれる。</p>
+<ul class="note-list"><li><strong>Pageant</strong> … PuTTY 系のエージェント。<code>.ppk</code> を読み込んで常駐する。</li><li><strong>ssh-agent</strong> … OpenSSH 系のエージェント。<code>ssh-add</code> で秘密鍵を登録する。</li></ul>
+<pre><code data-lang="bash"># ssh-agent を起動して鍵を登録する（git bash / WSL）
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519</code></pre>
+<p>注意点として、<strong>git bash の OpenSSH は Pageant を直接は見に行かない</strong>。PuTTY 側（Pageant）に鍵を入れているのに git bash から使いたい、という場合は、両者を橋渡しするツール（<code>wsl-ssh-pageant</code> 等）を挟む必要がある。混乱を避けたいなら、git bash / WSL 用には最初から OpenSSH 形式 + ssh-agent で統一してしまうのが素直。</p>
+<h3>用途の向き</h3>
+<p>どちらが「正しい」ではなく、やりたいことで向き不向きがある。</p>
+<ul class="note-list"><li><strong>ワンライナーでリモート実行したい</strong> → git bash / WSL の OpenSSH が向く。 ``<code>bash ssh user@host "uptime"        # 1コマンド叩いて結果を受け取る </code>`` シェルスクリプトや自動化に組み込みやすい。</li><li><strong>対話的に接続したい・Windows GUI で運用したい</strong> → PuTTY が向く。セッション設定を GUI で保存・再利用でき、Windows 単体で完結する。</li></ul>
+<h3>パーミッションと公開鍵登録の基本</h3>
+<p>形式や用途に関わらず、SSH 鍵運用の基本は共通。</p>
+<ul class="note-list"><li><strong>秘密鍵は絶対に共有しない・送らない</strong>。手元だけに置く。共有していいのは公開鍵（<code>.pub</code>）だけ。</li><li><strong>秘密鍵のパーミッションは厳しく</strong>。OpenSSH は権限が緩い秘密鍵を安全上の理由で拒否する（<code>600</code> = 所有者のみ読み書き、でないと弾かれることが多い）。 ``<code>bash chmod 600 ~/.ssh/id_ed25519 chmod 700 ~/.ssh          # ~/.ssh 自体も所有者のみに </code>``</li><li><strong>公開鍵は接続先サーバの <code>~/.ssh/authorized_keys</code> に登録する</strong>。ここに載っている公開鍵に対応する秘密鍵を持っていれば認証が通る、という仕組み。 ``<code>bash # 公開鍵を接続先の authorized_keys に追加する（便利コマンド） ssh-copy-id user@host </code>``</li></ul>
+<h3>まとめ</h3>
+<ul class="note-list"><li>SSH 鍵の保存形式は <strong>PuTTY 独自の <code>.ppk</code></strong> と <strong>OpenSSH 形式</strong>の2系統あり、互換がないので相互変換が要る。鍵そのものは同じで「入れ物」が違うだけ。</li><li>変換は <strong>PuTTYgen（GUI: Load → Export OpenSSH key）</strong> か、<strong><code>puttygen</code> / <code>ssh-keygen</code> コマンド</strong>で行う。</li><li>エージェントも2系統。<strong>PuTTY = Pageant</strong>、<strong>OpenSSH = ssh-agent</strong>。git bash の OpenSSH は Pageant を直接見ないので、橋渡しツールが要る場合がある。</li><li>ワンライナーでのリモート実行なら OpenSSH、対話・GUI 運用なら PuTTY が向く。</li><li>どちらでも基本は同じ。<strong>秘密鍵は共有しない・権限は <code>600</code>・公開鍵を相手の <code>authorized_keys</code> に登録する</strong>。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

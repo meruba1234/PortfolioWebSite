@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Excel → PDF 変換を OS で切り替える（win32com / LibreOffice headless） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="帳票を xlsx で組み立てて PDF で配布したい、という要件はよくある。 このとき困るのが「開発は Windows、本番は Linux」という環境差だ。 手元の Windows では Excel 本体が入っているので…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Excel → PDF 変換を OS で切り替える（win32com / LibreOffice headless） — SkillShowcase" property="og:title"/>
+<meta content="帳票を xlsx で組み立てて PDF で配布したい、という要件はよくある。 このとき困るのが「開発は Windows、本番は Linux」という環境差だ。 手元の Windows では Excel 本体が入っているので…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-excel-to-pdf-os-switch.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-excel-to-pdf-os-switch.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">インフラ</span></div>
+<h2>Excel → PDF 変換を OS で切り替える（win32com / LibreOffice headless）</h2>
+<h3>背景</h3>
+<p>帳票を xlsx で組み立てて PDF で配布したい、という要件はよくある。このとき困るのが「開発は Windows、本番は Linux」という環境差だ。手元の Windows では Excel 本体が入っているので何とでもなるが、本番のジョブ実行基盤が Linux コンテナだと Excel は使えない。それでも同じ xlsx から同じような PDF を出したい。</p>
+<p>ここで整理しておきたいのが、<strong>xlsx の生成と PDF 化はまったく別工程</strong>だということ。生成は openpyxl でクロスプラットフォームに書けるが、PDF 化は OS ごとに手段を切り替える必要がある。</p>
+<h3>openpyxl では PDF 化できない</h3>
+<p>まず前提。openpyxl は xlsx を「作る・読む・書き換える」ライブラリで、 <strong>PDF 出力の機能は持っていない</strong>。セルの値・書式・グラフ・画像までは扱えるが、最終的な紙面レイアウト（ページ分割・印刷倍率）をレンダリングして PDF に固める処理は範囲外だ。</p>
+<p>PDF にするには、xlsx を実際に「開いて印刷レイアウトを確定できるもの」が要る。選択肢は主に2つ。</p>
+<ul class="note-list"><li><strong>Excel 本体（COM 経由）</strong> — Windows のみ</li><li><strong>LibreOffice（headless モード）</strong> — Windows / Linux 両方で動くが本番では Linux で使う</li></ul>
+<p>つまり役割分担はこうなる。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">工程</th><th scope="col">使うもの</th><th scope="col">プラットフォーム</th></tr></thead><tbody><tr><td>xlsx の生成・編集</td><td>openpyxl</td><td>Windows / Linux 共通</td></tr><tr><td>xlsx → PDF 変換</td><td>Excel COM または LibreOffice</td><td>OS で切替</td></tr></tbody></table></div>
+<h3>OS で手段を切り替える</h3>
+<p>実装としては「OS を判定して変換手段を分岐する」1関数にまとめておくと扱いやすい。</p>
+<pre><code data-lang="python">import platform
+import subprocess
+from pathlib import Path
+
+
+def xlsx_to_pdf(xlsx_path: Path, out_dir: Path) -&gt; Path:
+    """xlsx を PDF に変換する。OS で手段を切り替える。"""
+    if platform.system() == "Windows":
+        return _convert_with_excel_com(xlsx_path, out_dir)
+    else:
+        return _convert_with_libreoffice(xlsx_path, out_dir)</code></pre>
+<h4>Windows: win32com（Excel COM）</h4>
+<p>Windows では Excel を COM オートメーションで裏起動し、<code>ExportAsFixedFormat</code> で PDF を吐く。</p>
+<pre><code data-lang="python">import win32com.client as win32
+
+
+def _convert_with_excel_com(xlsx_path, out_dir):
+    pdf_path = out_dir / (xlsx_path.stem + ".pdf")
+    excel = win32.gencache.EnsureDispatch("Excel.Application")
+    excel.Visible = False
+    excel.DisplayAlerts = False
+    # 元ファイルを直接開かず、ReadOnly で開いて巻き込み事故を防ぐ
+    wb = excel.Workbooks.Open(str(xlsx_path), ReadOnly=True)
+    try:
+        # 0 = xlTypePDF
+        wb.ExportAsFixedFormat(0, str(pdf_path))
+    finally:
+        wb.Close(SaveChanges=False)
+        # ここで excel.Quit() を安易に呼ばない（後述）
+    return pdf_path</code></pre>
+<h4>Linux: LibreOffice headless</h4>
+<p>Linux では LibreOffice を GUI なし（headless）で叩く。CLI 一発で変換できる。</p>
+<pre><code data-lang="python">def _convert_with_libreoffice(xlsx_path, out_dir):
+    subprocess.run(
+        [
+            "libreoffice", "--headless",
+            "--convert-to", "pdf",
+            "--outdir", str(out_dir),
+            str(xlsx_path),
+        ],
+        check=True,
+    )
+    return out_dir / (xlsx_path.stem + ".pdf")</code></pre>
+<p>CLI 部分だけ取り出すとこうなる。</p>
+<pre><code data-lang="bash">libreoffice --headless --convert-to pdf --outdir &lt;出力ディレクトリ&gt; &lt;入力.xlsx&gt;</code></pre>
+<p><code>--outdir</code> で出力先ディレクトリを指定する点に注意。出力ファイル名は入力の拡張子を <code>.pdf</code> に変えたものになる。同名 PDF が既にあると上書きされる。</p>
+<h3>ページ縮尺の副作用に注意</h3>
+<p>「1ページに収めたい」と思って印刷設定でこうしがちだ。</p>
+<pre><code data-lang="python">ws.page_setup.fitToWidth = 1
+ws.page_setup.fitToHeight = 1
+ws.sheetPr.pageSetUpPr.fitToPage = True</code></pre>
+<p><code>FitToPagesWide/Tall = 1</code> は「横1ページ・縦1ページに押し込む」指定で、はみ出す分は<strong>フォントが自動縮小されて 1 枚に収まる</strong>。表が横に長いと文字がどんどん小さくなり、印刷すると読めない、という失敗につながる。</p>
+<p>対策は「縮尺で潰す」前に「入るスペースを増やす」こと。<strong>余白を極小化して、フォントを底上げする</strong>ほうが読みやすい PDF になる。</p>
+<pre><code data-lang="python">ws.page_margins.left = 0.2
+ws.page_margins.right = 0.2
+ws.page_margins.top = 0.3
+ws.page_margins.bottom = 0.3
+ws.page_margins.header = 0.1
+ws.page_margins.footer = 0.1</code></pre>
+<p>余白を削って本文フォントを上げ、それでも収まらない分だけ縮尺に頼る、という順番で考える。</p>
+<h3>COM 利用時の注意（ユーザーの Excel を巻き込まない）</h3>
+<p>win32com は結局のところ<strong>裏で Excel という GUI アプリを起動している</strong>。ここで雑に扱うと、ユーザーが手で開いている Excel まで一緒に閉じてしまう事故が起きる。</p>
+<ul class="note-list"><li>元ファイルを直接開かず、<strong>一時コピーを ReadOnly で開く</strong>。編集ロックや上書きの巻き込みを避ける。</li><li><code>Application.Quit()</code> を安易に呼ばない。同じ Excel プロセスをユーザーが共有していると、開いていたブックごと落ちる。閉じるのは<strong>自分が開いたブックだけ</strong>（<code>wb.Close()</code>）にとどめる。</li><li><code>DisplayAlerts = False</code> で保存ダイアログ等のブロッキングを抑止する。</li></ul>
+<p>このあたりは Office の COM オートメーション全般に共通する注意点で、 PowerPoint など他の Office アプリでも同じ考え方が要る（自分が開いたものだけ後始末する）。</p>
+<h3>LibreOffice はレイアウトが微妙にずれることがある</h3>
+<p>LibreOffice は Excel と別実装なので、<strong>フォントの持ち方や細かなレイアウトが Excel とぴったり同じにはならない</strong>ことがある。よくあるずれの原因。</p>
+<ul class="note-list"><li>Excel 標準フォント（游ゴシック等）が Linux 側に無く、代替フォントに置き換わる → 文字幅が変わり行が折り返す</li><li>セル幅の自動調整・改ページ位置が Excel と微妙に違う</li><li>罫線や図形の位置が数ピクセルずれる</li></ul>
+<p>そのため、<strong>レイアウトが厳密に決まっている帳票</strong>（枠にきっちり収める請求書・伝票類）は、本番と同じ LibreOffice で一度 PDF を出して目視検証しておくべきだ。「Windows で見た目 OK だから Linux でも OK」とは限らない。必要なフォントは Linux コンテナ側にもインストールしておく。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>xlsx の<strong>生成は openpyxl</strong>（OS 共通）だが、<strong>PDF 化はできない</strong>。別の手段が要る。</li><li>PDF 化は <strong>OS で切り替える</strong>。Windows は <strong>win32com（Excel COM の <code>ExportAsFixedFormat</code>）</strong>、 Linux は <strong>LibreOffice headless（<code>--convert-to pdf</code>）</strong>。1関数に分岐を閉じ込めると扱いやすい。</li><li><code>FitToPages=1</code> は<strong>フォント自動縮小の副作用</strong>がある。余白を削ってフォントを底上げしてから縮尺に頼る。</li><li>COM は裏で GUI アプリを動かすので、<strong>一時コピーを ReadOnly で開く／自分のブックだけ閉じる</strong>。 <code>Quit()</code> を安易に呼ばない。</li><li>LibreOffice は Excel と<strong>レイアウトが微妙にずれる</strong>。厳密な帳票は本番環境で PDF を出して検証する。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

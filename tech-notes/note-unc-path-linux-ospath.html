@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Windows の UNC パスは Linux 上の os.path で壊れる — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Windows で書いたコードを、そのまま Linux コンテナ（Docker 等）へ移して動かすことはよくある。 このとき、共有フォルダを指す UNC パス（\\server\share\dir\file.csv のよ…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Windows の UNC パスは Linux 上の os.path で壊れる — SkillShowcase" property="og:title"/>
+<meta content="Windows で書いたコードを、そのまま Linux コンテナ（Docker 等）へ移して動かすことはよくある。 このとき、共有フォルダを指す UNC パス（\\server\share\dir\file.csv のよ…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-unc-path-linux-ospath.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-unc-path-linux-ospath.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>Windows の UNC パスは Linux 上の os.path で壊れる</h2>
+<h3>背景</h3>
+<p>Windows で書いたコードを、そのまま Linux コンテナ（Docker 等）へ移して動かすことはよくある。このとき、共有フォルダを指す UNC パス（<code>\\server\share\dir\file.csv</code> のような形式）を <code>os.path</code> 系の関数で分解している箇所が、<strong>例外を投げずに黙って壊れる</strong>ことがある。</p>
+<p>「同じコードなのに Windows では正しく動いていた」ため気付きにくく、 <code>basename</code> が丸ごとのパス文字列を返す、<code>splitext</code> が拡張子を切り出せない、といったおかしな挙動として現れる。原因は UNC パス自体ではなく、<code>os.path</code> が OS 依存であることにある。</p>
+<h3>os.path はなぜ OS 依存なのか</h3>
+<p><code>os.path</code> は「実行中の OS に合わせたパス操作」を提供するモジュールだ。 Python 起動時に、その OS 用の実装（Windows なら <code>ntpath</code>、Linux/macOS なら <code>posixpath</code>）が <code>os.path</code> として束ねられる。つまり <code>os.path.basename</code> の中身は、実行環境によって別物になる。</p>
+<ul class="note-list"><li>Windows 上: セパレータとして <code>\</code> と <code>/</code> の両方を区切りと見なす</li><li>Linux 上: セパレータは <code>/</code> <strong>だけ</strong>。<code>\</code> はただの普通の文字扱い</li></ul>
+<p>この差が、UNC パスを Linux で扱ったときに効いてくる。</p>
+<h3>症状</h3>
+<p>Linux 上では <code>\</code>（バックスラッシュ）が区切りとして認識されないため、 <code>\\server\share\dir\file.csv</code> は「区切りが 1 つも無い、単なる 1 個の塊」と判断される。</p>
+<pre><code data-lang="python">import os
+
+p = r"\\server\share\dir\file.csv"
+
+# Windows で実行した場合（ntpath）
+os.path.basename(p)   # -&gt; 'file.csv'
+os.path.dirname(p)    # -&gt; '\\server\share\dir'
+
+# Linux で実行した場合（posixpath）
+os.path.basename(p)   # -&gt; '\\server\share\dir\file.csv'  ← 丸ごと返る
+os.path.dirname(p)    # -&gt; ''                              ← 空になる</code></pre>
+<p>例外は出ない。ただ「間違った文字列」が返るだけなので、後続処理（ファイル名でのマッチング、出力名の組み立て等）が静かにずれていく。</p>
+<h3>対処1: PureWindowsPath で「Windows パスとして」分解する</h3>
+<p>実行 OS が何であっても、<code>pathlib.PureWindowsPath</code> を使えば Windows のパス規則で分解できる。ファイルシステムには触らない純粋な文字列操作クラスなので、 Linux 上でも安全に UNC を分解できる。</p>
+<pre><code data-lang="python">from pathlib import PureWindowsPath
+
+p = r"\\server\share\dir\file.csv"
+
+PureWindowsPath(p).name    # -&gt; 'file.csv'     （OS 非依存）
+PureWindowsPath(p).stem    # -&gt; 'file'
+PureWindowsPath(p).suffix  # -&gt; '.csv'
+PureWindowsPath(p).parent  # -&gt; PureWindowsPath('//server/share/dir')</code></pre>
+<p>逆に、どの環境でも POSIX パスとして扱いたいなら <code>PurePosixPath</code> を使う。ポイントは「実行 OS に判断を委ねる <code>os.path</code> をやめ、パス方言を明示するクラスに切り替える」こと。</p>
+<h3>対処2: セパレータ非依存の自前ヘルパー</h3>
+<p><code>pathlib</code> を挟みたくない場合や、<code>/</code> と <code>\</code> が混在したパスを丸めて扱いたい場合は、両方のセパレータで分割する小さなヘルパーを用意する手もある。</p>
+<pre><code data-lang="python">def unc_basename(path: str) -&gt; str:
+    """`/` と `\\` の両方を区切りと見なして末尾要素を返す。"""
+    # 末尾の区切りを無視しつつ、最後の区切り以降を取り出す
+    normalized = path.replace("\\", "/").rstrip("/")
+    return normalized.rsplit("/", 1)[-1]
+
+unc_basename(r"\\server\share\dir\file.csv")  # -&gt; 'file.csv'
+unc_basename("/mnt/share/dir/file.csv")       # -&gt; 'file.csv'</code></pre>
+<p>自前実装は挙動を完全に把握できる反面、エッジケース（ドライブレター、末尾区切り、連続区切りなど）を自分で面倒見る必要がある。基本は <code>PureWindowsPath</code> を第一候補にしたい。</p>
+<h3>splitext の注意</h3>
+<p><code>os.path.splitext</code> は「末尾の <code>.拡張子</code> だけ」を切り出す。そのため、ドットを含むディレクトリ名がパス途中にあると、意図しない切り出しをしうる。</p>
+<pre><code data-lang="python">import os
+
+os.path.splitext("archive.2026/report")
+# -&gt; ('archive', '.2026/report')  ← ディレクトリ側のドットを拡張子と誤認</code></pre>
+<p>UNC が Linux で 1 塊になっている状態でこれを通すと、被害がさらに読みにくくなる。拡張子判定は「分解してファイル名を確定させてから」行うのが安全で、 <code>PureWindowsPath(p).suffix</code> のように名前部分に閉じた API を使うと事故りにくい。</p>
+<h3>実アクセスは別問題</h3>
+<p>ここまでは全て「パス文字列の分解」の話で、実際にファイルを開けるかどうかとは別レイヤーだ。</p>
+<ul class="note-list"><li>Windows: 標準 <code>open(r"\\server\share\file.csv")</code> で UNC を直接開ける</li><li>Linux: UNC をそのまま <code>open()</code> してもアクセスできない。CIFS マウント経由でローカルパス化するか、 <code>smbprotocol</code> 等のライブラリで SMB を叩く必要がある（詳細は別ノート参照）</li></ul>
+<p>つまり「パス分解を PureWindowsPath で直した」だけでは、Linux で実ファイルを読み書きできるようにはならない。分解（文字列）とアクセス（I/O）を切り分けて考えること。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><code>os.path</code> は実行 OS に追従する。Linux では <code>\</code> が区切りにならず、UNC パスの分解が黙って壊れる。</li><li>症状は例外でなく「誤った文字列が返る」ので気付きにくい。</li><li>パスの方言を固定したいなら <code>PureWindowsPath</code>（または <code>PurePosixPath</code>）を使う。これが第一候補。</li><li>どうしても自前で処理するなら <code>/</code> と <code>\</code> の両方で分割するヘルパーを用意する。</li><li><code>splitext</code> は末尾ドット依存で誤動作しうるので、名前を確定してから拡張子を扱う。</li><li>文字列の分解と実ファイルへのアクセスは別問題。Linux での UNC 実アクセスは CIFS/smbprotocol が要る。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

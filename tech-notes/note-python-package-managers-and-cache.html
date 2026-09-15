@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Python パッケージマネージャとキャッシュ — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Python でライブラリ（pandas, requests など）を使うとき、pip install や uv add でインストールする。 このとき 「キャッシュ」 が裏で作られていて、知らないうちに数十 GB を消…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Python パッケージマネージャとキャッシュ — SkillShowcase" property="og:title"/>
+<meta content="Python でライブラリ（pandas, requests など）を使うとき、pip install や uv add でインストールする。 このとき 「キャッシュ」 が裏で作られていて、知らないうちに数十 GB を消…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-python-package-managers-and-cache.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-python-package-managers-and-cache.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>Python パッケージマネージャとキャッシュ</h2>
+<h3>背景</h3>
+<p>Python でライブラリ（pandas, requests など）を使うとき、<code>pip install</code> や <code>uv add</code> でインストールする。このとき <strong>「キャッシュ」</strong> が裏で作られていて、知らないうちに数十 GB を消費していることがある。</p>
+<p>PCの容量が逼迫したときに <strong>「キャッシュは消していいのか？」</strong> を判断できるようにするためのノート。</p>
+<h3>パッケージマネージャの種類</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">ツール</th><th scope="col">役割</th><th scope="col">キャッシュ場所（Windows）</th></tr></thead><tbody><tr><td><strong>pip</strong></td><td>標準のパッケージマネージャ</td><td><code>C:\Users\&lt;user&gt;\AppData\Local\pip\Cache</code></td></tr><tr><td><strong>uv</strong></td><td>Rust 製の高速版 pip。Astral 社製</td><td><code>C:\Users\&lt;user&gt;\AppData\Local\uv\cache</code></td></tr><tr><td><strong>poetry</strong></td><td>依存解決＋仮想環境管理</td><td><code>C:\Users\&lt;user&gt;\AppData\Local\pypoetry\Cache</code></td></tr><tr><td><strong>conda</strong></td><td>データサイエンス系で使う別系統</td><td><code>C:\Users\&lt;user&gt;\.conda\pkgs</code></td></tr></tbody></table></div>
+<p>job-repo プロジェクトでは <strong>uv</strong> を使っている。</p>
+<h3>キャッシュとは何か</h3>
+<p>パッケージマネージャがインターネットからダウンロードした <strong>wheel ファイル</strong>（<code>.whl</code>、Python ライブラリの配布形式）と、ビルド中間生成物の保管庫。</p>
+<h4>役割</h4>
+<ul class="note-list"><li><strong>2回目以降のインストールを高速化</strong> する</li><li>例: 別プロジェクトで同じ <code>pandas==2.2.0</code> を入れる時、再ダウンロードせずキャッシュから即コピー</li><li><strong>オフラインでも再インストール可能</strong> にする</li><li>ネットワーク帯域の節約</li></ul>
+<h4>キャッシュとインストール先は別</h4>
+<p>ここが混同しやすいポイント。</p>
+<pre><code data-lang="">┌─────────────────────────────────┐
+│ キャッシュ (1か所、共有)              │
+│ AppData\Local\uv\cache              │  ← .whl の倉庫
+└─────────────────────────────────┘
+              ↓ コピー
+┌────────────────┐ ┌────────────────┐
+│ プロジェクトA      │ │ プロジェクトB      │
+│ .venv/             │ │ .venv/             │  ← 実際にimportされるのはこっち
+│ └ pandas/          │ │ └ pandas/          │
+└────────────────┘ └────────────────┘</code></pre>
+<ul class="note-list"><li><strong>キャッシュ</strong> = ダウンロード済みパッケージの倉庫（消しても動作には無関係）</li><li><strong><code>.venv/</code></strong> = プロジェクトごとの仮想環境、実際に Python が読み込む場所（消すと動かなくなる）</li></ul>
+<h3>なぜキャッシュは肥大化するのか</h3>
+<ol class="note-list"><li><strong>バージョン違いを全部キャッシュする</strong></li></ol>
+<ul class="note-list"><li><code>pandas==2.2.0</code> も <code>pandas==2.1.4</code> も両方残る</li></ul>
+<ol class="note-list"><li><strong>ビルドキャッシュ</strong> が積み上がる</li></ol>
+<ul class="note-list"><li>C 拡張のあるパッケージ（numpy, lxml など）はビルド済みバイナリを保存</li></ul>
+<ol class="note-list"><li><strong>uv は積極的にキャッシュする設計</strong></li></ol>
+<ul class="note-list"><li>高速化のために hardlink で再利用するため、消さない限り溜まり続ける</li></ul>
+<ol class="note-list"><li><strong>古いプロジェクトを消しても、キャッシュは残る</strong></li></ol>
+<ul class="note-list"><li><code>.venv</code> を消してもキャッシュは残るので、何度も <code>uv sync</code> していると蓄積</li></ul>
+<p>実例: このPCでは uv キャッシュが <strong>22 GB</strong> に達していた。</p>
+<h3>削除して安全な理由</h3>
+<h4>消えるもの</h4>
+<ul class="note-list"><li>ダウンロード済み <code>.whl</code> ファイル（ネットから再取得可能）</li><li>ビルド中間生成物（再ビルドで再生成可能）</li></ul>
+<h4>消えないもの（無事）</h4>
+<ul class="note-list"><li>各プロジェクトの <code>.venv/</code>（実際の動作環境）</li><li><code>pyproject.toml</code>、<code>uv.lock</code>（依存定義）</li><li>インストール済みのコマンド（<code>pytest</code> など）</li></ul>
+<h4>副作用</h4>
+<ul class="note-list"><li>次回 <code>uv sync</code> が <strong>少し遅くなる</strong>（ネット経由で再ダウンロード）</li><li>インターネット接続が必要</li></ul>
+<p>実害ゼロに近い。<strong>公式が <code>uv cache clean</code> というコマンドを用意している</strong> こと自体が「定期的に消してOK」という設計思想の表れ。</p>
+<h3>キャッシュ操作コマンド</h3>
+<h4>uv</h4>
+<pre><code data-lang="bash">uv cache dir       # キャッシュ場所の確認
+uv cache clean     # キャッシュ全削除
+uv cache prune     # 未使用エントリだけ削除（より安全）</code></pre>
+<h4>pip</h4>
+<pre><code data-lang="bash">pip cache dir      # 場所
+pip cache list     # 中身一覧
+pip cache purge    # 全削除
+pip cache remove pandas  # 個別削除</code></pre>
+<h3>判断フロー（容量が足りないとき）</h3>
+<pre><code data-lang="">PCの空き容量が少ない
+        ↓
+AppData\Local\uv や AppData\Local\pip が大きい？
+        ↓ Yes
+動作中のアプリへの影響なし（.venv は別物）
+        ↓
+削除実行 (uv cache clean)
+        ↓
+空き容量回復
+        ↓
+次にプロジェクトを動かすときだけ再ダウンロード（数十秒〜数分）</code></pre>
+<p>迷う必要なし。<strong>キャッシュは消してOK</strong>。</p>
+<h3>関連知識</h3>
+<ul class="note-list"><li><strong><code>.venv/</code> を移動・コピーは基本NG</strong> — 絶対パスが埋め込まれていて動かない。<code>uv sync</code> で再構築するのが正解</li><li><strong><code>uv.lock</code> は必ず Git 管理する</strong> — これがあれば誰でも同じ環境を再現できる</li><li><strong>HDD 圧迫の他の犯人</strong>:</li><li>Docker の <code>vhdx</code>（WSL2仮想ディスク、自動縮小されない）</li><li>ブラウザのキャッシュ</li><li>Windows Update の <code>WinSxS</code>、<code>Windows\Installer</code></li><li>Outlook の <code>.ost</code>（メールキャッシュ）</li></ul>
+<h3>まとめ</h3>
+<ul class="note-list"><li>パッケージマネージャの <strong>キャッシュ</strong> は「ダウンロード済み倉庫」</li><li><strong>実際の動作環境（<code>.venv</code>）とは別物</strong> なので削除しても動作に影響しない</li><li>容量逼迫時は迷わず削除してよい</li><li><code>uv cache clean</code> / <code>pip cache purge</code> が公式コマンド</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

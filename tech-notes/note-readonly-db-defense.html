@@ -52,7 +52,7 @@
 <p>以下、弱い層から強い層まで整理して、どう重ねるかを見ていく。</p>
 <h3>防御の層を整理する</h3>
 <p>読み取り専用ツールで「絶対に書き換えない」を担保する層は、大きく 3 つある。</p>
-<table class="impact-table"><thead><tr><th scope="col">層</th><th scope="col">仕組み</th><th scope="col">誰が止めるか</th><th scope="col">強さ</th></tr></thead><tbody><tr><td>運用層</td><td>接続フラグ・環境変数で「読み取りモード」を明示</td><td>運用・設計者</td><td>弱（宣言的、破れる）</td></tr><tr><td>アプリ層</td><td><code>autocommit=False</code> にして Commit を書かない</td><td>アプリ</td><td>中（変更をロールバック）</td></tr><tr><td>権限層</td><td>DB アカウントに UPDATE/INSERT/DELETE を与えない</td><td>DB エンジン</td><td>強（物理的に弾く）</td></tr></tbody></table>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">層</th><th scope="col">仕組み</th><th scope="col">誰が止めるか</th><th scope="col">強さ</th></tr></thead><tbody><tr><td>運用層</td><td>接続フラグ・環境変数で「読み取りモード」を明示</td><td>運用・設計者</td><td>弱（宣言的、破れる）</td></tr><tr><td>アプリ層</td><td><code>autocommit=False</code> にして Commit を書かない</td><td>アプリ</td><td>中（変更をロールバック）</td></tr><tr><td>権限層</td><td>DB アカウントに UPDATE/INSERT/DELETE を与えない</td><td>DB エンジン</td><td>強（物理的に弾く）</td></tr></tbody></table></div>
 <p>ポイントは、<strong>下の行ほど「人の注意」に依存せず、機械が強制してくれる</strong>こと。一番下の権限層が最も信頼できる。</p>
 <h3>権限層 — 最も強い防御</h3>
 <p>いちばん強いのは DB の権限（GRANT）で縛ること。読み取り専用の DB アカウントを 1 つ用意し、そのアカウントには <code>SELECT</code> だけを許可して <code>UPDATE</code> / <code>INSERT</code> / <code>DELETE</code> を一切与えない。</p>
@@ -91,7 +91,7 @@ ApplicationIntent=ReadOnly;</code></pre>
 <p><code>ApplicationIntent=ReadOnly</code> は「読み取り経路に流す」という運用・アーキテクチャ上の分離であって、それ単体でテーブルへの書き込みを禁止する権限制御ではない点に注意。あくまで権限層と組み合わせて使う。</p>
 <h3>多層防御の考え方</h3>
 <p>まとめると、こう重ねる。</p>
-<table class="impact-table"><thead><tr><th scope="col">層</th><th scope="col">役割</th><th scope="col">破られたときに拾ってくれる下の層</th></tr></thead><tbody><tr><td>運用層（read フラグ / ReadOnly intent）</td><td>意図の宣言・経路分離</td><td>アプリ層・権限層</td></tr><tr><td>アプリ層（autocommit=False）</td><td>変更をロールバックする保険</td><td>権限層</td></tr><tr><td>権限層（GRANT SELECT のみ）</td><td>DB が物理的に書き込みを拒否</td><td>（最終防衛線）</td></tr></tbody></table>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">層</th><th scope="col">役割</th><th scope="col">破られたときに拾ってくれる下の層</th></tr></thead><tbody><tr><td>運用層（read フラグ / ReadOnly intent）</td><td>意図の宣言・経路分離</td><td>アプリ層・権限層</td></tr><tr><td>アプリ層（autocommit=False）</td><td>変更をロールバックする保険</td><td>権限層</td></tr><tr><td>権限層（GRANT SELECT のみ）</td><td>DB が物理的に書き込みを拒否</td><td>（最終防衛線）</td></tr></tbody></table></div>
 <p>大事なのは <strong>1 つの対策に賭けないこと</strong>。運用フラグを付け忘れても、<code>commit()</code> を書き間違えても、最後に権限層が <code>UPDATE</code> を弾いてくれる。逆に権限層があっても、運用・アプリ層で意図を明示しておけば、そもそも危険なコードが書かれにくくなる。層は互いを補い合う。</p>
 <h3>まとめ</h3>
 <ul class="note-list"><li>本番 DB を読むだけのツールで「絶対に書き換えない」を担保したいとき、アプリがバグらない前提に頼るのは弱い。層を重ねる（defense in depth）。</li><li>最強の層は<strong>権限</strong>。読み取り専用アカウントに UPDATE/INSERT/DELETE を与えなければ、バグで誤って書き込もうとしても DB が権限エラーで物理的に弾く。</li><li>アプリ層の保険は <code>autocommit=False</code> ＋ Commit を書かないこと。ただし SELECT only なら効果は限定的で、主役にはならない。</li><li>運用層は読み取りモードの宣言。SQL Server の <code>ApplicationIntent=ReadOnly</code> は読み取りレプリカへの経路分離で、負荷分散と書き込み経路の分離に効く（権限制御そのものではない）。</li><li>結論: 権限・トランザクション・運用フラグを重ね、どれか 1 つが破れても他が止める設計にする。</li></ul>

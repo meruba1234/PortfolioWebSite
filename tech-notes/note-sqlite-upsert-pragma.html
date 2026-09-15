@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>SQLite の UPSERT（ON CONFLICT）で冪等に蓄積する・PRAGMA でスキーマ調査 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="定期的に同じデータソースを読み込んで、その結果を SQLite に貯めていく、という処理はよくある。 たとえば「毎朝スナップショットを取り込んで蓄積テーブルに足していく」ようなバッチ。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="SQLite の UPSERT（ON CONFLICT）で冪等に蓄積する・PRAGMA でスキーマ調査 — SkillShowcase" property="og:title"/>
+<meta content="定期的に同じデータソースを読み込んで、その結果を SQLite に貯めていく、という処理はよくある。 たとえば「毎朝スナップショットを取り込んで蓄積テーブルに足していく」ようなバッチ。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-sqlite-upsert-pragma.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-sqlite-upsert-pragma.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">データベース</span></div>
+<h2>SQLite の UPSERT（ON CONFLICT）で冪等に蓄積する・PRAGMA でスキーマ調査</h2>
+<h3>背景</h3>
+<p>定期的に同じデータソースを読み込んで、その結果を SQLite に貯めていく、という処理はよくある。たとえば「毎朝スナップショットを取り込んで蓄積テーブルに足していく」ようなバッチ。</p>
+<p>このとき困るのが <strong>同じデータを何度も流し込んでしまう</strong> ケース。バッチが二重起動したり、手動で再実行したり、前回と重複する範囲を含んでいたり。素直に <code>INSERT</code> するだけだと、そのたびに同じ内容の行がどんどん増えて、テーブルが膨らみ、あとで集計するときに二重計上してしまう。</p>
+<p>やりたいのは「<strong>何度流し込んでも結果が同じ（冪等）</strong>」な蓄積。同じキーのデータは重複させず、既存行を更新するだけにしたい。これを実現するのが <strong>UPSERT（ON CONFLICT）</strong>。</p>
+<p>このノートは、UPSERT の書き方、メタ列で履歴を取る工夫、実行順序の落とし穴、そしてスキーマ調査やロック対策まわりを整理しておくもの。</p>
+<h3>UPSERT（INSERT ... ON CONFLICT DO UPDATE）の書き方</h3>
+<p>UPSERT は「<strong>UP</strong>date + in<strong>SERT</strong>」の合成語で、「キーが無ければ INSERT、既にあれば UPDATE」を 1 文でやってくれる。</p>
+<p>前提として、テーブルに <strong>主キー（PK）か UNIQUE 制約</strong> があること。「同じキー」を判定する基準がこの制約になる。</p>
+<pre><code data-lang="sql">CREATE TABLE items (
+    item_key  TEXT PRIMARY KEY,   -- ここが競合判定のキー
+    name      TEXT,
+    price     INTEGER
+);</code></pre>
+<p>このテーブルに冪等に流し込むには、こう書く。</p>
+<pre><code data-lang="sql">INSERT INTO items (item_key, name, price)
+VALUES (?, ?, ?)
+ON CONFLICT(item_key) DO UPDATE SET
+    name  = excluded.name,
+    price = excluded.price;</code></pre>
+<p>ポイントは 2 つ。</p>
+<ul class="note-list"><li><code>ON CONFLICT(item_key)</code> … <code>item_key</code> が既存行とぶつかったら、後半の UPDATE に切り替わる。</li><li><code>excluded.xxx</code> … いま INSERT しようとして「はじかれた（excluded）」新しい値を指す特別な名前。つまり「新しく来た値で上書きする」という意味になる。</li></ul>
+<p>Python から呼ぶとこうなる。</p>
+<pre><code data-lang="python">import sqlite3
+
+conn = sqlite3.connect("store.db")
+conn.execute(
+    """
+    INSERT INTO items (item_key, name, price)
+    VALUES (?, ?, ?)
+    ON CONFLICT(item_key) DO UPDATE SET
+        name  = excluded.name,
+        price = excluded.price
+    """,
+    ("A-001", "りんご", 120),
+)
+conn.commit()</code></pre>
+<p>これで、同じ <code>item_key="A-001"</code> を何回流し込んでも、行は 1 本のまま。 2 回目以降は中身が更新されるだけ。<strong>テーブルの行数はキーの母数で頭打ち</strong>になる。入力が重複していても安心して流せる、というのが UPSERT の効きどころ。</p>
+<h3>メタ列で「いつから存在するか」の履歴を取る</h3>
+<p>UPSERT のうまみは「重複しない」だけではない。 <strong>メタ列</strong>（データそのものではなく、記録の履歴を表す列）を持たせると、「このキーはいつ初めて現れて、最後に確認できたのはいつか」が分かるようになる。</p>
+<p>よく使うのは次の 3 つ。</p>
+<ul class="note-list"><li><code>first_seen</code> … 初めて登場した日時（<strong>INSERT 時だけ</strong>セット、以降は変えない）</li><li><code>last_seen</code>  … 最後に確認できた日時（<strong>流すたびに</strong>更新）</li><li><code>count</code>      … 登場回数（流すたびに +1）</li></ul>
+<pre><code data-lang="sql">CREATE TABLE items (
+    item_key   TEXT PRIMARY KEY,
+    name       TEXT,
+    price      INTEGER,
+    first_seen TEXT,
+    last_seen  TEXT,
+    seen_count INTEGER
+);</code></pre>
+<pre><code data-lang="sql">INSERT INTO items (item_key, name, price, first_seen, last_seen, seen_count)
+VALUES (?, ?, ?, :now, :now, 1)
+ON CONFLICT(item_key) DO UPDATE SET
+    name       = excluded.name,
+    price      = excluded.price,
+    last_seen  = excluded.last_seen,       -- 最終確認日時は更新する
+    seen_count = items.seen_count + 1;     -- 既存の値に +1
+    -- first_seen は SET に含めない → INSERT 時の値のまま保持される</code></pre>
+<p>ここでのコツは、<code>first_seen</code> を <strong>UPDATE 側（SET）に書かないこと</strong>。 UPSERT の UPDATE で触らなかった列は、既存の値がそのまま残る。だから「初出日時」は最初に入った値のまま凍結され、<code>last_seen</code> だけが動いていく。</p>
+<p><code>seen_count = items.seen_count + 1</code> のように、 <code>テーブル名.列名</code> で<strong>既存行の現在値</strong>を参照できるのも覚えておくと便利。（<code>excluded.xxx</code> が「新しく来た値」、<code>items.xxx</code> が「今 DB にある値」。）</p>
+<p>こうしておくと、蓄積テーブルがそのまま「登場履歴の台帳」になる。「この項目はいつからあるか」「もう来なくなった項目はどれか（last_seen が古い）」があとから追える。</p>
+<h3>ハマりどころ: UPSERT の実行順序で権威データを潰す</h3>
+<p>一番やらかしやすいのがこれ。 <strong>複数の経路から同じテーブルに UPSERT する</strong>とき、その<strong>実行順序</strong>を誤ると、後から流した「緩い」UPSERT が、先に確定させた「権威ある」データを上書きしてしまう。</p>
+<p>たとえばこういう状況。</p>
+<ul class="note-list"><li>経路 A: 人が確認して「確定」フラグを立てた、信頼できるマスタ更新</li><li>経路 B: 自動取り込みの、まだ確定していない暫定データ</li></ul>
+<p>もし経路 A のあとに経路 B が同じキーを素朴に UPSERT すると、 <strong>確定フラグまで暫定値で塗り替えて</strong>しまう。せっかく人が確定させたのに台無し。</p>
+<pre><code data-lang="sql">-- 危険な例: 全列を無条件に上書きしてしまう
+INSERT INTO items (item_key, price, is_confirmed)
+VALUES (?, ?, 0)                       -- 暫定なので is_confirmed=0 で来る
+ON CONFLICT(item_key) DO UPDATE SET
+    price        = excluded.price,
+    is_confirmed = excluded.is_confirmed;  -- ← 確定(1)を 0 に戻してしまう！</code></pre>
+<p>守り方は 2 つ。</p>
+<p><strong>(1) 更新対象カラムを絞る</strong> … 緩い経路の UPSERT では、権威ある列（確定フラグ等）を SET に<strong>含めない</strong>。触らなければ既存値が残る。</p>
+<pre><code data-lang="sql">ON CONFLICT(item_key) DO UPDATE SET
+    price = excluded.price;
+    -- is_confirmed は SET に入れない → 確定フラグは保護される</code></pre>
+<p><strong>(2) 条件付き更新（WHERE で守る）</strong> … <code>ON CONFLICT ... DO UPDATE</code> には <code>WHERE</code> を付けられる。条件を満たすときだけ更新するようにして、古い・弱いデータで新しい・強いデータを潰さないようにする。</p>
+<pre><code data-lang="sql">INSERT INTO items (item_key, price, updated_at)
+VALUES (?, ?, ?)
+ON CONFLICT(item_key) DO UPDATE SET
+    price      = excluded.price,
+    updated_at = excluded.updated_at
+WHERE excluded.updated_at &gt; items.updated_at;   -- 新しいときだけ更新</code></pre>
+<p><code>WHERE excluded.updated_at &gt; items.updated_at</code> は「新しく来たデータの日時が、今ある行の日時より新しいときだけ更新する」の意味。順序が前後して古いデータが遅れて届いても、新しい値を守れる。</p>
+<p>教訓としては、<strong>「誰でも書ける緩い経路」と「権威ある確定経路」が同じテーブルを触るなら、 UPSERT は無条件全上書きにしない</strong>。列を絞るか、条件で守る。</p>
+<h3>スキーマ調査: PRAGMA と sqlite_master</h3>
+<p>UPSERT を書くには、まず <strong>どの列が PK / UNIQUE なのか</strong>を正確に知る必要がある。 <code>ON CONFLICT(...)</code> に指定するキーが制約と合っていないとエラーになるからだ。既存 DB を触るときは、想像で書かずにスキーマを確認する。</p>
+<p><strong>列の一覧・型・PK を見る</strong>: <code>PRAGMA table_info(テーブル名)</code></p>
+<pre><code data-lang="sql">PRAGMA table_info(items);</code></pre>
+<p>各列について次が返る。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">返る列</th><th scope="col">意味</th></tr></thead><tbody><tr><td><code>cid</code></td><td>列の通し番号</td></tr><tr><td><code>name</code></td><td>列名</td></tr><tr><td><code>type</code></td><td>宣言された型（TEXT / INTEGER 等）</td></tr><tr><td><code>notnull</code></td><td>NOT NULL なら 1</td></tr><tr><td><code>dflt_value</code></td><td>デフォルト値</td></tr><tr><td><code>pk</code></td><td>主キーなら 1 以上（複合キーだと順番が入る）</td></tr></tbody></table></div>
+<p><code>pk</code> が 1 以上の列を見れば、<code>ON CONFLICT(...)</code> に何を書けばいいか分かる。</p>
+<p><strong>CREATE 文をそのまま見る</strong>: <code>sqlite_master</code> テーブル</p>
+<p>PRAGMA では読み取りにくい UNIQUE 制約や複合キーも、 <strong>元の CREATE 文を丸ごと</strong>見れば確実。SQLite は定義を <code>sqlite_master</code> に保持している。</p>
+<pre><code data-lang="sql">SELECT sql FROM sqlite_master WHERE name = 'items';</code></pre>
+<p>これで <code>CREATE TABLE items ( ... PRIMARY KEY ... UNIQUE ... )</code> が定義したときの文字列そのままで返ってくる。制約まわりを一次情報で確認したいときはこれが最強。</p>
+<p>Python から一覧を見るなら、<code>PRAGMA table_list</code> や <code>SELECT name FROM sqlite_master WHERE type='table'</code> でテーブル名の一覧も取れる。</p>
+<h3>timeout とロック対策</h3>
+<p>SQLite は 1 ファイルを複数の接続で触れるが、書き込みは基本 1 本ずつ。別の接続が書き込み中だと <code>database is locked</code> エラーが出ることがある。バッチと手動実行が重なった、みたいなときに踏みやすい。</p>
+<p>対策として、接続時に <strong>ロック待ちの上限（timeout）</strong> を設定できる。</p>
+<pre><code data-lang="python">conn = sqlite3.connect("store.db", timeout=10)   # 最大 10 秒はロック解放を待つ</code></pre>
+<p><code>timeout=10</code> は「ロックされていても、すぐ諦めずに最大 10 秒は解放を待つ」設定。一瞬のロックならこれで自然に待ってやり過ごせる。デフォルトは 5 秒と短めなので、書き込みが混みそうなバッチでは明示しておくと安定する。</p>
+<p>あわせてメモリ効率の話も。大きなテーブルを扱うとき、<strong>全件読んでからアプリ側で絞るのは非効率</strong>。最初から <code>WHERE</code> で対象キーに絞って読めば、DB もメモリも軽くなる。</p>
+<pre><code data-lang="python"># 良い: 必要なキーだけ DB 側で絞って取る
+rows = conn.execute(
+    "SELECT * FROM items WHERE item_key IN (?, ?, ?)",
+    keys,
+).fetchall()</code></pre>
+<p>「全部 load してから Python で filter」より、「SQL の WHERE で絞ってから load」のほうが、通信量もメモリも小さく済む。</p>
+<h3>UNIQUE 制約違反が出たときの切り分け</h3>
+<p>蓄積処理を書いていると <code>UNIQUE constraint failed</code> に出くわすことがある。このとき、つい「分割処理の境目（バッチとバッチのつなぎ目）で重複したのかな」と疑いたくなるが、<strong>まず疑うべきは「同一入力データの中の重複」</strong>。</p>
+<p>つまり、今まさに流し込もうとしている 1 回ぶんのデータの中に、既に同じキーが 2 つ以上入っていないか。ここが原因なことが多い。</p>
+<pre><code data-lang="python"># 投入前に、入力データ内でキーが重複していないか確かめる
+from collections import Counter
+
+dup = [k for k, n in Counter(r["item_key"] for r in records).items() if n &gt; 1]
+if dup:
+    print("入力データ内で重複しているキー:", dup)</code></pre>
+<p>境界（前回ぶんとの重なり）は UPSERT の <code>ON CONFLICT</code> がそもそも吸収してくれるので、実は問題になりにくい。それでも UNIQUE 違反が出るということは、 <strong>1 回の投入の内側で既にキーがダブっている</strong>ケースが疑わしい。入力の作り方（重複除去の漏れ、結合の取りこぼし）を見直すのが近道。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><strong>UPSERT</strong>（<code>INSERT ... ON CONFLICT(pk) DO UPDATE SET ...</code>）を使うと、同じキーを何度流し込んでも重複行を作らず既存行を更新できる（<strong>冪等な蓄積</strong>）。テーブルの行数はキーの母数で頭打ちになる。</li><li><strong>メタ列</strong>（<code>first_seen</code> / <code>last_seen</code> / <code>seen_count</code>）を持たせると、「いつから存在し、最後にいつ確認できたか」の履歴が取れる。 <code>first_seen</code> は SET に含めないことで初出値を凍結できる。</li><li><strong>実行順序の罠</strong>: 緩い経路の UPSERT が、確定済みの権威データを上書きしないよう、 <strong>更新カラムを絞る</strong> か <strong>条件付き更新（<code>WHERE excluded.x &gt; table.x</code>）</strong> で守る。</li><li><strong>スキーマ調査</strong>: <code>PRAGMA table_info(テーブル名)</code> で列・型・PK を確認、 <code>SELECT sql FROM sqlite_master WHERE name='テーブル名'</code> で CREATE 文（制約含む）を確認。</li><li><strong>ロック対策</strong>: <code>sqlite3.connect(path, timeout=10)</code> で待ち時間の上限を設定。大きなテーブルは全読せず <code>WHERE</code> で対象キーに絞ってから読む。</li><li><strong>UNIQUE 違反</strong>が出たら、分割の境界より先に <strong>同一入力データ内の重複</strong> を疑う。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

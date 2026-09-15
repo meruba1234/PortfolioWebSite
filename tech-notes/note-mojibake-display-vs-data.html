@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>「文字化け」は表示の問題か実データの問題か切り分ける — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="コンソールに流した文字列が文字化けして見える。「取」が「蜿悶」のような謎の文字列に化けている。あわてて「保存処理のエンコード指定が間違っているのでは」「DB のカラムの文字コードが壊れたのでは」と疑いたくなるが、いざファ…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="「文字化け」は表示の問題か実データの問題か切り分ける — SkillShowcase" property="og:title"/>
+<meta content="コンソールに流した文字列が文字化けして見える。「取」が「蜿悶」のような謎の文字列に化けている。あわてて「保存処理のエンコード指定が間違っているのでは」「DB のカラムの文字コードが壊れたのでは」と疑いたくなるが、いざファ…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-mojibake-display-vs-data.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-mojibake-display-vs-data.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Windows管理</span></div>
+<h2>「文字化け」は表示の問題か実データの問題か切り分ける</h2>
+<h3>背景</h3>
+<p>コンソールに流した文字列が文字化けして見える。「取」が「蜿悶」のような謎の文字列に化けている。あわてて「保存処理のエンコード指定が間違っているのでは」「DB のカラムの文字コードが壊れたのでは」と疑いたくなるが、いざファイルを開き直すと中身は正常だった…ということがよくある。</p>
+<p>そもそも化けているのは何なのか。<strong>表示だけの問題</strong>なのか、<strong>実データが壊れている</strong>のか。ここを確定しないままデバッグを始めると、正常なデータをいじって本当に壊してしまう二次被害すら起こしうる。</p>
+<h3>文字化けには2種類ある</h3>
+<p>文字化けは大きく2つに分けられる。原因も対処もまったく別物なので、まずどちらかを見極めるのが最優先。</p>
+<p><strong>(a) 実データが壊れているケース</strong> 保存時にエンコードを取り違えた、UTF-8 のバイト列を cp932 として書き込んだ、といった理由でファイルや DB の中身そのものが化けている。これは本当の障害で、書き込み側を直さないと直らない。放置すると壊れたデータが下流に伝播する。</p>
+<p><strong>(b) 表示エンコードだけの問題（データは正常）</strong> ファイルや DB の中身は正しい UTF-8 なのに、それを表示する端末・コンソール・ログビューアが別のエンコード（例: cp932）で解釈するため化けて見える。<strong>データは無傷</strong>で、表示側の設定を直せば（あるいは正しいツールで開き直せば）ちゃんと読める。</p>
+<p>この2つを混同すると、正常なデータ相手に無駄なデバッグを延々と続けることになる。</p>
+<h3>PowerShell の cp932 出力という典型例</h3>
+<p>Windows で一番ハマりやすいのがこれ。</p>
+<p>PowerShell の出力エンコーディングは既定で cp932（日本語 Windows のレガシーコードページ、Shift_JIS 系）。ところがその出力を、UTF-8 前提の bash 端末や、別プロセスのログにそのまま流し込むと、バイト列の解釈がずれて化けて見える。</p>
+<pre><code data-lang=""># PowerShell (cp932 で出力) → UTF-8 前提の端末に流す
+PS&gt; python my_script.py    # 「取引先」→「蜿門ｼ募・」のように化けて見える</code></pre>
+<p>だが、<code>my_script.py</code> が実際に書き出したファイルを UTF-8 対応エディタで開くと「取引先」と正常に表示される。<strong>化けているのはパイプの途中の表示だけ</strong>で、成果物は壊れていない、というパターン。ここで「スクリプトのエンコード指定がおかしい」と決めつけて <code>open(..., encoding=...)</code> をいじり始めると、正常なコードを壊すことになる。</p>
+<h3>確実に切り分ける方法</h3>
+<p>端末の見た目は信用しない。以下の手段で「表示か実データか」を物理的に確定させる。</p>
+<p><strong>(1) 一旦 UTF-8 でファイルに書き出して、別ツールで開き直す</strong> コンソールを経由せず、プログラムから直接 UTF-8 でファイルに書く。それを別のエディタやブラウザで開いて正常なら、犯人はコンソールの表示（=(b)）。開いても化けていれば実データが壊れている（=(a)）。</p>
+<pre><code data-lang="python">with open("check.txt", "w", encoding="utf-8") as f:
+    f.write(target_string)
+# check.txt を UTF-8 対応エディタで開いて確認する</code></pre>
+<p><strong>(2) Python なら repr() で生の姿を見る</strong> <code>print(s)</code> は端末のエンコードを通るので化ける可能性があるが、<code>repr(s)</code> はエスケープ表現になるため端末の解釈に左右されにくい。</p>
+<pre><code data-lang="python">print(repr(target_string))   # 例: '取引先' がそのまま見えるか、\x?? の羅列になるか</code></pre>
+<p><strong>(3) コードポイント（文字番号）を直接確認する</strong> 最終手段。文字を1つずつ Unicode のコードポイントに落として、期待する文字かを数値で照合する。表示に一切依存しない、最も確実な方法。</p>
+<pre><code data-lang="python">for c in target_string:
+    print(c, hex(ord(c)))
+# 取 0x53d6  (= U+53D6) なら、その文字は正しく「取」として保持されている</code></pre>
+<p><code>hex(ord("取"))</code> が <code>0x53d6</code> を返せば、メモリ上の文字は正しい。表示が化けていても中身は「取」だと断言できる。</p>
+<h3>端末側の設定を知っておく</h3>
+<p>表示の問題（b）だと分かったら、直すのは端末側。関係する設定は環境ごとに違う。</p>
+<ul class="note-list"><li><strong>Windows のコマンドプロンプト</strong>: <code>chcp</code> でコードページを確認・変更する。<code>chcp 65001</code> で UTF-8 に切り替わる（既定は日本語環境で 932 = cp932）。</li><li><strong>PowerShell</strong>: <code>$OutputEncoding</code> が外部プログラムへ渡す際のエンコード。<code>[Console]::OutputEncoding</code> が画面表示のエンコード。両者は別物なので、どちらが効いているか意識する。</li><li><strong>Python</strong>: 環境変数 <code>PYTHONIOENCODING</code>（例 <code>PYTHONIOENCODING=utf-8</code>）で標準出力のエンコードを固定できる。また、リダイレクト先がファイルかパイプか端末かによっても既定の挙動が変わる。</li></ul>
+<pre><code data-lang="">chcp                # 現在のコードページ確認 (例: 932)
+chcp 65001          # UTF-8 に変更</code></pre>
+<p>いずれも「実データには触っていない」点が重要。表示の色眼鏡を替えているだけ。</p>
+<h3>鉄則</h3>
+<p><strong>「コンソールの print が化けている」≠「DB や実ファイルが化けている」。</strong></p>
+<p>化けを見つけたら、コードをいじる前にまず切り分ける。</p>
+<ol class="note-list"><li>表示だけの問題か、実データが壊れているかを <strong>repr / コードポイント / 別ツールで開き直し</strong> により確定する。</li><li>表示だけなら端末側（chcp / OutputEncoding / PYTHONIOENCODING）を直す。<strong>書き込み側のコードは触らない。</strong></li><li>実データが壊れていて初めて、保存処理のエンコード指定を修正する。</li></ol>
+<p>順番を守れば、正常なデータを壊す事故を防げる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>文字化けには「実データが壊れている(a)」と「表示エンコードだけの問題(b)」の2種類がある。混同すると無駄なデバッグにハマる。</li><li>PowerShell の既定出力は cp932。UTF-8 前提の端末やログに流すと化けて見えるが、成果物ファイルは正常なことが多い。</li><li>切り分けは端末の見た目に頼らない。UTF-8 でファイルに書き出して別ツールで開く / <code>repr()</code> / <code>hex(ord(c))</code> でコードポイントを直接確認する。</li><li>表示の問題なら端末側（<code>chcp</code> / <code>$OutputEncoding</code> / <code>PYTHONIOENCODING</code>）を直す。実データは触らない。</li><li>まず「表示か実データか」を確定してから直す。これが鉄則。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

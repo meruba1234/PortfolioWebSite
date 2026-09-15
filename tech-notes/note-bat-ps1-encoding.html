@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>.bat / .ps1 の文字コード・BOM・改行の罠 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="スクリプトやツールで .bat / .ps1 を自動生成すると、手元では動くのに本番で日本語が化ける・構文エラーで落ちる、という事故が起きやすい。 原因はほぼ「文字コードと BOM の選び方を間違えている」こと。cmd.…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content=".bat / .ps1 の文字コード・BOM・改行の罠 — SkillShowcase" property="og:title"/>
+<meta content="スクリプトやツールで .bat / .ps1 を自動生成すると、手元では動くのに本番で日本語が化ける・構文エラーで落ちる、という事故が起きやすい。 原因はほぼ「文字コードと BOM の選び方を間違えている」こと。cmd.…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-bat-ps1-encoding.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-bat-ps1-encoding.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Windows管理</span></div>
+<h2>.bat / .ps1 の文字コード・BOM・改行の罠</h2>
+<h3>背景</h3>
+<p>スクリプトやツールで <code>.bat</code> / <code>.ps1</code> を自動生成すると、手元では動くのに本番で日本語が化ける・構文エラーで落ちる、という事故が起きやすい。原因はほぼ「文字コードと BOM の選び方を間違えている」こと。cmd.exe と PowerShell では期待するエンコーディングが違うため、同じ「UTF-8 で保存」でも片方が壊れる。どのエンコーディングで書けばいいのか、なぜそうなるのかを整理しておくためのノート。</p>
+<h3>cmd.exe は CP932（Shift_JIS）+ CRLF が前提</h3>
+<p>Windows の cmd.exe は、<code>.bat</code> ファイルを <strong>CP932（Shift_JIS）+ CRLF</strong> として解釈する。ここに <strong>UTF-8（BOM なし）+ LF</strong> で日本語コメントを書くと、cmd がバイト列を Shift_JIS として読むため盛大に化け、化けた結果が偶然コマンドとして解釈されて <code>'縺ゅ・' は、内部コマンド...</code> のようなエラーになる。</p>
+<p>よくある誤解が「冒頭に <code>chcp 65001</code> を書けば UTF-8 で読んでくれる」というもの。これは<strong>間違い</strong>。</p>
+<pre><code data-lang="bat">@echo off
+chcp 65001
+echo にほんご</code></pre>
+<p><code>chcp 65001</code> が効くのは、この <code>.bat</code> が起動した後の <strong>コンソール出力／入力のコードページ</strong>だけ。 <strong><code>.bat</code> ファイル自身のバイト列を cmd が読む段階は、<code>chcp</code> 実行より前</strong>なので、ファイル本体は依然 CP932 として解釈される。つまり <code>echo にほんご</code> の「にほんご」は化けたまま。</p>
+<p>対策は2つ。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">対策</th><th scope="col">内容</th><th scope="col">使いどころ</th></tr></thead><tbody><tr><td>Shift_JIS 保存</td><td><code>.bat</code> を CP932 で保存する</td><td>日本語コメント・日本語 echo をどうしても入れたいとき</td></tr><tr><td>ASCII のみにする</td><td>日本語を一切書かない（コメントも英語）</td><td>一番事故らない。自動生成なら基本これ</td></tr></tbody></table></div>
+<p>改行も <strong>CRLF</strong> にしておくのが無難。LF だけだと <code>goto</code> ラベルや行連結でまれに崩れる。</p>
+<h3>バッチの特殊記号（<code>(</code> <code>)</code> <code>:</code> 等）で構文が壊れる</h3>
+<p><code>.bat</code> は文字コード以外にも地雷がある。<code>REM</code> コメント行や <code>set /p</code> のプロンプト文字列の中に <code>(</code> <code>)</code> <code>:</code> <code>&amp;</code> <code>|</code> <code>&lt;</code> <code>&gt;</code> <code>^</code> <code>%</code> などのバッチ特殊記号が入っていると、パーサがそれを構文として拾ってしまう。</p>
+<p>特に厄介なのが <code>if ( ... )</code> や <code>for ... do ( ... )</code> のブロック内。ブロックは <code>)</code> で閉じるので、コメントやメッセージの中の半角 <code>)</code> が<strong>ブロックを途中で閉じてしまい</strong>、<code>( が予期されていませんでした。</code> のような構文エラーになる。</p>
+<pre><code data-lang="bat">if "%mode%"=="run" (
+    rem 実行モード (本番) です   ← この ) でブロックが閉じてしまう
+    call :main
+)</code></pre>
+<p>対策：ブロック内のメッセージに書く括弧などは<strong>全角に置換</strong>する（<code>（本番）</code>）、あるいは特殊記号を <code>^</code> でエスケープする。自動生成では「メッセージ中の半角括弧・コロンを全角に寄せる」フィルタを1枚かませておくと安全。</p>
+<h3>PowerShell（5.x）は BOM なし UTF-8 を Shift_JIS と誤読する</h3>
+<p>Windows PowerShell 5.x は、<strong>BOM のない <code>.ps1</code> をデフォルトで Shift_JIS（既定の ANSI コードページ）として読む</strong>。そのため日本語入りの <code>.ps1</code> を UTF-8（BOM なし）で保存すると、cmd と同じ理由で化ける。文字列だけならまだしも、日本語がコメントに含まれるだけでもトークナイズがずれて <code>文字列に終端記号 " がありません</code> のような構文エラーになることがある。</p>
+<p>解決策は <strong>UTF-8 BOM 付き</strong>で保存すること。BOM があると PowerShell は「これは UTF-8 だ」と正しく判定する。 UTF-8 BOM の正体はファイル先頭 3 バイトの <strong><code>EF BB BF</code></strong>。</p>
+<pre><code data-lang="powershell"># BOM 有無をバイトで確認
+Format-Hex .\script.ps1 -Count 3
+# 先頭が EF BB BF なら BOM 付き UTF-8</code></pre>
+<p class="note">PowerShell 7（Core）はデフォルトが BOM なし UTF-8 なので事情が違うが、社内で使うのが Windows PowerShell 5.x なら「日本語 .ps1 は BOM 付き」で統一しておくのが安全。</p>
+<h3>ただし BOM が邪魔なファイルもある（BOM なしで書く方法）</h3>
+<p>BOM は万能ではない。<strong>BOM を嫌う読み手</strong>も多い。代表例が設定ファイル（Web サーバの <code>*.conf</code> など）で、先頭に <code>EF BB BF</code> があるとパーサがそれを設定値の一部として読んでしまい、起動失敗やパースエラーになる。</p>
+<p>ここで罠なのが PowerShell の <code>Out-File -Encoding utf8</code> や <code>Set-Content -Encoding utf8</code>。<strong>5.x ではこれらが BOM 付き UTF-8 で書き出す</strong>。「utf8 を指定したのに BOM が付く」ので設定ファイル生成で事故る。</p>
+<p>BOM <strong>なし</strong> UTF-8 で確実に書きたいときは、.NET の API を直接叩く。</p>
+<pre><code data-lang="powershell">$path = 'C:\path\to\app.conf'
+$text = "server_name example.internal;`n"
+# 第3引数の UTF8Encoding($false) が「BOM なし」の意味
+[System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))</code></pre>
+<p><code>New-Object System.Text.UTF8Encoding($false)</code> の <code>$false</code> が <strong>「BOM を付けない」</strong>。ここを <code>$true</code> にすると BOM 付きになる。まとめると：</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">書きたいもの</th><th scope="col">推奨エンコーディング</th><th scope="col">PowerShell での書き方</th></tr></thead><tbody><tr><td>日本語入り <code>.ps1</code></td><td>UTF-8 <strong>BOM 付き</strong></td><td><code>WriteAllText</code> + <code>UTF8Encoding($true)</code></td></tr><tr><td>設定ファイル（<code>.conf</code> 等）</td><td>UTF-8 <strong>BOM なし</strong></td><td><code>WriteAllText</code> + <code>UTF8Encoding($false)</code></td></tr><tr><td><code>.bat</code></td><td>CP932 か ASCII のみ</td><td>別途 Shift_JIS で保存</td></tr></tbody></table></div>
+<h3>日本語を避けるテク：<code>[char]0xXXXX</code> で組み立てる</h3>
+<p>「そもそも日本語をファイルに埋め込まなければエンコーディング事故は起きない」という発想もある。実行時に必要な日本語メッセージは、ファイル上は ASCII（コードポイント）で書いておき、実行時に文字へ組み立てる。</p>
+<pre><code data-lang="powershell"># 「完了」を Unicode コードポイントから組み立てる
+$msg = [char]0x5B8C + [char]0x4E86   # 完 + 了
+Write-Host $msg</code></pre>
+<p>こうするとファイル本体は ASCII のみなので、BOM の有無やコードページに左右されずどんな環境でも同じ結果になる。多用すると読みにくいが、「1〜2 個の固定メッセージだけ確実に出したい」ときに有効。</p>
+<h3>定石：<code>.bat</code> は薄いラッパー、中身は <code>.ps1</code></h3>
+<p><code>.bat</code> は CP932 の制約が強く、特殊記号にも弱いので、<strong>日本語 UI やまともなロジックを持たせるのに向かない</strong>。そこで定石は「<code>.bat</code> は起動役の薄いラッパーに徹し、実処理と日本語表示は <code>.ps1</code> に寄せる」。</p>
+<pre><code data-lang="bat">@echo off
+rem ASCII only. Just launch the PowerShell script.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0main.ps1"</code></pre>
+<ul class="note-list"><li><code>.bat</code> … ASCII のみ・特殊記号なし・CRLF。壊れようがない最小限</li><li><code>main.ps1</code> … UTF-8 BOM 付き。日本語メッセージ・分岐・ファイル操作はこちらに全部書く</li></ul>
+<p>役割を分けることで、「cmd の CP932 問題」と「PowerShell の BOM 問題」をそれぞれの得意な側だけで完結させられる。</p>
+<h3>まとめ</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">対象</th><th scope="col">期待エンコーディング</th><th scope="col">ハマりどころ</th></tr></thead><tbody><tr><td><code>.bat</code>（cmd.exe）</td><td>CP932 + CRLF</td><td><code>chcp 65001</code> を書いてもファイル本体は CP932 のまま。日本語は Shift_JIS 保存か ASCII 化</td></tr><tr><td><code>.bat</code> の括弧・コロン</td><td>—</td><td><code>if(...)</code> ブロック内の半角 <code>)</code> <code>:</code> が構文を壊す。全角化 or <code>^</code> エスケープ</td></tr><tr><td><code>.ps1</code>（PowerShell 5.x）</td><td>UTF-8 <strong>BOM 付き</strong>（<code>EF BB BF</code>）</td><td>BOM なしだと Shift_JIS 誤読で化け・構文エラー</td></tr><tr><td><code>.conf</code> 等 BOM 嫌う系</td><td>UTF-8 <strong>BOM なし</strong></td><td><code>Out-File/Set-Content -Encoding utf8</code> は BOM 付き。<code>WriteAllText</code> + <code>UTF8Encoding($false)</code></td></tr><tr><td>日本語を避けたい</td><td>ASCII</td><td><code>[char]0xXXXX</code> で実行時に組み立てるとエンコーディング非依存</td></tr></tbody></table></div>
+<p>覚え方：</p>
+<ul class="note-list"><li>cmd は <strong>Shift_JIS の世界</strong>、PowerShell 5.x は <strong>BOM で UTF-8 を見分ける世界</strong></li><li><code>chcp 65001</code> は<strong>出力</strong>のコードページを変えるだけ、<strong>ファイル解釈</strong>は変えない</li><li><code>-Encoding utf8</code> は 5.x では <strong>BOM 付き</strong>。BOM なしは <code>WriteAllText</code> + <code>UTF8Encoding($false)</code></li><li>迷ったら <strong>「.bat は ASCII の薄いラッパー、中身は BOM 付き .ps1」</strong></li></ul>
+<h3>関連</h3>
+<ul class="note-list"><li>改行コード CRLF / LF の一般論 → <code>git-line-endings-crlf-lf.md</code>（別ノート）</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

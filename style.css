@@ -868,6 +868,12 @@ footer {
     margin: 7px 0;
     line-height: 1.5;
 }
+.table-scroll {
+    overflow-x: auto;
+    margin: 1em 0 1.5em;
+}
+.table-scroll .impact-table { margin: 0; }
+
 .note-list {
     margin: 0.5em 0 1.4em;
     padding-left: 1.35em;

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>IMAP の仕組み — UID / UIDVALIDITY・readonly 接続・ポート — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="「特定のアドレスに届いたメールを、プログラムで自動的に読み取って処理したい」という場面は多い。 たとえば受信箱に届いた注文メールやレポートを定期的に拾い上げて、後続の処理に流すようなケースだ。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="IMAP の仕組み — UID / UIDVALIDITY・readonly 接続・ポート — SkillShowcase" property="og:title"/>
+<meta content="「特定のアドレスに届いたメールを、プログラムで自動的に読み取って処理したい」という場面は多い。 たとえば受信箱に届いた注文メールやレポートを定期的に拾い上げて、後続の処理に流すようなケースだ。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-imap-basics.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-imap-basics.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">ネットワーク</span></div>
+<h2>IMAP の仕組み — UID / UIDVALIDITY・readonly 接続・ポート</h2>
+<h3>背景</h3>
+<p>「特定のアドレスに届いたメールを、プログラムで自動的に読み取って処理したい」という場面は多い。たとえば受信箱に届いた注文メールやレポートを定期的に拾い上げて、後続の処理に流すようなケースだ。</p>
+<p>こうした自動処理を安全に作るには、メール受信プロトコルの仕組みを理解しておく必要がある。特に <strong>同じメールを二度処理してしまわないこと（二重取得の防止）</strong> と、 <strong>人が手で操作している受信箱を壊さないこと</strong> の2点が肝になる。ここでは IMAP を題材に、その要点を整理する。</p>
+<h3>IMAP と POP3 の違い</h3>
+<p>メール受信には代表的に IMAP と POP3 の2つのプロトコルがある。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">観点</th><th scope="col">IMAP</th><th scope="col">POP3</th></tr></thead><tbody><tr><td>メールの実体の置き場所</td><td><strong>サーバ側に置いたまま</strong></td><td>取得して<strong>ローカルに落とす</strong>（基本サーバから消える）</td></tr><tr><td>複数端末での閲覧</td><td>同じ状態を共有できる</td><td>端末ごとにバラバラになりやすい</td></tr><tr><td>フォルダ・既読状態</td><td>サーバ側で管理・同期される</td><td>ローカル依存</td></tr><tr><td>自動処理との相性</td><td>サーバ上の状態を基準にできる</td><td>「消える」ため取りこぼしや競合が起きやすい</td></tr></tbody></table></div>
+<p>POP3 は「取ってきてサーバから消す」のが基本動作なので、 PC とスマホの両方で同じ箱を見ると片方でメールが消えて見える、といったことが起きる。</p>
+<p>IMAP は <strong>メールをサーバに置いたまま読む</strong> ので、複数端末で同じ状態を見られる。自動処理を組むときも「サーバ上に真実がある」状態を保てるため扱いやすい。</p>
+<h3>UID と UIDVALIDITY</h3>
+<p>IMAP では、メールボックス内の各メールに <strong>UID（Unique Identifier）</strong> という一意の番号が付く。この UID を手がかりにすれば「どのメールか」をピンポイントで指定できる。</p>
+<p>ただし UID には落とし穴がある。メールボックスには <strong><code>UIDVALIDITY</code></strong> という値があり、これが変わると <strong>UID 空間がリセットされる</strong>。つまり <code>UIDVALIDITY</code> が変化した後は、<strong>以前と同じ UID が別のメールを指しうる</strong>。</p>
+<pre><code data-lang="text">UIDVALIDITY = 100 のとき   UID 42 = 「注文メールA」
+　　↓ サーバ都合で UIDVALIDITY が 101 に変わる
+UIDVALIDITY = 101 のとき   UID 42 = 「まったく別のメールB」かもしれない</code></pre>
+<p>そのため、UID を保存して使う側は次のように扱う。</p>
+<ol class="note-list"><li>UID だけでなく <strong><code>UIDVALIDITY</code> もセットで保存</strong> しておく。</li><li>接続のたびに現在の <code>UIDVALIDITY</code> を確認する。</li><li>保存していた値と <strong>変化していたら、UID の管理をやり直す</strong>（過去の UID は当てにならない）。</li></ol>
+<p>「UID は UIDVALIDITY とペアで初めて意味を持つ」と覚えておくとよい。</p>
+<h3>二重取得の防止</h3>
+<p>自動処理でいちばん怖いのが、<strong>同じメールを二度処理してしまう</strong> ことだ。これを防ぐ方法として、次のようなやり方は <strong>安全ではない</strong>。</p>
+<ul class="note-list"><li>「既読フラグが付いていないもの」を未処理とみなす方式 → 人が先にメールを開いて既読にしただけで、処理対象から漏れてしまう。</li><li>「処理したらフォルダを移動する」方式 → 人の操作や他ツールとの競合でフォルダ構成が変わると破綻する。</li></ul>
+<p>安全なのは、<strong>自分が処理し終えた UID を自前で記録しておく方式</strong> だ。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">方式</th><th scope="col">問題点</th><th scope="col">人の操作の影響</th></tr></thead><tbody><tr><td>既読フラグで判定</td><td>人が開くと既読になる</td><td><strong>受ける（漏れる）</strong></td></tr><tr><td>フォルダ移動で判定</td><td>移動の競合・手動整理で崩れる</td><td><strong>受ける</strong></td></tr><tr><td><strong>処理済み UID を自前記録</strong></td><td>記録の永続化が必要</td><td><strong>受けない</strong></td></tr></tbody></table></div>
+<pre><code data-lang="text">処理済みUIDの記録（例）: { UIDVALIDITY: 100, done: [40, 41, 42] }
+
+新着チェック時:
+  現在の UIDVALIDITY を確認
+    → 記録と一致するなら、done に含まれない UID だけ処理する
+    → 変わっていたら done をリセットしてやり直す</code></pre>
+<p>このやり方なら、人が受信箱を先に開いて既読にしても、自分の「処理済みリスト」は独立しているので <strong>影響を受けない</strong>。</p>
+<h3>readonly（EXAMINE）で開く</h3>
+<p>IMAP でメールボックスを開くコマンドは <code>SELECT</code> だが、これには2つのモードがある。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">コマンド</th><th scope="col">モード</th><th scope="col">メールの状態（既読フラグ等）への影響</th></tr></thead><tbody><tr><td><code>SELECT</code></td><td>読み書き</td><td>メールを読むと既読になるなど、状態が変わりうる</td></tr><tr><td><code>EXAMINE</code></td><td><strong>readonly</strong></td><td><strong>一切変更しない</strong>（状態を保ったまま読める）</td></tr></tbody></table></div>
+<p>自動処理では、<strong>readonly（EXAMINE）で開く</strong> のが安全だ。こうすれば、プログラムがメールを読んでも既読フラグが立たない。人が後から受信箱を見たときに「まだ誰も開いていない」状態を保てる。</p>
+<p>多くのライブラリでは <code>SELECT</code> に <code>readonly=True</code> のような指定をすると EXAMINE 相当になる。</p>
+<h3>ポートと暗号化</h3>
+<p>IMAP で使うポートと暗号化方式は次のとおり。混同しやすいので整理しておく。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">ポート</th><th scope="col">方式</th><th scope="col">暗号化</th><th scope="col">説明</th></tr></thead><tbody><tr><td><strong>143</strong></td><td>平文 IMAP</td><td>なし</td><td>暗号化されない。中身が見える</td></tr><tr><td><strong>993</strong></td><td>IMAPS（implicit TLS）</td><td>あり（最初から SSL/TLS）</td><td>接続した瞬間から暗号化されている</td></tr><tr><td><strong>143</strong></td><td>STARTTLS</td><td>あり（後から昇格）</td><td>まず平文で接続し、途中で暗号化に <strong>昇格</strong> する別方式</td></tr></tbody></table></div>
+<p>ポイントは2つ。</p>
+<ul class="note-list"><li><strong>993 は「最初から暗号化（implicit TLS）」</strong>。接続開始時点で TLS が張られる。</li><li><strong>STARTTLS は 143 で平文接続した後に暗号化へ昇格する</strong>。「143 = 常に平文」ではなく、 STARTTLS で途中から暗号化されるケースがある点に注意。</li></ul>
+<p>平文（暗号化なしの 143）は、通信経路が信頼できる <strong>社内 LAN 内などに限る</strong> べきで、インターネット越しなら 993 か STARTTLS を使う。</p>
+<h3>認証</h3>
+<p>認証は基本的に <strong>ID（メールアドレス等）とパスワード</strong> で行う。</p>
+<p>ただし近年は、通常のパスワードでのログインを許可しないサービスが増えている。</p>
+<ul class="note-list"><li><strong>アプリパスワード</strong>: 自動処理・アプリ専用に発行する別のパスワード。</li><li><strong>OAuth2（XOAUTH2）</strong>: トークンベースの認証。Google 系など一部サービスで必須。</li></ul>
+<p>自動処理を組むときは、対象のメールサーバが「普通のパスワードで入れるのか」「アプリパスワードや OAuth2 が要るのか」を先に確認しておくとよい。</p>
+<pre><code data-lang="text">接続の流れ（例）:
+  1. imap.example.com の 993 番へ SSL/TLS 接続
+  2. ID + パスワード（またはアプリパスワード / XOAUTH2）で LOGIN
+  3. EXAMINE で受信箱を readonly で開く
+  4. UIDVALIDITY を確認 → 処理済みUID記録と照合
+  5. 未処理の UID だけ取得して処理</code></pre>
+<h3>まとめ</h3>
+<ul class="note-list"><li>IMAP は <strong>メールをサーバに置いたまま読む</strong> プロトコル。POP3 は取得してローカルに落とし基本消すので、複数端末閲覧や自動処理には IMAP が向く。</li><li>各メールには <strong>UID</strong> が付くが、<strong><code>UIDVALIDITY</code> が変わると UID 空間はリセット</strong> される。UID は UIDVALIDITY とセットで保存し、変化を検知したら管理をやり直す。</li><li><strong>二重取得の防止は「処理済み UID を自前で記録」する方式が安全</strong>。既読フラグやフォルダ移動に頼ると、人の操作で簡単に崩れる。</li><li>メールボックスは <strong>readonly（EXAMINE）</strong> で開けば、既読フラグ等を一切変えずに読める。</li><li>ポートは <strong>143 = 平文 / 993 = 最初から SSL/TLS（implicit）/ STARTTLS = 143 接続後に暗号化へ昇格</strong>。平文は社内 LAN 内などに限る。</li><li>認証は基本 ID/パスワードだが、<strong>アプリパスワードや OAuth2（XOAUTH2）</strong> が要るサービスもあるので事前確認する。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

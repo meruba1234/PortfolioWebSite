@@ -9,7 +9,7 @@
 <title>技術ノート — SkillShowcase</title>
 <link href="style.css" rel="stylesheet"/>
 <meta content="業務で調べた内容を分野別に整理した学習ノート。社内固有の情報を含まないものを公開しています。" name="description"/>
-<meta content="article" property="og:type"/>
+<meta content="website" property="og:type"/>
 <meta content="技術ノート — SkillShowcase" property="og:title"/>
 <meta content="業務で調べた内容を分野別に整理した学習ノート。社内固有の情報を含まないものを公開しています。" property="og:description"/>
 <meta content="SkillShowcase" property="og:site_name"/>
@@ -50,15 +50,14 @@
 </section>
 <section>
 <div class="stats-grid">
-<div class="stat-card"><div class="stat-value">58</div><div class="stat-label">整理済みノート</div></div>
+<div class="stat-card"><div class="stat-value">59</div><div class="stat-label">公開しているノート</div></div>
 <div class="stat-card"><div class="stat-value">9</div><div class="stat-label">分野</div></div>
 <div class="stat-card"><div class="stat-value">156</div><div class="stat-label">一問一答（復習用）</div></div>
-<div class="stat-card"><div class="stat-value">10</div><div class="stat-label">全文公開中</div></div>
 </div>
 </section>
 <section>
-<h2>公開しているノート</h2>
-<p>社内固有の情報を含まず、内容を再確認できたものから全文を公開しています。</p>
+<h2>主なノート</h2>
+<p>実務で特に効いたものを抜き出しています。全一覧は下の分野別からご覧いただけます。</p>
 <div class="case-grid">
 <div class="case-card">
 <div class="case-tags"><span class="case-tag">Python</span><span class="case-tag">SQL Server</span><span class="case-tag">文字コード</span><span class="case-tag">Linux移行</span></div>
@@ -124,51 +123,51 @@
 </section>
 <section>
 <h2>分野別の一覧</h2>
-<p>公開・非公開を問わず、整理しているノートの見出し一覧です。分野名をクリックすると展開します。</p>
+<p>公開しているノートの全一覧です。分野名をクリックすると展開します。</p>
 <details class="note-group">
 <summary>データベース<span class="count">9 本</span></summary>
 <p>SQL Server / SQLite、突合・名寄せ、型と NULL の扱い、権限設計</p>
-<ul><li>消費税の計算・丸めと内税/外税・軽減税率（1円差の追い方）</li><li><a href="tech-notes/note-n-plus-1-prefetch.html">N+1 クエリ問題と prefetch（バッチ取得）による解消</a> <span class="note-badge">全文公開</span></li><li>DB の NULL / 0 / 空欄は別物 — 値の読み方と大きなキーの型</li><li><a href="tech-notes/note-pyodbc-setencoding.html">pyodbc の setencoding(cp932) が Linux で SQL と結果を壊す</a> <span class="note-badge">全文公開</span></li><li><a href="tech-notes/note-readonly-db-defense.html">本番 DB を壊さない多層防御 — 権限層で担保する</a> <span class="note-badge">全文公開</span></li><li><a href="tech-notes/note-record-matching.html">異種データの突合・名寄せの設計（安定キー・合成キー分解・正規化・貪欲マッチの限界）</a> <span class="note-badge">全文公開</span></li><li>SQLite の UPSERT（ON CONFLICT）で冪等に蓄積する・PRAGMA でスキーマ調査</li><li>SQL Server にクロスプラットフォーム接続（ODBC Driver 18 / TrustServerCertificate / Linux）</li><li>VBA/ADO の conn.Execute が Recordset を返す＝SELECT の見分け方</li></ul>
+<ul><li><a href="tech-notes/note-consumption-tax-calculation-rounding.html">消費税の計算・丸めと内税/外税・軽減税率（1円差の追い方）</a></li><li><a href="tech-notes/note-n-plus-1-prefetch.html">N+1 クエリ問題と prefetch（バッチ取得）による解消</a></li><li><a href="tech-notes/note-null-zero-empty-and-keys.html">DB の NULL / 0 / 空欄は別物 — 値の読み方と大きなキーの型</a></li><li><a href="tech-notes/note-pyodbc-setencoding.html">pyodbc の setencoding(cp932) が Linux で SQL と結果を壊す</a></li><li><a href="tech-notes/note-readonly-db-defense.html">本番 DB を壊さない多層防御 — 権限層で担保する</a></li><li><a href="tech-notes/note-record-matching.html">異種データの突合・名寄せの設計（安定キー・合成キー分解・正規化・貪欲マッチの限界）</a></li><li><a href="tech-notes/note-sqlite-upsert-pragma.html">SQLite の UPSERT（ON CONFLICT）で冪等に蓄積する・PRAGMA でスキーマ調査</a></li><li><a href="tech-notes/note-sqlserver-cross-platform-connection.html">SQL Server にクロスプラットフォーム接続（ODBC Driver 18 / TrustServerCertificate / Linux）</a></li><li><a href="tech-notes/note-vba-ado-execute-select-detection.html">VBA/ADO の conn.Execute が Recordset を返す＝SELECT の見分け方</a></li></ul>
 </details>
 <details class="note-group">
 <summary>プログラミング<span class="count">20 本</span></summary>
 <p>Python、文字コード、ファイル I/O、Git、正規表現、丸め処理</p>
-<ul><li>累積・差分処理の冪等性バグ（再検知の繰り返し・集約漏れ）</li><li><a href="tech-notes/note-atomic-file-write.html">アトミックなファイル書き込み（.tmp に書いて rename）</a> <span class="note-badge">全文公開</span></li><li>bisect で「基準日以前の最新」を高速に選ぶ（二分探索）</li><li>CSV を手動で編集するときの注意点（かんたん版）</li><li>CSV を手動で編集するときの落とし穴（詳細版）</li><li>CP932 と Shift_JIS の違い・日本語ファイルの文字化け対処</li><li>ファイル I/O の3パターン（直接書き / メモリ完結 / 一時ファイル必須）</li><li><a href="tech-notes/note-git-line-endings.html">改行コード（CRLF / LF）と Git の autocrlf</a> <span class="note-badge">全文公開</span></li><li>.gitignore の否定パターンと既ステージ問題・日本語パス表示</li><li>Python は import 済みモジュールを再読込しない — 常駐プロセスは再起動が要る</li><li><a href="tech-notes/note-decimal-vba-rounding.html">Python Decimal と VBA の丸め・整数化の差分</a> <span class="note-badge">全文公開</span></li><li>Python パッケージマネージャとキャッシュ</li><li>python-pptx でスライドを動的に生成・分割する</li><li>Python の sys.path にディレクトリを追加するとは</li><li>短いIDの照合と正規表現の落とし穴（部分一致の誤ヒット・findall の順序）</li><li>標準出力のバッファリング — バックグラウンド実行で print が出ない</li><li>subprocess と環境変数の伝播 — env を明示指定すると親を継がない</li><li>Windows の UNC パスは Linux 上の os.path で壊れる</li><li>Unicode 正規化（NFKC）で全角半角・カナの表記揺れを吸収する</li><li>xlsx/xlsm は ZIP+XML — openpyxl が画像や図形を落とす原理と回避</li></ul>
+<ul><li><a href="tech-notes/note-accumulation-idempotency-bug.html">累積・差分処理の冪等性バグ（再検知の繰り返し・集約漏れ）</a></li><li><a href="tech-notes/note-atomic-file-write.html">アトミックなファイル書き込み（.tmp に書いて rename）</a></li><li><a href="tech-notes/note-bisect-time-series-lookup.html">bisect で「基準日以前の最新」を高速に選ぶ（二分探索）</a></li><li><a href="tech-notes/note-csv-manual-editing-checklist.html">CSV を手動で編集するときの注意点（かんたん版）</a></li><li><a href="tech-notes/note-csv-manual-editing-pitfalls.html">CSV を手動で編集するときの落とし穴（詳細版）</a></li><li><a href="tech-notes/note-encoding-cp932-shift-jis.html">CP932 と Shift_JIS の違い・日本語ファイルの文字化け対処</a></li><li><a href="tech-notes/note-file-io-abc-patterns.html">ファイル I/O の3パターン（直接書き / メモリ完結 / 一時ファイル必須）</a></li><li><a href="tech-notes/note-git-line-endings.html">改行コード（CRLF / LF）と Git の autocrlf</a></li><li><a href="tech-notes/note-gitignore-negation-quotepath.html">.gitignore の否定パターンと既ステージ問題・日本語パス表示</a></li><li><a href="tech-notes/note-module-reload-worker-restart.html">Python は import 済みモジュールを再読込しない — 常駐プロセスは再起動が要る</a></li><li><a href="tech-notes/note-decimal-vba-rounding.html">Python Decimal と VBA の丸め・整数化の差分</a></li><li><a href="tech-notes/note-python-package-managers-and-cache.html">Python パッケージマネージャとキャッシュ</a></li><li><a href="tech-notes/note-python-pptx-dynamic-slides.html">python-pptx でスライドを動的に生成・分割する</a></li><li><a href="tech-notes/note-python-sys-path.html">Python の sys.path にディレクトリを追加するとは</a></li><li><a href="tech-notes/note-regex-id-matching-pitfalls.html">短いIDの照合と正規表現の落とし穴（部分一致の誤ヒット・findall の順序）</a></li><li><a href="tech-notes/note-stdout-buffering.html">標準出力のバッファリング — バックグラウンド実行で print が出ない</a></li><li><a href="tech-notes/note-subprocess-env-propagation.html">subprocess と環境変数の伝播 — env を明示指定すると親を継がない</a></li><li><a href="tech-notes/note-unc-path-linux-ospath.html">Windows の UNC パスは Linux 上の os.path で壊れる</a></li><li><a href="tech-notes/note-unicode-nfkc-normalization.html">Unicode 正規化（NFKC）で全角半角・カナの表記揺れを吸収する</a></li><li><a href="tech-notes/note-xlsx-zip-xml-openpyxl.html">xlsx/xlsm は ZIP+XML — openpyxl が画像や図形を落とす原理と回避</a></li></ul>
 </details>
 <details class="note-group">
 <summary>インフラ<span class="count">9 本</span></summary>
 <p>Docker、ジョブ基盤、バッチ/ETL の安全設計、Linux の障害診断</p>
-<ul><li><a href="tech-notes/note-batch-etl-safe-design.html">バッチ / ETL の安全設計 — 中間ファイル退避・洗い替え・多重起動防止</a> <span class="note-badge">全文公開</span></li><li>コンテナからホスト/別コンテナの処理を呼ぶ手段の分類</li><li>Docker のマウント3種（bind / volume / CIFS）とコードを焼き込まない設計</li><li>Excel → PDF 変換を OS で切り替える（win32com / LibreOffice headless）</li><li>ファイルドロップ型トリガー（watcher）で疎結合にジョブを起動する</li><li><a href="tech-notes/note-job-retry-design.html">ジョブのリトライ設計 — 一時エラーと恒久エラーを分ける</a> <span class="note-badge">全文公開</span></li><li>ジョブ基盤の scheduler と worker の分離 — 「予定は作られるが実行されない」の切り分け</li><li>Linux の「詰まり」診断 — D state / iowait / swap による I/O 飽和</li><li>ゾンビ化したジョブ実行を止める二重ガード（実行側 timeout ＋ 監視側 automation）</li></ul>
+<ul><li><a href="tech-notes/note-batch-etl-safe-design.html">バッチ / ETL の安全設計 — 中間ファイル退避・洗い替え・多重起動防止</a></li><li><a href="tech-notes/note-container-host-integration.html">コンテナからホスト/別コンテナの処理を呼ぶ手段の分類</a></li><li><a href="tech-notes/note-docker-mount-types.html">Docker のマウント3種（bind / volume / CIFS）とコードを焼き込まない設計</a></li><li><a href="tech-notes/note-excel-to-pdf-os-switch.html">Excel → PDF 変換を OS で切り替える（win32com / LibreOffice headless）</a></li><li><a href="tech-notes/note-file-drop-trigger-watcher.html">ファイルドロップ型トリガー（watcher）で疎結合にジョブを起動する</a></li><li><a href="tech-notes/note-job-retry-design.html">ジョブのリトライ設計 — 一時エラーと恒久エラーを分ける</a></li><li><a href="tech-notes/note-job-scheduler-worker-separation.html">ジョブ基盤の scheduler と worker の分離 — 「予定は作られるが実行されない」の切り分け</a></li><li><a href="tech-notes/note-linux-io-saturation-diagnosis.html">Linux の「詰まり」診断 — D state / iowait / swap による I/O 飽和</a></li><li><a href="tech-notes/note-zombie-run-double-guard.html">ゾンビ化したジョブ実行を止める二重ガード（実行側 timeout ＋ 監視側 automation）</a></li></ul>
 </details>
 <details class="note-group">
-<summary>Web技術<span class="count">6 本</span></summary>
-<p>Playwright、ブラウザキャッシュ、DevTools、検索UIの整合性</p>
-<ul><li>ブラウザキャッシュと no-store / ハードリロード — 「直したのに反映されない」</li><li>クライアント側フィルタ vs サーバ側フィルタの判断</li><li>DevTools の Network タブで「本命のリクエスト」を特定する</li><li>ファセット検索の整合性 — 「選択肢にあるのに選ぶと0件」を防ぐ</li><li>言語とフレームワークの関係</li><li><a href="tech-notes/note-playwright-automation.html">Playwright ブラウザ自動化 — codegen の限界・壊れにくいセレクタ・iframe・ダウンロード</a> <span class="note-badge">全文公開</span></li></ul>
+<summary>Web技術<span class="count">7 本</span></summary>
+<p>Playwright、ブラウザキャッシュ、DevTools、検索UIの整合性、Laravel / Filament</p>
+<ul><li><a href="tech-notes/note-browser-cache-no-store-reload.html">ブラウザキャッシュと no-store / ハードリロード — 「直したのに反映されない」</a></li><li><a href="tech-notes/note-client-vs-server-filtering.html">クライアント側フィルタ vs サーバ側フィルタの判断</a></li><li><a href="tech-notes/note-devtools-network-request-finding.html">DevTools の Network タブで「本命のリクエスト」を特定する</a></li><li><a href="tech-notes/note-faceted-search-integrity.html">ファセット検索の整合性 — 「選択肢にあるのに選ぶと0件」を防ぐ</a></li><li><a href="tech-notes/note-filament.html">Filament 用語と構造ガイド</a></li><li><a href="tech-notes/note-languages-vs-frameworks.html">言語とフレームワークの関係</a></li><li><a href="tech-notes/note-playwright-automation.html">Playwright ブラウザ自動化 — codegen の限界・壊れにくいセレクタ・iframe・ダウンロード</a></li></ul>
 </details>
 <details class="note-group">
 <summary>Windows管理<span class="count">5 本</span></summary>
 <p>文字コードと BOM、Office COM 自動化、プロセスとトラブル対応</p>
-<ul><li>.bat / .ps1 の文字コード・BOM・改行の罠</li><li>「文字化け」は表示の問題か実データの問題か切り分ける</li><li>Office COM 自動化の鉄則 — Application.Quit() でユーザーの Office ごと閉じない</li><li>Windows Update トラブルシューティング</li><li>wscript プロセスがたまるとは</li></ul>
+<ul><li><a href="tech-notes/note-bat-ps1-encoding.html">.bat / .ps1 の文字コード・BOM・改行の罠</a></li><li><a href="tech-notes/note-mojibake-display-vs-data.html">「文字化け」は表示の問題か実データの問題か切り分ける</a></li><li><a href="tech-notes/note-office-com-automation-quit.html">Office COM 自動化の鉄則 — Application.Quit() でユーザーの Office ごと閉じない</a></li><li><a href="tech-notes/note-windows-update-troubleshooting.html">Windows Update トラブルシューティング</a></li><li><a href="tech-notes/note-wscript-process-pileup.html">wscript プロセスがたまるとは</a></li></ul>
 </details>
 <details class="note-group">
 <summary>ネットワーク<span class="count">3 本</span></summary>
 <p>IMAP、RDP / RemoteApp、SMB / CIFS 共有アクセス</p>
-<ul><li>IMAP の仕組み — UID / UIDVALIDITY・readonly 接続・ポート</li><li>RDPとRemoteAppの認証情報・負荷分散の仕組み</li><li>SMB / CIFS / UNC 共有アクセス — smbprotocol 直叩き vs OS マウント</li></ul>
+<ul><li><a href="tech-notes/note-imap-basics.html">IMAP の仕組み — UID / UIDVALIDITY・readonly 接続・ポート</a></li><li><a href="tech-notes/note-rdp-credentials-and-remoteapp.html">RDPとRemoteAppの認証情報・負荷分散の仕組み</a></li><li><a href="tech-notes/note-smb-cifs-unc-access.html">SMB / CIFS / UNC 共有アクセス — smbprotocol 直叩き vs OS マウント</a></li></ul>
 </details>
 <details class="note-group">
 <summary>セキュリティ<span class="count">3 本</span></summary>
 <p>公開鍵暗号と署名、認証情報の扱い、改ざん検知</p>
-<ul><li>認証情報の扱いと改ざん検知 — Secret / 環境変数注入 / sha256 マニフェスト</li><li>公開鍵暗号とデジタル署名</li><li>SSH 鍵の形式（PuTTY .ppk と OpenSSH）と変換・エージェント</li></ul>
+<ul><li><a href="tech-notes/note-credentials-secret-and-integrity.html">認証情報の扱いと改ざん検知 — Secret / 環境変数注入 / sha256 マニフェスト</a></li><li><a href="tech-notes/note-public-key-cryptography.html">公開鍵暗号とデジタル署名</a></li><li><a href="tech-notes/note-ssh-key-ppk-vs-openssh.html">SSH 鍵の形式（PuTTY .ppk と OpenSSH）と変換・エージェント</a></li></ul>
 </details>
 <details class="note-group">
 <summary>ハードウェア<span class="count">2 本</span></summary>
 <p>小型カメラモジュールの機構、自作デバイスの検討</p>
-<ul><li>自作プロジェクト計画: クリップ式ウェアラブルカメラ</li><li>薄型小型カメラの機構 — 「きしめんケーブルの先にレンズ」の正体</li></ul>
+<ul><li><a href="tech-notes/note-diy-clip-camera-project.html">自作プロジェクト計画: クリップ式ウェアラブルカメラ</a></li><li><a href="tech-notes/note-thin-camera-module.html">薄型小型カメラの機構 — 「きしめんケーブルの先にレンズ」の正体</a></li></ul>
 </details>
 <details class="note-group">
 <summary>用語集<span class="count">1 本</span></summary>
 <p>疎結合・凝集度・SOLID などの設計原則を自分の言葉で整理</p>
-<ul><li>設計原則・アーキテクチャ用語</li></ul>
+<ul><li><a href="tech-notes/note-design-principles.html">設計原則・アーキテクチャ用語</a></li></ul>
 </details>
 </section>
 <section>
@@ -180,7 +179,7 @@
 <li><strong>取り込み用データ</strong> — 一問一答は暗記アプリへ取り込める TSV 形式でも管理。</li>
 </ul>
 <p>ノートの多くは、実際に業務で詰まった箇所から生まれています。
-背景となった案件は <a class="cta-link" href="business-cases.html">業務改善実績</a> に掲載しています。</p>
+背景となった案件は <a href="business-cases.html">業務改善実績</a> に掲載しています。</p>
 </section>
 <footer>
 <p>© 2024-2026 SkillShowcase. All rights reserved.</p>

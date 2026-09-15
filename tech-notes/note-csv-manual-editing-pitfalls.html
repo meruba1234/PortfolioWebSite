@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>CSV を手動で編集するときの落とし穴（詳細版） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="業務では「基幹システムが出力した CSV を、取り込み前に少しだけ直す」「分割して届いた CSV を1つにまとめる」といった作業が頻繁に発生する。件数が数十行なら手作業でもできてしまうため、つい Excel やメモ帳で開…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="CSV を手動で編集するときの落とし穴（詳細版） — SkillShowcase" property="og:title"/>
+<meta content="業務では「基幹システムが出力した CSV を、取り込み前に少しだけ直す」「分割して届いた CSV を1つにまとめる」といった作業が頻繁に発生する。件数が数十行なら手作業でもできてしまうため、つい Excel やメモ帳で開…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-csv-manual-editing-pitfalls.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-csv-manual-editing-pitfalls.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>CSV を手動で編集するときの落とし穴（詳細版）</h2>
+<h3>背景</h3>
+<p>業務では「基幹システムが出力した CSV を、取り込み前に少しだけ直す」「分割して届いた CSV を1つにまとめる」といった作業が頻繁に発生する。件数が数十行なら手作業でもできてしまうため、つい Excel やメモ帳で開いて直したくなる。</p>
+<p>ところがこの作業は、<strong>壊れたことに気づかないまま次工程に流れる</strong>という性質の事故を起こしやすい。見た目は正しいのに取込先で弾かれる、あるいは弾かれずに間違った値が登録される、という形で表面化する。</p>
+<p>このノートは、CSV を人の手で触るときに何が起きるのか、どうすれば安全かを整理する。要点は次の3つ。</p>
+<ul class="note-list"><li><strong>CSV は「型のないテキスト」であり、開くアプリが勝手に型を推測する</strong></li><li><strong>壊れ方には「値が変わる」「文字コードが変わる」「列がずれる」の3系統がある</strong></li><li><strong>手作業そのものより、作業後の検証を省くことが事故の原因</strong></li></ul>
+<p>具体的な社名・案件は伏せ、一般的な例（「取引先の発注データ CSV」など）で説明する。</p>
+<h3>1. CSV というフォーマットの正体</h3>
+<p>CSV は「カンマ区切りのテキスト」というだけの、非常に緩い取り決めしかない形式である。一応 RFC 4180 という文書はあるが、業務で流通する CSV がそれに従っている保証はどこにもない。</p>
+<p>CSV 自体が持っていない情報を並べるとこうなる。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">CSV が持っていないもの</th><th scope="col">結果として起きること</th></tr></thead><tbody><tr><td>列の型（文字列 / 数値 / 日付）</td><td>開くアプリが勝手に推測する。<code>00123</code> を数値と見なせばゼロが消える</td></tr><tr><td>文字コードの宣言</td><td>開くアプリが推測する。外すと文字化け</td></tr><tr><td>区切り文字の宣言</td><td>カンマ以外（タブ、セミコロン）のこともある</td></tr><tr><td>見出し行の有無</td><td>1行目がデータなのか見出しなのか、ファイルからは判断できない</td></tr></tbody></table></div>
+<p>つまり <strong>CSV ファイル単体は「正解」を知らない</strong>。正解を知っているのは、それを出力したシステムと、取り込む側のシステムだけである。手で編集するというのは、その2つの合意の間に人間が割り込む行為になる。</p>
+<h4>押さえておくべき記法ルール</h4>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">要素</th><th scope="col">ルール</th></tr></thead><tbody><tr><td>区切り</td><td>カンマ。全行で同じ個数でなければ列がずれる</td></tr><tr><td>引用符</td><td>値にカンマ・改行・引用符を含むときは <code>"</code> で囲む</td></tr><tr><td>引用符のエスケープ</td><td>値の中の <code>"</code> は <code>""</code> と2つ重ねる</td></tr><tr><td>フィールド内改行</td><td><code>"</code> で囲まれていれば値の中に改行を含められる（<strong>1レコード = 1行とは限らない</strong>）</td></tr><tr><td>空値</td><td><code>,,</code> は空文字。<code>NULL</code> という文字列とは別物</td></tr></tbody></table></div>
+<p>フィールド内改行は特に厄介で、「行数 = レコード数」という前提を壊す。テキストエディタで見た行数と、システムが読むレコード数が食い違う原因になる。</p>
+<h3>2. Excel が CSV を壊す仕組み</h3>
+<p>CSV を Excel でダブルクリックして開くと、Excel は各セルの中身を見て<strong>型を推論</strong>する。この推論が業務データと絶望的に相性が悪い。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">元の値</th><th scope="col">Excel の解釈</th><th scope="col">保存後</th></tr></thead><tbody><tr><td><code>00123</code></td><td>数値 123</td><td><code>123</code>（先頭ゼロ消失）</td></tr><tr><td><code>1-2</code> <code>3-5</code></td><td>日付</td><td><code>2001/1/2</code>（日付に変換）</td></tr><tr><td><code>2026/07/31</code></td><td>日付</td><td>表示形式次第で <code>2026/7/31</code> などに揺れる</td></tr><tr><td><code>1234567890123456</code>（16桁）</td><td>数値</td><td><code>1.23457E+15</code> かつ <strong>16桁目以降が 0 に丸められる</strong></td></tr><tr><td><code>0.50</code></td><td>数値 0.5</td><td><code>0.5</code>（末尾ゼロ消失）</td></tr><tr><td><code>=SUM(A1)</code> <code>+81...</code> <code>-abc</code></td><td>数式</td><td>数式として評価／エラー表示（CSV インジェクションの温床）</td></tr><tr><td><code>TRUE</code> <code>FALSE</code></td><td>論理値</td><td>大文字化・表示変化</td></tr><tr><td><code>１２３</code>（全角）</td><td>環境により半角化</td><td>表記揺れ</td></tr></tbody></table></div>
+<p>さらに<strong>保存時</strong>には、</p>
+<ul class="note-list"><li>文字コードが変わる（Shift_JIS → UTF-8、またはその逆）</li><li>引用符の付き方が変わる（不要な <code>"</code> が付く／必要な <code>"</code> が消える）</li><li>空行・末尾改行の扱いが変わる</li><li>数値の桁区切り <code>,</code> が値の中に入り込み、<strong>列がずれる</strong></li></ul>
+<p>とりわけ<strong>16桁の丸め</strong>は復旧不能な壊れ方をする。IEEE 754 倍精度浮動小数点数の有効桁が10進で約15〜17桁しかないため、16桁以上の数値 ID（バーコード、GTIN、伝票の内部ID）は下位桁が 0 になって<strong>元の値が失われる</strong>。ゼロ落ちや日付化は「見れば気づく」が、これは気づきにくい。</p>
+<h4>「開くだけ」なら安全か</h4>
+<p>保存しなければファイルは変わらない。しかし、</p>
+<ul class="note-list"><li>何かの拍子に上書き保存してしまう</li><li>「変更を保存しますか」に反射的に「はい」を押す</li><li>開いたまま別作業をして、閉じるときに保存する</li></ul>
+<p>という事故が現実には起きる。<strong>「見るだけだから」は安全側の判断ではない。</strong></p>
+<h4>どうしても Excel で確認したいとき</h4>
+<p>値を保持したまま Excel で見る方法はある。</p>
+<ol class="note-list"><li><strong>空の Excel を先に開く</strong> → 「データ」タブ → 「テキストまたは CSV から」</li><li>ファイルを選び、文字コードを明示（<code>日本語 (シフト JIS)</code> など）</li><li>「データの変換」→ 全列を選択 → データ型を「<strong>テキスト</strong>」に指定</li><li>読み込む</li></ol>
+<p>これなら型推論が働かない。ただし<strong>この状態から CSV として保存し直さない</strong>こと。確認用と割り切り、加工が必要なら xlsx として別名保存する。</p>
+<h3>3. テキストエディタ（メモ帳）の注意点</h3>
+<p>値を書き換えない点で、テキストエディタは Excel より圧倒的に安全である。ただし別種の罠がある。</p>
+<p><strong>① 文字コードの変換</strong> メモ帳は開くときに文字コードを自動判定し、保存時にその判定結果で書き戻す。判定を外すと、保存した瞬間に別のコードに変換される。Windows のメモ帳はウィンドウ右下に現在の文字コードを表示するので、<strong>開いた直後と保存後で同じか</strong>を必ず見る。</p>
+<p><strong>② BOM の付与</strong> UTF-8 で保存するとき、アプリによっては先頭に BOM（<code>EF BB BF</code> の3バイト）を付ける。BOM 付き UTF-8 を読む側が対応していないと、<strong>1列目の見出し名の先頭に見えないゴミが付く</strong>（<code>ID</code> が <code>﻿ID</code> になり、列名の一致判定に失敗する）。原因が見えないので厄介。</p>
+<p><strong>③ 末尾改行</strong> 最終行の後ろに改行があるかないかで、読み手によっては空レコードが1件増える／2ファイル結合時に行がくっつく、といった差が出る。</p>
+<p><strong>④ 巨大ファイル</strong> 数十 MB を超えるとメモ帳は実用的でなくなる。VSCode やサクラエディタを使う。</p>
+<p><strong>⑤ 目視では列のズレを検出できない</strong> これが最大の弱点。53列のデータを目で見て「全行53列ある」ことは確認できない。<strong>検証は機械にやらせる</strong>しかない。</p>
+<h3>4. 文字コードと改行コード</h3>
+<p>日本の業務システムが出す CSV は、実質 <strong>CP932（拡張 Shift_JIS）</strong> であることが非常に多い。詳細は <a href="note-encoding-cp932-shift-jis.html">CP932 と Shift_JIS の違い</a> と <a href="note-git-line-endings.html">改行コード（CRLF / LF）</a> を参照。</p>
+<p>CSV を触るときに関係する要点だけ再掲する。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">項目</th><th scope="col">Windows 業務システムの典型</th><th scope="col">外すとどうなるか</th></tr></thead><tbody><tr><td>文字コード</td><td>CP932（メモ帳の表示は <code>ANSI</code>）</td><td>全体が文字化け。取込エラー</td></tr><tr><td>改行コード</td><td>CRLF</td><td>LF に変わると取込側が1行として読む場合がある</td></tr><tr><td>BOM</td><td>なし</td><td>付くと1列目の列名が一致しなくなる</td></tr></tbody></table></div>
+<p>Python で読むなら <code>shift_jis</code> ではなく <strong><code>cp932</code></strong> を指定する（丸数字・全角空白などの拡張文字で例外にならない）。</p>
+<h3>5. 手動編集の安全手順</h3>
+<h4>手順</h4>
+<pre><code data-lang="">1. 原本をコピーして、コピーを編集する（原本は絶対に触らない）
+2. テキストエディタで開く（Excel では開かない）
+3. 文字コード表示を確認・記録する
+4. 編集する
+5. 同じ文字コードで保存する
+6. 機械で検証する（次章）
+7. 検証が通ってから次工程へ渡す</code></pre>
+<p>原本を残すことがすべての前提になる。CSV の事故は後から気づくものなので、<strong>やり直せる状態を作ってから作業する</strong>。</p>
+<h4>ファイル名の付け方</h4>
+<pre><code data-lang="">発注データ_20260731.csv              ← 原本
+発注データ_20260731_編集用.csv        ← 作業ファイル
+発注データ_20260731_結合.csv          ← 成果物</code></pre>
+<p>原本を <code>_orig</code> に改名して成果物を元の名前にする運用は、<strong>どれが原本か分からなくなる</strong>ので避ける。</p>
+<h3>6. 結合・分割の正しいやり方</h3>
+<h4>結合（2つの CSV を縦につなげる）</h4>
+<p>必要な操作は「1つ目の全行 + 2つ目の2行目以降」を、文字コードと改行を保ったまま連結すること。</p>
+<p><strong>PowerShell（推奨・1行で済む）</strong></p>
+<pre><code data-lang="powershell">$enc = [Text.Encoding]::GetEncoding(932)          # CP932 を維持
+$a = [IO.File]::ReadAllLines('A.csv', $enc)
+$b = [IO.File]::ReadAllLines('B.csv', $enc)
+[IO.File]::WriteAllLines('結合.csv', $a + ($b | Select-Object -Skip 1), $enc)</code></pre>
+<ul class="note-list"><li><code>GetEncoding(932)</code> で文字コードを固定（<code>Get-Content</code>/<code>Set-Content</code> の既定エンコーディングに任せない）</li><li><code>-Skip 1</code> で2つ目の見出し行を落とす</li><li><code>WriteAllLines</code> の改行は Windows では CRLF</li><li><strong>制約</strong>: 引用符で囲まれたフィールド内改行があるファイルでは行の解釈がずれる</li></ul>
+<p><strong>Python（検証まで一緒にやるなら）</strong></p>
+<pre><code data-lang="python">import csv
+
+def read(path):
+    with open(path, newline="", encoding="cp932") as f:
+        return list(csv.reader(f))
+
+a, b = read("A.csv"), read("B.csv")
+
+assert a[0] == b[0], "見出し行が一致しない"
+ncol = len(a[0])
+assert all(len(r) == ncol for r in a + b), "列数が揃っていない"
+
+with open("結合.csv", "w", newline="", encoding="cp932") as f:
+    w = csv.writer(f, lineterminator="\r\n")
+    w.writerow(a[0])
+    w.writerows(a[1:])
+    w.writerows(b[1:])</code></pre>
+<p><code>csv</code> モジュールを通すと、引用符・フィールド内改行を正しく扱える代わりに、<strong>引用符の付き方が原本と変わる可能性がある</strong>（<code>QUOTE_MINIMAL</code> は不要な引用符を落とす）。原本とバイト単位で一致させたい場合は、書き出し後に「出力ファイルの先頭 N バイトが1つ目のファイルと完全一致するか」を確認する。</p>
+<p><strong>避けたほうがよい方法</strong></p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">方法</th><th scope="col">問題</th></tr></thead><tbody><tr><td><code>copy /b A.csv + B.csv 結合.csv</code></td><td>2つ目の見出し行がそのまま混入する。手で消す手間が残る</td></tr><tr><td>メモ帳でコピー＆ペースト</td><td>文字コード変換・見出し重複・行の結合事故のリスク。検証もできない</td></tr><tr><td>Excel で開いて下に貼り付け</td><td>値が壊れる。最悪の選択</td></tr></tbody></table></div>
+<h4>分割</h4>
+<p>条件で絞って別ファイルにする作業は、<strong>分割の軸（キー）を明示する</strong>ことが重要。「納品日が 8/3 のもの」なのか「単価改定対象の商品」なのかで結果が変わる。分割済みファイルを受け取ったときは、次章の方法で軸を逆算して確認するとよい。</p>
+<h3>7. 検証 — 手作業の後に必ずやること</h3>
+<p>手作業そのものより、<strong>検証を省くことが事故の原因</strong>になる。最低限これだけは機械にやらせる。</p>
+<pre><code data-lang="python">import csv, collections
+
+path = "結合.csv"
+with open(path, newline="", encoding="cp932") as f:
+    rows = list(csv.reader(f))
+
+print("行数:", len(rows))                                        # 期待値と一致するか
+print("列数の分布:", collections.Counter(len(r) for r in rows))   # 1種類だけであること
+print("見出し:", rows[0][:5])
+
+# 完全重複行
+dup = len(rows[1:]) - len(set(map(tuple, rows[1:])))
+print("完全重複行:", dup)
+
+# キー項目の重複（例: 3列目が伝票No）
+keys = [r[2] for r in rows[1:]]
+print("キー重複:", [k for k, c in collections.Counter(keys).items() if c &gt; 1])</code></pre>
+<p>チェック項目のまとめ:</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">観点</th><th scope="col">見るもの</th><th scope="col">合格条件</th></tr></thead><tbody><tr><td>件数</td><td>行数</td><td>A + B − 1（結合の場合）</td></tr><tr><td>列ズレ</td><td>列数の分布</td><td><strong>1種類だけ</strong></td></tr><tr><td>見出し</td><td>1行目</td><td>元と同一。データ中に見出しが混ざっていない</td></tr><tr><td>重複</td><td>完全重複行・キー重複</td><td>想定どおり（通常0件）</td></tr><tr><td>文字コード</td><td>バイト列</td><td>原本と同じコードでデコードできる</td></tr><tr><td>改行</td><td>末尾バイト</td><td>CRLF（原本に合わせる）</td></tr><tr><td>内容</td><td>先頭 N バイト</td><td>原本と一致（バイト連結の場合）</td></tr></tbody></table></div>
+<h4>分割されたファイルの軸を逆算する</h4>
+<p>「なぜ2つに分かれているのか」を確認したいときは、<strong>列ごとに値の分布を比べる</strong>と一発でわかる。</p>
+<pre><code data-lang="python">import csv, collections
+
+def load(p):
+    with open(p, newline="", encoding="cp932") as f:
+        return list(csv.reader(f))
+
+a, b = load("A.csv"), load("B.csv")
+header = a[0]
+
+for i in range(len(header)):
+    va = collections.Counter(r[i] for r in a[1:])
+    vb = collections.Counter(r[i] for r in b[1:])
+    if set(va) != set(vb):                      # 値の集合が違う列＝分割の軸候補
+        print(i, header[i], "| A:", dict(va), "| B:", dict(vb))</code></pre>
+<p>「単価改定のために分けた」と聞いていても、実際の軸は納品日だった、というような食い違いはよくある。<strong>聞いた話ではなくデータで確認する。</strong></p>
+<h3>8. やってはいけないことチェックリスト</h3>
+<ul class="note-list"><li>CSV をダブルクリックで Excel に開く（関連付けを変えておくのが理想）</li><li>原本を直接編集する</li><li>保存時の文字コードを確認しない</li><li>2つ目のファイルの見出し行を消さずに結合する</li><li>値の中にカンマや改行を手入力する</li><li>目視だけで「大丈夫そう」と判断して次工程へ渡す</li><li>桁数の多い ID を数値として扱う</li><li>取込先のシステムでエラーが出たとき、<strong>エラーを消すためにデータを書き換える</strong>（原因が別にあることが多い）</li></ul>
+<h3>まとめ</h3>
+<ul class="note-list"><li>CSV は型・文字コード・区切りのいずれも自己申告しない、非常に緩いテキスト形式である</li><li>Excel は開いた瞬間に型を推論し、保存した瞬間に値と文字コードを書き換える。16桁の丸めは復旧できない</li><li>テキストエディタは値を壊さないが、文字コード変換・BOM・列ズレ未検出という別の穴がある</li><li><strong>原本を残す → コピーを編集 → 機械で検証</strong> の3ステップを崩さない</li><li>結合は PowerShell の <code>GetEncoding(932)</code> + <code>-Skip 1</code>、または Python の <code>csv</code> モジュールで行う</li><li>検証で見るのは「行数・列数の分布・見出し・重複・文字コード・改行」の6点</li></ul>
+<h3>関連ノート</h3>
+<ul class="note-list"><li><a href="note-encoding-cp932-shift-jis.html">CP932 と Shift_JIS の違い・日本語ファイルの文字化け対処</a></li><li><a href="note-git-line-endings.html">改行コード（CRLF / LF）と Git の autocrlf</a></li><li><a href="note-atomic-file-write.html">アトミックなファイル書き込み（.tmp に書いて rename）</a></li><li><a href="note-regex-id-matching-pitfalls.html">短いIDの照合と正規表現の落とし穴</a></li><li><a href="note-csv-manual-editing-checklist.html">CSV を手動で編集するときの注意点（かんたん版）</a></li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

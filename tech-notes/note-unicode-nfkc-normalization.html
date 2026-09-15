@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Unicode 正規化（NFKC）で全角半角・カナの表記揺れを吸収する — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="システム間でデータを突き合わせるとき、「同じ文字列のはずなのに一致しない」という壁によくぶつかる。原因の多くは表記揺れだ。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Unicode 正規化（NFKC）で全角半角・カナの表記揺れを吸収する — SkillShowcase" property="og:title"/>
+<meta content="システム間でデータを突き合わせるとき、「同じ文字列のはずなのに一致しない」という壁によくぶつかる。原因の多くは表記揺れだ。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-unicode-nfkc-normalization.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-unicode-nfkc-normalization.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>Unicode 正規化（NFKC）で全角半角・カナの表記揺れを吸収する</h2>
+<h3>背景</h3>
+<p>システム間でデータを突き合わせるとき、「同じ文字列のはずなのに一致しない」という壁によくぶつかる。原因の多くは<strong>表記揺れ</strong>だ。</p>
+<ul class="note-list"><li>全角の <code>ＡＢＣ１２３</code> と半角の <code>ABC123</code></li><li>半角カナ <code>ｶﾞﾂ</code> と全角カナ <code>ガツ</code></li><li>丸数字 <code>①</code> と数字 <code>1</code></li><li>単位記号 <code>㎏</code> <code>㍿</code> と、それを普通の文字で書いたもの</li></ul>
+<p>人間の目にはほぼ同じに見えても、コンピュータにとってはコード（文字の背番号）が違うので「別の文字列」と判定される。片方の名簿が全角、もう片方が半角というだけで名寄せ（同じものを結び付ける作業）が失敗する。</p>
+<p>これをまとめて解決するのが <strong>Unicode 正規化</strong>、特に <strong>NFKC</strong> という形式だ。</p>
+<h3>NFKC とは</h3>
+<p>Python なら標準ライブラリだけで使える。</p>
+<pre><code data-lang="python">import unicodedata
+
+s = "ＡＢＣ１２３　㍿①ｶﾞ"
+normalized = unicodedata.normalize("NFKC", s)
+
+print(normalized)  # "ABC123 株式会社1ガ"</code></pre>
+<p><code>normalize("NFKC", s)</code> に文字列を渡すと、全角英数は半角へ、半角カナは全角カナへ、丸数字や単位記号は普通の文字へ……と、<strong>バラバラの表記を1つの決まった形に寄せて</strong>くれる。突合の前にこれを1回かけるだけで、上に挙げた揺れの大半が消える。</p>
+<p>コードが読めなくても流れはこうだ。「散らかった見た目の文字列を、代表の形に整列させてから比べる」。定規で長さを測る前に、紙の端を揃えるようなものだと思えばよい。</p>
+<h3>正規化形式の違い</h3>
+<p>正規化には4種類あり、頭文字で性格が分かる。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">形式</th><th scope="col">何を統一するか</th><th scope="col">イメージ</th></tr></thead><tbody><tr><td>NFC / NFD</td><td><strong>正準等価</strong>（見た目が同一のものを統一）</td><td>濁点付き文字を「1文字」にまとめる／「文字＋濁点」に分解する</td></tr><tr><td>NFKC / NFKD</td><td><strong>互換等価</strong>まで含める</td><td><code>①</code> <code>㍿</code> <code>Ａ</code> のような特殊表記を普通の文字に潰す</td></tr></tbody></table></div>
+<ul class="note-list"><li><strong>C</strong> は Composition（合成＝くっつけてまとめる）、<strong>D</strong> は Decomposition（分解＝バラす）。</li><li><strong>K</strong> が付くと「互換（compatibility）」まで踏み込み、見た目が違っても意味が同じものを普通の文字に変換する。</li></ul>
+<p>見た目を保ちたい表示用途なら NFC が無難だが、<strong>マッチング（照合）用途では NFKC</strong> がよく使われる。丸数字や全角英数まで潰してくれるので、揺れを一番広く吸収できるからだ。</p>
+<h3>名寄せ・突合の前処理パターン</h3>
+<p>NFKC は強力だが、それ1発で完璧になるわけではない。実務では次の順で「ノイズ」を段階的に落としてから比較する。</p>
+<ol class="note-list"><li><strong>NFKC 正規化</strong> — 全角半角・カナ・互換文字を統一する</li><li><strong>記号・空白の除去</strong> — <code>・</code> <code>-</code> <code>　</code>（全角空白）などを取り除く</li><li><strong>ストップワードの除去</strong> — <code>No.</code> <code>Ver.</code> <code>株式会社</code> <code>(株)</code> など、比較の役に立たない定型語を落とす</li><li><strong>分割</strong> — 必要に応じて単語や区切りで分ける</li></ol>
+<pre><code data-lang="python">import re
+import unicodedata
+
+def normalize_for_match(s: str) -&gt; str:
+    s = unicodedata.normalize("NFKC", s)      # 1. 表記揺れを統一
+    s = re.sub(r"[ \t　・\-_/]", "", s)     # 2. 記号・空白を除去
+    for word in ("株式会社", "(株)", "No.", "Ver."):
+        s = s.replace(word, "")                # 3. ストップワード除去
+    return s.lower()                            # ついでに大文字小文字も統一
+
+# "株式会社 山田製作所" と "ヤマダ製作所（株）" のような揺れを寄せていく</code></pre>
+<p>こうして「比較に効く芯の部分」だけを取り出してから照合すると、一致率が大きく上がる。</p>
+<h3>二段構え：SQL で粗く、Python で精密に</h3>
+<p>DB に入っている値は、たいてい正規化されていない（全角も半角も混在している）。そのため SQL の <code>LIKE</code> だけで正確にマッチさせようとすると取りこぼす。</p>
+<p>そこで<strong>二段構え</strong>にする。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">段階</th><th scope="col">担当</th><th scope="col">役割</th></tr></thead><tbody><tr><td>一次絞り込み</td><td>SQL の <code>LIKE</code></td><td>ざっくり候補を集める（多少余分でもよい）</td></tr><tr><td>精密化</td><td>Python の NFKC ＋ スコアリング</td><td>正規化して比べ、類似度を点数化して確定する</td></tr></tbody></table></div>
+<pre><code data-lang="sql">-- 一次絞り込み: 完璧でなくてよい。候補を広めに拾う
+SELECT * FROM customer WHERE name LIKE '%山田%';</code></pre>
+<pre><code data-lang="python"># 精密化: 取得した候補を Python 側で正規化して突き合わせる
+for row in rows:
+    key = normalize_for_match(row["name"])
+    score = similarity(key, normalize_for_match(target))  # 類似度を点数化
+    ...</code></pre>
+<p>DB に大量のデータがあっても、まず <code>LIKE</code> で候補を数十件に減らし、その少数だけを Python で丁寧に判定する。速さ（SQL）と正確さ（Python）を両取りできる。</p>
+<h3>注意点：正規化は情報を落とす</h3>
+<p>NFKC は便利な反面、<strong>変換すると元の情報が失われる</strong>。</p>
+<ul class="note-list"><li>全角で入力した「意図」（例：帳票上あえて全角にしていた）は消える</li><li><code>㍿</code> → <code>株式会社</code>、<code>①</code> → <code>1</code> のように、元の見た目は復元できない</li></ul>
+<p>そのため、正規化後の文字列で元データを<strong>上書きしてはいけない</strong>。安全なのは次の持ち方だ。</p>
+<ul class="note-list"><li><strong>原文</strong>（表示・保存用）はそのまま残す</li><li><strong>正規化後</strong>（照合用のキー）は別カラム・別変数として持つ</li></ul>
+<pre><code data-lang="python">record = {
+    "name": raw_name,                          # 表示はこちら（原文のまま）
+    "match_key": normalize_for_match(raw_name),# 照合はこちら（正規化後）
+}</code></pre>
+<p>「見せる値」と「比べる値」を分けておけば、揺れを吸収しつつ元の情報も守れる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><strong><code>unicodedata.normalize("NFKC", s)</code></strong> で全角半角・半角カナ・丸数字・互換文字などの表記揺れを1つの形に寄せられる。</li><li>正規化形式は C/D が正準等価、<strong>K 付き（NFKC/NFKD）が互換等価まで潰す</strong>。マッチング用途では NFKC が定番。</li><li>名寄せの前処理は <strong>NFKC → 記号空白除去 → ストップワード除去 → 分割</strong> の順でノイズを落とす。</li><li><strong>二段構え</strong>：DB は <code>LIKE</code> で粗く一次絞り込み、Python 側で NFKC ＋ スコアリングして精密化。</li><li>NFKC は情報を落とすので、<strong>原文（表示用）と正規化後（照合用）を分けて持つ</strong>のが安全。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

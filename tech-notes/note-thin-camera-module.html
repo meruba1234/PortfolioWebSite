@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>薄型小型カメラの機構 — 「きしめんケーブルの先にレンズ」の正体 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="平たいケーブル（きしめんケーブル）の先に小さなレンズが付いたカメラを見て、「あれはどういう仕組みなのか」「既存のカメラを改造して自分で作れるのか」を知りたくなった。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="薄型小型カメラの機構 — 「きしめんケーブルの先にレンズ」の正体 — SkillShowcase" property="og:title"/>
+<meta content="平たいケーブル（きしめんケーブル）の先に小さなレンズが付いたカメラを見て、「あれはどういう仕組みなのか」「既存のカメラを改造して自分で作れるのか」を知りたくなった。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-thin-camera-module.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-thin-camera-module.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">ハードウェア</span></div>
+<h2>薄型小型カメラの機構 — 「きしめんケーブルの先にレンズ」の正体</h2>
+<h3>学んだきっかけ</h3>
+<p>平たいケーブル（きしめんケーブル）の先に小さなレンズが付いたカメラを見て、「あれはどういう仕組みなのか」「既存のカメラを改造して自分で作れるのか」を知りたくなった。</p>
+<h3>結論（先に答え）</h3>
+<ul class="note-list"><li>きしめんケーブルの正体は <strong>FPC（フレキシブルプリント基板）</strong> または <strong>FFC（フレキシブルフラットケーブル）</strong>。</li><li>先端に付いているのは「レンズだけ」ではなく、<strong>レンズ + イメージセンサーが一体になったカメラモジュール</strong>。ケーブルの先で光→電気信号への変換まで終わっていて、ケーブルはデジタル信号を運んでいるだけ。</li><li><strong>自作は可能</strong>。ただし「センサーやモジュールをゼロから作る」のではなく、<strong>既製のカメラモジュールを選んで組み合わせる</strong>のが現実的な自作。スマホのカメラモジュール流用は難易度が高く、Raspberry Pi カメラや USB 内視鏡カメラの流用が入門ルート。</li></ul>
+<h3>1. 基本構造 — カメラモジュールの解剖</h3>
+<p>スマホや薄型カメラに入っているカメラモジュールは、だいたいこの積層構造になっている。</p>
+<pre><code data-lang="">[レンズユニット]      ← 樹脂レンズ数枚を鏡筒に積層（スマホ用で厚さ4〜6mm程度）
+[IRカットフィルタ]    ← 赤外線を遮断（無いと色がおかしくなる）
+[イメージセンサー]    ← CMOSセンサー。光を電気信号に変換するチップ本体
+[FPC基板]            ← センサーを実装した柔らかい基板。そのままケーブル状に伸びる
+[コネクタ]           ← 基板側のコネクタに挿す端子</code></pre>
+<p>ポイントは <strong>センサーチップが FPC に直接実装されていて、その FPC がそのまま「きしめんケーブル」として伸びている</strong>こと。別々の部品をケーブルでつないでいるのではなく、モジュールとケーブルが一体成形に近い。</p>
+<h4>なぜ先端をあんなに小さくできるのか</h4>
+<ul class="note-list"><li>CMOS センサー自体が数 mm 角しかない（スマホ用で 1/2.3型 ≒ 6×4.6mm など）。</li><li>レンズはプラスチック非球面レンズの積層で、焦点距離が数 mm と短い → 鏡筒も短くて済む。</li><li>ピント合わせを省略した<strong>固定焦点（パンフォーカス）</strong>にすれば可動部ゼロ。内視鏡カメラはほぼこれ。</li><li>スマホ用はオートフォーカス用に <strong>VCM（ボイスコイルモーター）</strong> でレンズを前後させるが、それでも全体で1cm角に収まる。</li></ul>
+<h3>2. きしめんケーブル（FPC/FFC）の中を流れている信号</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">方式</th><th scope="col">信号</th><th scope="col">特徴</th><th scope="col">延長の限界</th></tr></thead><tbody><tr><td><strong>MIPI CSI-2</strong></td><td>高速差動デジタル</td><td>スマホ・Raspberry Piカメラの標準。高解像度・高フレームレート</td><td>短い（目安 20〜30cm。それ以上はノイズで破綻）</td></tr><tr><td><strong>USB (UVC)</strong></td><td>USB 2.0</td><td>USB内視鏡カメラ・Webカメラ。PCに挿すだけで映る</td><td>数 m まで楽に延長可</td></tr><tr><td><strong>DVP（パラレル）</strong></td><td>8〜10bitパラレル</td><td>ESP32-CAM 等の安価モジュール（OV2640 など）</td><td>短い（10cm程度）</td></tr><tr><td><strong>アナログ (NTSC/AHD)</strong></td><td>アナログ映像</td><td>ドローンFPV・車載バックカメラ</td><td>数 m〜数十 m 延ばせる</td></tr></tbody></table></div>
+<p>「きしめんケーブルが長いカメラ」を見たら、中身は MIPI CSI-2 か DVP のことが多い。<strong>ケーブルを延長したいなら USB か アナログ方式が圧倒的に楽</strong>、というのが設計上の分かれ目。</p>
+<h3>3. 自作できるか？ — 難易度別ルート</h3>
+<h4>ルートA: USB 内視鏡カメラの流用（入門・推奨）</h4>
+<ul class="note-list"><li>Amazon 等で売っている <strong>USB 内視鏡カメラ</strong>（直径 5.5〜8mm、防水、LED付き、1,500〜3,000円）は、まさに「細いケーブルの先にレンズ+センサー」の完成品。</li><li>中身は <strong>UVC（USB Video Class）</strong> 準拠なので、PC・Raspberry Pi・Android に挿すだけでカメラとして認識される。ドライバ不要。</li><li>改造例: 外装チューブを剥いて自分の筐体に組み込む、ケーブル途中を加工する、レンズ前にマクロレンズを足す。</li><li><strong>学べること</strong>: UVC の仕組み、カメラの分解と再組み込み。</li></ul>
+<h4>ルートB: Raspberry Pi カメラモジュール（本格・自由度高い）</h4>
+<ul class="note-list"><li><strong>Raspberry Pi Camera Module</strong> は MIPI CSI-2 カメラの教材として最適。モジュール単体（25×24mm、センサー部はさらに小さい）+ きしめんケーブル（FFC）そのもの。</li><li>Pi Zero 2 W と組み合わせれば「小型コンピュータ + 薄型カメラ」が5,000円台で組める。</li><li>FFC は規格品なので <strong>長さの違うケーブルに差し替え可能</strong>（ただし30cm超は映像が乱れやすい、というMIPIの限界を体感できる）。</li><li>さらに小さくしたいなら <strong>Camera Module の "spy camera" 系互換品</strong>（基板を切り詰めてレンズ部だけFPCで伸ばした形状）が売られており、これが「きしめんの先にレンズ」の形に一番近い。</li><li><strong>学べること</strong>: MIPI CSI-2、libcamera、センサー設定（露出・ゲイン）、FFCの取り扱い。</li></ul>
+<h4>ルートC: ESP32-CAM（無線化したい場合）</h4>
+<ul class="note-list"><li>ESP32-CAM（1,000円前後）は Wi-Fi マイコン + OV2640 カメラの一体ボード。カメラ部は DVP 接続の小モジュールで、短い FPC の先にレンズが付いた形。</li><li>ストリーミングサーバーのサンプルコードが豊富で、「自作ネットワークカメラ」の最短ルート。</li><li><strong>学べること</strong>: DVP インターフェース、組込みでの画像処理、省電力設計。</li></ul>
+<h4>ルートD: スマホのカメラモジュール流用（上級・基本的に非推奨）</h4>
+<ul class="note-list"><li>ジャンクスマホからカメラモジュールを取り出すこと自体は簡単（コネクタを外すだけ）。</li><li>しかし動かすのが難しい:</li><li>MIPI CSI-2 を受けられるホスト（SoC）が必要。</li><li><strong>センサーごとに専用ドライバと初期化レジスタ設定が必要</strong>で、データシートが NDA で入手不可のことが多い。</li><li>ISP（画像処理プロセッサ）側の調整（デモザイク、ホワイトバランス）も自前。</li><li>Raspberry Pi で動く実績のあるセンサー（IMX219, OV5647 等）以外は、個人ではほぼ詰む。<strong>「既存カメラの改造」はスマホよりWebカメラ・内視鏡カメラを素材にする方が筋が良い</strong>。</li></ul>
+<h4>ルートE: Webカメラの分解改造（中級・実用的）</h4>
+<ul class="note-list"><li>安いUSB Webカメラを分解すると「基板 + 短いFPC + レンズ/センサー部」に分かれるものがある。</li><li>レンズはねじ込み式（M12マウント / S-mount）のことが多く、<strong>レンズだけ交換</strong>（広角化・狭角化）が簡単にできる。</li><li>基板とセンサー部が分離しているタイプなら、FPC延長ケーブルを足して「基板は手元、レンズ先端だけ細い場所へ」という構成が作れる。</li></ul>
+<h3>4. 自作するときの設計判断フローチャート</h3>
+<pre><code data-lang="">ケーブルを1m以上延ばしたい？
+ ├─ Yes → USB (UVC) かアナログ方式を選ぶ（ルートA/E）
+ └─ No（30cm以内でOK）
+     ├─ 画質重視・Linuxで処理したい → Raspberry Pi + CSIカメラ（ルートB）
+     ├─ 無線で飛ばしたい → ESP32-CAM（ルートC）
+     └─ とにかく細く小さく → 内視鏡カメラ流用（ルートA）</code></pre>
+<h3>5. 工作時の実務知識</h3>
+<ul class="note-list"><li><strong>FPC/FFC は折り曲げ厳禁</strong>。曲げRは緩く取る。一度折り目が付くと内部の銅箔が断線する。きしめんケーブルが「ゆるく湾曲」して取り回されているのはこのため。</li><li>FFC コネクタは <strong>フリップロック式</strong>（黒いラッチを起こして挿入→倒して固定）。ラッチを起こさず無理に挿すとコネクタが壊れる。</li><li>ケーブルには<strong>表裏がある</strong>（端子面の向き）。Raspberry Pi 公式カメラは「端子面をどちらに向けて挿すか」をよく間違えるポイント。</li><li>静電気に弱い。センサー面・端子面は素手で触らない。</li><li>レンズとセンサーの距離（フランジバック）が数十 µm ズレるだけでピントが崩れる。レンズユニットを分解したら元のピント位置に戻すのは難しいと心得る。</li></ul>
+<h3>6. 法律・モラルの注意</h3>
+<p>小型カメラは便利な反面、撮影場所・用途によっては<strong>盗撮規制（撮影罪・各都道府県の迷惑防止条例）やプライバシー侵害</strong>に直結する。自作・改造の目的は工作技術の学習や自分の所有物の監視（3Dプリンタ監視、ペットカメラ、機器内部の点検等）に限定し、人を無断で撮影する用途には絶対に使わないこと。</p>
+<h3>参考リソース（画像・動画あり）</h3>
+<h4>構造を図解で理解する</h4>
+<ul class="note-list"><li><a href="https://engineering-university.yamasee-otto.com/camera-structure/" rel="noopener noreferrer" target="_blank">カメラモジュールの構造 — エンジニア大学</a> … モノづくりエンジニア向けにレンズ・センサー・FPC の積層構造を図解。まずここから。</li><li><a href="https://www.e-consystems.com/blog/camera/ja/uncategorized-ja/what-is-camera-module-and-what-are-its-components/" rel="noopener noreferrer" target="_blank">カメラモジュールとは何か？その構成要素 — e-con Systems</a> … 産業用カメラモジュールメーカーによる構成要素解説（日本語）。</li><li><a href="https://jp.oossxx.com/blogs/%E6%96%B0%E9%97%BB/%E3%82%AB%E3%83%A1%E3%83%A9%E3%83%A2%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB%E3%81%AE%E6%A7%8B%E6%88%90%E7%B4%B9%E4%BB%8B" rel="noopener noreferrer" target="_blank">カメラモジュールの構成紹介 — OOSSXX</a> … レンズ/IRフィルタ/センサー/FPC の役割を簡潔に整理。</li><li><a href="https://www.csun.co.jp/hpgen/HPB/entries/36.html" rel="noopener noreferrer" target="_blank">CMOSイメージセンサーとレンズの基礎及び選び方 — 日昇テクノロジー</a> … モジュール購入時のセンサー/レンズ選定の観点。</li><li><a href="https://fa-products.jp/column/cmos-sensor-overview/" rel="noopener noreferrer" target="_blank">CMOSセンサの原理を図解 — FA Products</a> … センサー単体の動作原理・製造工程。</li><li><a href="https://news.mynavi.jp/techplus/article/Fundamentals-of-CMOS-Sensors-2/" rel="noopener noreferrer" target="_blank">スマホカメラの画像センサの仕組み — マイナビ（ソニー開発者インタビュー）</a> … 裏面照射・積層型など最新センサーの進化の話。</li></ul>
+<h4>分解（teardown）を見る — 画像・動画</h4>
+<ul class="note-list"><li><a href="https://www.ifixit.com/Teardown" rel="noopener noreferrer" target="_blank">iFixit Teardown 一覧</a> … スマホ分解の定番。高解像度写真でカメラモジュールの取り外しまで見られる。英語だが写真だけで十分わかる。</li><li><a href="https://www.dmaniax.com/2020/11/28/ifixit-apple-iphone-12-pro-max/" rel="noopener noreferrer" target="_blank">iPhone 12 Pro Max カメラ分解（iFixit動画の解説記事）</a> … センサーシフト式手ブレ補正の中身。動画 32:35 あたりがカメラモジュール。</li><li><a href="https://md-study.com/teardown-youtube-video/" rel="noopener noreferrer" target="_blank">製品分解系 YouTube チャンネルまとめ — 機械設計学習館</a> … JerryRigEverything ほか分解系チャンネルの総覧。</li><li><a href="https://martyworkshopdiary.blogspot.com/2017/09/usb.html" rel="noopener noreferrer" target="_blank">USB エンドスコープの分解修理 — マーティーの工房日誌</a> … 内視鏡カメラの中身（FPC・センサー部）が写真付きで見られる貴重な記事。ルートAの予習に最適。</li></ul>
+<h4>自作・改造の実例</h4>
+<ul class="note-list"><li><a href="https://www.indoorcorgielec.com/resources/raspberry-pi/camera-setup/" rel="noopener noreferrer" target="_blank">ラズパイカメラモジュールの使い方 — Indoor Corgi</a> … 各モデルの違い・FFC の組み立て・撮影方法を写真付きで解説。ルートBの教科書。</li><li><a href="https://www.pc-koubou.jp/magazine/17276" rel="noopener noreferrer" target="_blank">Raspberry Pi とカメラモジュールを接続する — パソコン工房 NEXMAG</a> … FFC の向き・ラッチ操作を写真で確認できる。</li><li><a href="https://www.thine.co.jp/contents/detail/raspi-camera_cable-1.html" rel="noopener noreferrer" target="_blank">ラズパイカメラのケーブル延長 — THine Electronics</a> … MIPI CSI-2 の延長限界と、シリアライザで数 m 延ばす製品の解説。「なぜきしめんは短いのか」の答え。</li><li><a href="https://e-products.entaniya.co.jp/list/raspberrypi-raspberry-pi-related-products/sbc-cameramodules/camera-cables/" rel="noopener noreferrer" target="_blank">カメラ用ケーブル FFC/FPC — Entaniya</a> … 長さ違いの FFC を買える国内ショップ。</li><li><a href="https://ag2o.ameameblog.com/2021/02/22/1519/" rel="noopener noreferrer" target="_blank">USBウェブカメラの赤外線暗視カメラ化改造 — 節約DIY</a> … IRカットフィルタを外して赤外線カメラ化する改造。ルートEの実例。</li><li><a href="https://www.excel-pitin.net/single-post/esp32-cam-%E3%81%A7%E5%8B%95%E7%94%BB%E3%82%B9%E3%83%88%E3%83%AA%E3%83%BC%E3%83%9F%E3%83%B3%E3%82%B0" rel="noopener noreferrer" target="_blank">ESP32-CAM で動画ストリーミングサーバーを作る — excel-pitin</a> / <a href="https://jorublog.site/esp32-cam-setup/" rel="noopener noreferrer" target="_blank">1200円でカメラ付きマイコンで遊ぶ — じょるブログ</a> … ルートCの入門記事。配線写真とサンプルコード付き。</li><li><a href="https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q14199288894" rel="noopener noreferrer" target="_blank">スマホのカメラモジュールを自作マイコンに組み込める？ — Yahoo!知恵袋</a> … ルートDが難しい理由（ドライバ・NDA）の生の回答。</li></ul>
+<h3>用語ミニ辞典</h3>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">用語</th><th scope="col">意味</th></tr></thead><tbody><tr><td>FPC</td><td>Flexible Printed Circuit。柔らかいプリント基板。部品実装できる</td></tr><tr><td>FFC</td><td>Flexible Flat Cable。平行導線だけのフラットケーブル。配線専用</td></tr><tr><td>MIPI CSI-2</td><td>スマホ業界標準のカメラ接続規格。高速差動シリアル</td></tr><tr><td>UVC</td><td>USB Video Class。挿すだけで動くUSBカメラの標準規格</td></tr><tr><td>DVP</td><td>Digital Video Port。パラレルのカメラインターフェース（OV2640等）</td></tr><tr><td>ISP</td><td>Image Signal Processor。センサー生データを綺麗な画像に加工する回路</td></tr><tr><td>VCM</td><td>Voice Coil Motor。スマホのAFでレンズを動かすアクチュエータ</td></tr><tr><td>M12/S-mount</td><td>小型カメラ用のねじ込みレンズマウント規格。レンズ交換が容易</td></tr><tr><td>パンフォーカス</td><td>固定焦点。近距離から無限遠までそこそこピントが合う設計</td></tr></tbody></table></div>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>DevTools の Network タブで「本命のリクエスト」を特定する — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Web 画面のボタンを押すと帳票 (PDF) が出てくる、といった処理を自動化したいとき、 「その裏でどんな API がどんなパラメータで呼ばれているのか」を知りたくなる。 ブラウザの DevTools (F12) の …" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="DevTools の Network タブで「本命のリクエスト」を特定する — SkillShowcase" property="og:title"/>
+<meta content="Web 画面のボタンを押すと帳票 (PDF) が出てくる、といった処理を自動化したいとき、 「その裏でどんな API がどんなパラメータで呼ばれているのか」を知りたくなる。 ブラウザの DevTools (F12) の …" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-devtools-network-request-finding.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-devtools-network-request-finding.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Web技術</span></div>
+<h2>DevTools の Network タブで「本命のリクエスト」を特定する</h2>
+<h3>背景</h3>
+<p>Web 画面のボタンを押すと帳票 (PDF) が出てくる、といった処理を自動化したいとき、「その裏でどんな API がどんなパラメータで呼ばれているのか」を知りたくなる。ブラウザの DevTools (F12) の <strong>Network タブ</strong> を開けば、画面から飛んでいる通信はすべて一覧に流れてくる。</p>
+<p>ところが実際に開いてみると、目的の通信がなかなか見つからない。理由は、多くのサイトに<strong>行動解析／接客ツール (トラッキングタグ)</strong> が埋め込まれていて、ページを開いた瞬間・スクロール・クリックのたびに解析サーバへ常時通信しているからだ。 Network タブがこの手のノイズで埋め尽くされ、本命の 1 本が埋もれてしまう。</p>
+<p>ここでは、そのノイズをかき分けて目的のリクエストを特定し、コードとして再現するまでの道具立てをまとめる。</p>
+<h3>ノイズを消す — フィルタで対象ドメインに絞る</h3>
+<p>まずは表示するリクエストを絞り込む。Network タブ上部の<strong>フィルタボックス</strong>が主役。</p>
+<ul class="note-list"><li><strong>対象ドメイン名で絞る</strong>: 業務システムのホスト名の一部 (例: <code>myapp.example.com</code> の <code>myapp</code> や <code>example</code>) をフィルタボックスに入れると、解析系や広告系・Google 系のドメインが一掃され、本命のホストへの通信だけが残る。</li><li><strong><code>Fetch/XHR</code> フィルタ</strong>: フィルタ行のタブで <code>Fetch/XHR</code> を選ぶと、JavaScript から投げている API 通信だけに絞れる。画像・CSS・フォント・解析ビーコンといった雑多なリソースが消えるので、これだけでもかなりスッキリする。</li></ul>
+<pre><code data-lang="">フィルタボックス:  example        ← このドメインを含む通信だけ表示
+種別タブ:          [Fetch/XHR]    ← API 通信だけに絞る</code></pre>
+<p>この 2 つを併用すると、解析ツールの騒がしい通信を無視して「業務システムと自分のブラウザの会話」だけを見られる。</p>
+<h3>本命を捕まえる — 操作した瞬間のリクエストを見る</h3>
+<p>絞り込めたら、次は目的の操作 (例: 「帳票出力」ボタン) を押す。</p>
+<ul class="note-list"><li><strong>押した瞬間に現れる行が本命</strong>: ボタンを押した直後に一覧の一番下へ新しく追加されるリクエストが、その操作のトリガーになった通信である可能性が高い。押す前にいったん一覧を眺めておき、押した瞬間に増えた分を見ると特定しやすい。</li><li><strong><code>Preserve log</code> を ON にする</strong>: ボタンを押すとページが遷移したりリロードが走って Network の記録がリセットされることがある。<code>Preserve log</code> (ログを保持) にチェックを入れておくと、画面遷移をまたいでも記録が消えず、遷移前に飛んだリクエストをあとから確認できる。</li></ul>
+<p class="note">ポイント: 「いつ現れたか」で犯人を絞る。操作の前後で一覧の差分を見るのがコツ。</p>
+<h3>再現する — Copy as fetch / cURL</h3>
+<p>本命が見つかったら、そのリクエストを右クリックしてコピーする。</p>
+<ul class="note-list"><li><strong><code>Copy</code> → <code>Copy as fetch</code></strong>: そのリクエストを JavaScript の <code>fetch()</code> 呼び出しとしてクリップボードにコピーする。URL・メソッド・ヘッダ・ボディがそのまま入っているので、コードに貼って再現できる。</li><li><strong><code>Copy</code> → <code>Copy as cURL</code></strong>: 同じ内容を <code>curl</code> コマンドとしてコピーする。ターミナルに貼ればそのまま実行できるので、パラメータやヘッダの中身を調べるのに便利。</li></ul>
+<pre><code data-lang="bash"># Copy as cURL で得られる形 (イメージ)
+curl 'https://example.com/report/output.page' \
+  -H 'accept: application/pdf' \
+  -H 'cookie: session=...' \
+  --data-raw 'reportId=123&amp;format=pdf'</code></pre>
+<p>これを見れば「どのパラメータで帳票が決まるのか」「どのヘッダ (Cookie など) が必要なのか」が一目でわかる。自動化するときの入力仕様がここから読み取れる。</p>
+<h3>実体を確かめる — 先頭バイトで中身を判別する</h3>
+<p>URL の拡張子や Content-Type が実体と食い違うことがある。最終的な中身は<strong>レスポンスの先頭バイト (マジックナンバー)</strong> で確かめるのが確実。</p>
+<ul class="note-list"><li><strong>PDF なら <code>%PDF-</code> で始まる</strong>: レスポンスの先頭が <code>%PDF-</code> であれば、拡張子が何であれ中身は PDF バイナリ。</li><li><strong>拡張子に惑わされない</strong>: <code>.page</code> のようなサーバサイドの拡張子 (サーバ側で動的に生成するページを表す) でも、実際には PDF バイナリや HTML を返していることがある。 URL の見た目ではなく、返ってきた中身で判断する。</li></ul>
+<pre><code data-lang="">先頭バイト        実体
+%PDF-             PDF
+PK (0x50 0x4B)    ZIP / xlsx / docx など (ZIP コンテナ)
+&lt;!DOCTYPE / &lt;html HTML
+{" または [       JSON</code></pre>
+<p>コードで取得したときは、レスポンス本文の先頭数バイトをそのまま確認すれば、保存すべき拡張子や後続処理を正しく選べる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>サイトには解析／接客ツールが埋め込まれ、Network タブは常時ノイズで埋まる。</li><li><strong>ノイズを消す</strong>: フィルタボックスに対象ドメイン名を入れ、<code>Fetch/XHR</code> で API に絞る。</li><li><strong>本命を捕まえる</strong>: 操作した瞬間に増える行を見る。<code>Preserve log</code> で遷移をまたいでも記録を残す。</li><li><strong>再現する</strong>: 右クリック → <code>Copy as fetch</code> / <code>Copy as cURL</code> でコード・コマンド化し、パラメータとヘッダを調べる。</li><li><strong>実体を確かめる</strong>: 拡張子ではなくレスポンスの先頭バイトで中身を判別する (PDF なら <code>%PDF-</code>)。</li></ul>
+<p>画面の裏で何が起きているかは、Network タブの絞り込みと「操作した瞬間」への注目でたいてい突き止められる。あとはそれをコピーして再現し、中身をバイトで確かめれば、自動化の入り口に立てる。</p>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

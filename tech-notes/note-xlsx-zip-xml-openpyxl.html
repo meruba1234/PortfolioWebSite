@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>xlsx/xlsm は ZIP+XML — openpyxl が画像や図形を落とす原理と回避 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Excel のテンプレートに会社ロゴやグラフ、注意書きの図形が貼ってある。そのテンプレートを Python の openpyxl でセルの数字だけ書き換えて保存したら、ロゴや図形がきれいさっぱり消えていた——これは op…" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="xlsx/xlsm は ZIP+XML — openpyxl が画像や図形を落とす原理と回避 — SkillShowcase" property="og:title"/>
+<meta content="Excel のテンプレートに会社ロゴやグラフ、注意書きの図形が貼ってある。そのテンプレートを Python の openpyxl でセルの数字だけ書き換えて保存したら、ロゴや図形がきれいさっぱり消えていた——これは op…" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-xlsx-zip-xml-openpyxl.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-xlsx-zip-xml-openpyxl.html" rel="canonical"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">プログラミング</span></div>
+<h2>xlsx/xlsm は ZIP+XML — openpyxl が画像や図形を落とす原理と回避</h2>
+<h3>背景</h3>
+<p>Excel のテンプレートに会社ロゴやグラフ、注意書きの図形が貼ってある。そのテンプレートを Python の openpyxl でセルの数字だけ書き換えて保存したら、ロゴや図形がきれいさっぱり消えていた——これは openpyxl を使うとよく踏むトラブルだ。原因を理解するには、まず「xlsx とは何者なのか」を知る必要がある。結論を先に言うと、xlsx/xlsm は 1 枚のバイナリファイルではなく、複数の XML を束ねた ZIP アーカイブである。openpyxl は保存時にその中身を作り直すため、扱えないパーツを取りこぼす。以下、内部構造 → なぜ落ちるか → 回避策 → 読み込みオプションの順に整理する。</p>
+<h3>xlsx/xlsm の正体は ZIP アーカイブ</h3>
+<p><code>sample.xlsx</code> の拡張子を <code>sample.zip</code> に変えて展開ソフトで開くと、中からフォルダ構造が出てくる。つまり Excel ブックの実体は、複数のファイルを ZIP 圧縮でまとめた「箱」だ。この形式は OOXML (Office Open XML) と呼ばれる。</p>
+<p>展開すると、おおよそ次のような中身が見える。</p>
+<pre><code data-lang="">sample.xlsx  (= ZIP)
+├── [Content_Types].xml         各パーツの種類の宣言
+├── _rels/
+│   └── .rels                   最上位の参照関係
+└── xl/
+    ├── workbook.xml            ブック全体（シート一覧など）
+    ├── sharedStrings.xml       文字列プール（後述）
+    ├── styles.xml              フォント・色・罫線などの書式定義
+    ├── worksheets/
+    │   ├── sheet1.xml          シート1のセルデータ
+    │   └── sheet2.xml
+    ├── media/
+    │   ├── image1.png          画像の本体（バイナリ）
+    │   └── image2.jpeg
+    ├── drawings/
+    │   └── drawing1.xml        図形・画像を「どこに置くか」の配置情報
+    └── worksheets/_rels/
+        └── sheet1.xml.rels     シート1と drawing1.xml をつなぐ参照</code></pre>
+<p>役割を表にまとめる。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">パーツ</th><th scope="col">中身</th><th scope="col">役割</th></tr></thead><tbody><tr><td><code>xl/worksheets/sheetN.xml</code></td><td>各シートのセル値・数式</td><td>表そのもの</td></tr><tr><td><code>xl/media/</code></td><td>png / jpeg などの画像バイナリ</td><td>画像の本体データ</td></tr><tr><td><code>xl/drawings/</code></td><td>配置座標・サイズの XML</td><td>画像や図形を「どのセル位置にどの大きさで置くか」</td></tr><tr><td><code>xl/sharedStrings.xml</code></td><td>文字列の一覧</td><td>同じ文字列を使い回すためのプール</td></tr><tr><td><code>xl/styles.xml</code></td><td>フォント・色・罫線・表示形式</td><td>見た目の定義</td></tr><tr><td><code>xl/_rels</code>, <code>*.rels</code></td><td>パーツ同士の参照関係</td><td>「このシートはこの drawing を使う」等の紐付け</td></tr></tbody></table></div>
+<p>ポイントは、画像の<strong>本体</strong> (<code>xl/media/</code>) と、画像を<strong>どこに置くか</strong> (<code>xl/drawings/</code>)、そしてそれらを<strong>シートに結びつける参照</strong> (<code>_rels</code>) が別々のパーツに分かれていること。この 3 つが揃って初めて Excel は「シート上のこの位置にロゴを表示する」と解釈できる。</p>
+<h3>セル値は文字列そのものとは限らない — sharedStrings の罠</h3>
+<p>シート XML を覗くと、セル 1 個は <code>&lt;c&gt;</code> (cell) タグで表される。中の <code>&lt;v&gt;</code> (value) に値が入る。ところが文字列セルの場合、<code>&lt;v&gt;</code> に入っているのは<strong>文字そのものではなく、sharedStrings.xml の何番目かを示す添字</strong>であることが多い。</p>
+<pre><code data-lang="xml">&lt;!-- sheet1.xml のセル。t="s" は「文字列型」の意味 --&gt;
+&lt;c r="A1" t="s"&gt;&lt;v&gt;0&lt;/v&gt;&lt;/c&gt;</code></pre>
+<pre><code data-lang="xml">&lt;!-- sharedStrings.xml。上の &lt;v&gt;0&lt;/v&gt; は「0 番目 = 得意先名」を指す --&gt;
+&lt;sst&gt;
+  &lt;si&gt;&lt;t&gt;得意先名&lt;/t&gt;&lt;/si&gt;   &lt;!-- インデックス 0 --&gt;
+  &lt;si&gt;&lt;t&gt;商品名&lt;/t&gt;&lt;/si&gt;     &lt;!-- インデックス 1 --&gt;
+&lt;/sst&gt;</code></pre>
+<p>つまり <code>A1</code> の中身は「0」という数字ではなく「得意先名」という文字列だ。同じ文字列が何度も出てくるブックでは、実体を 1 か所に集めて番号で参照することでファイルを軽くしている。これが shared（共有）strings という名前の由来。openpyxl のような正規のライブラリを使えばこの変換は自動でやってくれるが、自力で ZIP を開いて XML を直読みするときは、この間接参照を知らないと「セルに 0 が入っている」と誤読する。</p>
+<p>もう一つの罠が<strong>名前空間 (namespace)</strong>。OOXML の XML タグには裏で長い名前空間 URI がぶら下がっている。素朴に <code>//v</code> のような XPath で探すと名前空間が一致せず何もヒットしないことがある。名前空間を無視して要素名だけで拾いたいときは、次のように <code>local-name()</code> を使うのが定石だ。</p>
+<pre><code data-lang="python"># 名前空間に依存せず &lt;v&gt; 要素を拾う XPath
+values = tree.xpath("//*[local-name()='v']")</code></pre>
+<h3>なぜ openpyxl は画像や図形を落とすのか</h3>
+<p>openpyxl は「Excel エンジンを使わずに」ブックを読み書きするライブラリだ。ファイルを開くと ZIP を展開して XML をオブジェクトに読み込み、保存時には<strong>シートの XML を自前で組み立て直して</strong> ZIP に書き戻す。</p>
+<p>問題はここ。openpyxl が理解して再現できるパーツ（セル値・数式・書式・一部のグラフや画像）は作り直せるが、<strong>理解できない・サポート範囲外のパーツ（各種の図形＝shapes、テキストボックス、一部の drawing 参照など）は再生成時に取りこぼす</strong>。元の ZIP からそのまま運んでくれるわけではないので、結果として保存後のファイルからロゴや図形が消える。</p>
+<p>openpyxl 自身もこれを警告してくる。図形を含むブックを読むと、こんなメッセージが出る。</p>
+<pre><code data-lang="">UserWarning: Wmf image format is not supported so the image is being dropped
+UserWarning: Charts and images will be preserved but shapes and drawings
+             will be lost when saved.</code></pre>
+<p>要するに「グラフと画像は残せることもあるが、図形 (shapes / drawings) は保存で失われる」という自己申告だ。テンプレートを openpyxl で開いて <code>save()</code> した時点で失われるので、「数字を書き換えただけなのに」という体感になる。</p>
+<h3>回避策 — テンプレートから media/drawings をバイナリコピーで復元する</h3>
+<p>openpyxl が落とすなら、落ちたパーツを<strong>後から ZIP レベルで戻してやればいい</strong>。発想はこうだ。</p>
+<ol class="note-list"><li>元のテンプレート xlsx を ZIP として開き、<code>xl/media/</code> や <code>xl/drawings/</code> などの画像関連エントリを控えておく。</li><li>openpyxl で値を書き換え、別名で保存する（この時点で画像は落ちている）。</li><li>保存後の xlsx（これも ZIP）を開き、控えておいた画像エントリを<strong>バイナリのまま書き戻す</strong>。</li></ol>
+<p>zipfile 標準ライブラリで 2 つの ZIP を同時に開いてエントリを付け替えるイメージだ。</p>
+<pre><code data-lang="python">import zipfile, shutil
+
+TEMPLATE = "template.xlsx"   # ロゴ・図形入りの元ファイル
+GENERATED = "output.xlsx"    # openpyxl 保存後（画像が落ちている）
+RESTORE_PREFIXES = ("xl/media/", "xl/drawings/")  # 戻したいパーツ
+
+# 元テンプレートから、戻すべきエントリ名を集める
+with zipfile.ZipFile(TEMPLATE) as z:
+    keep = [n for n in z.namelist()
+            if n.startswith(RESTORE_PREFIXES)]
+
+# 生成物を作り直し、画像パーツだけ元テンプレートから差し込む
+tmp = "output_fixed.xlsx"
+with zipfile.ZipFile(GENERATED) as src, \
+     zipfile.ZipFile(TEMPLATE) as tpl, \
+     zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as dst:
+    # openpyxl が書いたパーツはそのまま流用
+    for item in src.namelist():
+        if item.startswith(RESTORE_PREFIXES):
+            continue  # 空っぽの側は捨てる
+        dst.writestr(item, src.read(item))
+    # 画像・図形は元テンプレートのバイナリを移植
+    for item in keep:
+        dst.writestr(item, tpl.read(item))
+
+shutil.move(tmp, GENERATED)</code></pre>
+<p>コードの流れだけ言葉にすると——「元テンプレートから画像フォルダの中身をそっくり借りてきて、openpyxl が作った新しいファイルの、空になった画像フォルダに貼り直す」。セルの値は新しいファイルのもの、絵は元テンプレートのもの、といいとこ取りをしている。実際には <code>_rels</code> や <code>[Content_Types].xml</code> の参照整合も必要になるケースがあるので、テンプレートの構造を崩さず、書き換えるのはセル値だけに留めるのがコツ。</p>
+<p>もう一つの実務メモ。画像が大量にあるブックを扱うとき、すべてを <code>io.BytesIO</code>（メモリ上のファイル）で処理するとメモリを食って不安定になりやすい。<strong>物理ファイル（テンポラリファイル）を経由して読み書きする方がメモリ消費が安定する</strong>。数枚なら BytesIO で問題ないが、数十〜数百枚の画像を回すバッチではファイル経由を選ぶ。</p>
+<h3>読み込みオプションの落とし穴</h3>
+<p>openpyxl で <code>load_workbook()</code> を呼ぶときのオプションも、知らないとデータを失う。</p>
+<div class="table-scroll"><table class="impact-table"><thead><tr><th scope="col">オプション</th><th scope="col">挙動</th><th scope="col">注意点</th></tr></thead><tbody><tr><td><code>keep_vba=True</code></td><td>VBA マクロ（<code>xl/vbaProject.bin</code>）を保持</td><td><strong>これを外して .xlsm を保存するとマクロが丸ごと消え</strong>、Excel で「マクロ有効ブック」として開けなくなる</td></tr><tr><td><code>data_only=True</code></td><td>数式ではなく、Excel が最後に計算した<strong>キャッシュ値</strong>を読む</td><td>Excel で一度も開いて保存していないファイルは、キャッシュが無く <code>None</code> になることがある</td></tr><tr><td><code>data_only=False</code>（既定）</td><td>セルに入っている<strong>数式そのもの</strong>（<code>=SUM(...)</code>）を読む</td><td>計算結果ではなく式の文字列が返る</td></tr></tbody></table></div>
+<p><code>data_only</code> の要点は「式が欲しいのか、計算後の数字が欲しいのか」で決めること。<code>True</code> は計算結果、<code>False</code> は式。ただし <code>True</code> のキャッシュ値は「Excel が前回保存時に計算して埋め込んでおいた値」を読んでいるだけで、openpyxl 自身が再計算しているわけではない。</p>
+<p>そして最も見落としやすいのが、<strong>openpyxl は Excel エンジンを一切使わない</strong>という点。ZIP と XML を直接いじっているだけなので、<code>Worksheet_Change</code> のような VBA のイベントは発火しないし、開くだけで動くマクロも走らない。数式の自動再計算も行われない（キャッシュ値を読むだけ）。「Excel で開けば動く仕掛け」を前提にした処理は、openpyxl では動かないと考えておくと事故が減る。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>xlsx/xlsm は 1 枚のバイナリではなく、XML を束ねた <strong>ZIP アーカイブ</strong>。拡張子を .zip にすれば中を覗ける。画像本体は <code>xl/media/</code>、配置情報は <code>xl/drawings/</code>、文字列プールは <code>xl/sharedStrings.xml</code>、紐付けは <code>_rels</code>。</li><li>文字列セルの <code>&lt;v&gt;</code> は sharedStrings への<strong>添字</strong>のことがあり、名前空間付き XML は <code>local-name()</code> を使わないと拾えない。</li><li>openpyxl は保存時にシート XML を<strong>再生成</strong>するため、図形・drawing 参照・非対応の画像を落とす（「shapes and drawings will be lost」警告）。</li><li>回避策は、テンプレートと生成後 xlsx を <strong>2 つの ZIP として開き、<code>xl/media/</code>・<code>xl/drawings/</code> をバイナリコピー</strong>で復元すること。大量画像は BytesIO よりも物理ファイル経由がメモリ安定。</li><li>読み込みは <code>keep_vba</code>（外すとマクロ消失）、<code>data_only</code>（True=キャッシュ値 / False=数式）に注意。openpyxl は Excel エンジンを使わないので、<code>Worksheet_Change</code> 等のイベントは発火しない。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>
