@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /*.apk$
+
+Sitemap: https://meruba1234.github.io/PortfolioWebSite/sitemap.xml
