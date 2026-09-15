@@ -39,6 +39,7 @@
 <li><a href="achievements.html">実績データ</a></li>
 <li><a href="timeline.html">経歴</a></li>
 <li><a href="itskills.html">ITスキル</a></li>
+<li><a href="tech-notes.html">技術ノート</a></li>
 <li><a href="android-app.html">アプリ紹介</a></li>
 <li><a href="contact.html">お問い合わせ</a></li>
 </ul>
@@ -57,10 +58,7 @@
 <h3 style="margin-top:32px;">🏗️ 自動化基盤・インフラ</h3>
 <div class="case-grid">
 <div class="case-card">
-<span class="case-tag">インフラ</span>
-<span class="case-tag">Docker</span>
-<span class="case-tag">Prefect</span>
-<span class="case-tag">Linux</span>
+<div class="case-tags"><span class="case-tag">インフラ</span><span class="case-tag">Docker</span><span class="case-tag">Prefect</span><span class="case-tag">Linux</span></div>
 <h3>業務自動化基盤の構築</h3>
 <p>Ubuntu Linux + Docker Compose + Prefect 3.x で「司令塔」となる自動化基盤を構築。複数のジョブを集中管理。</p>
 
@@ -70,18 +68,14 @@
 <h3 style="margin-top:32px;">⚡ 業務自動化 (営業事務・経理)</h3>
 <div class="case-grid">
 <div class="case-card">
-<span class="case-tag">業務自動化</span>
-<span class="case-tag">Playwright</span>
-<span class="case-tag">kintone</span>
+<div class="case-tags"><span class="case-tag">業務自動化</span><span class="case-tag">Playwright</span><span class="case-tag">kintone</span></div>
 <h3>取引先A 追加返品処理 自動化</h3>
 <p>営業事務が毎朝行っていた Dr.Sum レポートの取り込みと kintone への手入力を、画面入力代行で完全自動化。</p>
 
 <p><a href="business-cases/case-01.html">詳細を見る →</a></p>
 </div>
 <div class="case-card">
-<span class="case-tag">VBA</span>
-<span class="case-tag">SQL Server</span>
-<span class="case-tag">アルゴリズム</span>
+<div class="case-tags"><span class="case-tag">VBA</span><span class="case-tag">SQL Server</span><span class="case-tag">アルゴリズム</span></div>
 <h3>経理 入金消込処理 Excel VBA</h3>
 <p>経理担当者が日々行っていた入金消込作業を、SQL Server 連携の Excel VBA で自動化。4,095通りの部分和探索で整合チェックも自動化。</p>
 
@@ -91,18 +85,14 @@
 <h3 style="margin-top:32px;">🤝 取引先連携 (EDI / EOS / Web)</h3>
 <div class="case-grid">
 <div class="case-card">
-<span class="case-tag">EDI</span>
-<span class="case-tag">DB連携</span>
-<span class="case-tag">CSV</span>
+<div class="case-tags"><span class="case-tag">EDI</span><span class="case-tag">DB連携</span><span class="case-tag">CSV</span></div>
 <h3>取引先B EDI発注処理 自動化</h3>
 <p>大手外食チェーンの EDI 発注 CSV を、販売管理 DB と連携して単価計算・金額算出して返送。prefetch 化で 7.3倍高速化。</p>
 
 <p><a href="business-cases/case-04.html">詳細を見る →</a></p>
 </div>
 <div class="case-card">
-<span class="case-tag">Playwright</span>
-<span class="case-tag">EOS</span>
-<span class="case-tag">マルチサイト</span>
+<div class="case-tags"><span class="case-tag">Playwright</span><span class="case-tag">EOS</span><span class="case-tag">マルチサイト</span></div>
 <h3>EOS受注 マルチサプライヤー自動化</h3>
 <p>業態の違う 4 サプライヤーサイトから EOS 受注 CSV を自動取得 + 出荷確定アップロード。各サイトを Playwright で個別に攻略。</p>
 
@@ -112,18 +102,14 @@
 <h3 style="margin-top:32px;">📊 レポート・集計</h3>
 <div class="case-grid">
 <div class="case-card">
-<span class="case-tag">BI連携</span>
-<span class="case-tag">Dr.Sum</span>
-<span class="case-tag">Excel</span>
+<div class="case-tags"><span class="case-tag">BI連携</span><span class="case-tag">Dr.Sum</span><span class="case-tag">Excel</span></div>
 <h3>BIツール × 出荷目安レポート</h3>
 <p>仕入先からの出荷目安エクセルと社内BI (Dr.Sum) の前年同月売上を突き合わせ、課別ケース売上ベースで判定するレポートを自動生成。</p>
 
 <p><a href="business-cases/case-05.html">詳細を見る →</a></p>
 </div>
 <div class="case-card">
-<span class="case-tag">Excel</span>
-<span class="case-tag">PDF</span>
-<span class="case-tag">SQL Server</span>
+<div class="case-tags"><span class="case-tag">Excel</span><span class="case-tag">PDF</span><span class="case-tag">SQL Server</span></div>
 <h3>取引先C 月次請求金額内訳</h3>
 <p>4 得意先の月次請求金額を A4 縦 1 ページの Excel + PDF で自動生成。営業事務が bat ダブルクリック + 期間入力するだけ。</p>
 
@@ -133,9 +119,7 @@
 <h3 style="margin-top:32px;">🔄 既存システム解読・移植</h3>
 <div class="case-grid">
 <div class="case-card">
-<span class="case-tag">VB.NET 解析</span>
-<span class="case-tag">Python 移植</span>
-<span class="case-tag">SQL Server</span>
+<div class="case-tags"><span class="case-tag">VB.NET 解析</span><span class="case-tag">Python 移植</span><span class="case-tag">SQL Server</span></div>
 <h3>売上CSV取込システム (VB.NET → Python 移植)</h3>
 <p>VB.NETの業務ロジックを解析し、Pythonで再実装。既存DBとの整合性を確認しながら段階的に移行。</p>
 
@@ -145,18 +129,14 @@
 <h3 style="margin-top:32px;">🖥️ 社内 Web ツール</h3>
 <div class="case-grid">
 <div class="case-card">
-<span class="case-tag">Flask</span>
-<span class="case-tag">Playwright</span>
-<span class="case-tag">FAX</span>
+<div class="case-tags"><span class="case-tag">Flask</span><span class="case-tag">Playwright</span><span class="case-tag">FAX</span></div>
 <h3>FAX 履歴ビュアー (Web ツール)</h3>
 <p>複合機の FAX 履歴を社内 Web から検索・閲覧できるツール。トラブル時の確認時間を10分→5秒に短縮。</p>
 
 <p><a href="business-cases/case-09.html">詳細を見る →</a></p>
 </div>
 <div class="case-card">
-<span class="case-tag">Vue.js</span>
-<span class="case-tag">SQLite</span>
-<span class="case-tag">Flask</span>
+<div class="case-tags"><span class="case-tag">Vue.js</span><span class="case-tag">SQLite</span><span class="case-tag">Flask</span></div>
 <h3>商品不足管理サイト</h3>
 <p>欠品予兆のある商品を Web で一覧化し、商品部・営業部がリアルタイム共有・対応できるシステム。差分10分毎 + 全件日次の更新。</p>
 
@@ -166,9 +146,7 @@
 <h3 style="margin-top:32px;">🚨 異常検知・分析</h3>
 <div class="case-grid">
 <div class="case-card">
-<span class="case-tag">統計分析</span>
-<span class="case-tag">SQLite</span>
-<span class="case-tag">Flask + Vue</span>
+<div class="case-tags"><span class="case-tag">統計分析</span><span class="case-tag">SQLite</span><span class="case-tag">Flask + Vue</span></div>
 <h3>異常受注検知システム</h3>
 <p>受注データから異常値を自動検知し、ブラウザでカード型 UI で確認できるシステムをゼロから1週間で構築。watchdog 二段構えで運用安定化。</p>
 

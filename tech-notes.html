@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>技術ノート — SkillShowcase</title>
+<link href="style.css" rel="stylesheet"/>
+<meta content="業務で調べた内容を分野別に整理した学習ノート。社内固有の情報を含まないものを公開しています。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="技術ノート — SkillShowcase" property="og:title"/>
+<meta content="業務で調べた内容を分野別に整理した学習ノート。社内固有の情報を含まないものを公開しています。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="portfolio.html">ホーム</a></li>
+<li><a href="business-cases.html">業務改善実績</a></li>
+<li><a href="achievements.html">実績データ</a></li>
+<li><a href="timeline.html">経歴</a></li>
+<li><a href="itskills.html">ITスキル</a></li>
+<li><a href="tech-notes.html">技術ノート</a></li>
+<li><a href="android-app.html">アプリ紹介</a></li>
+<li><a href="contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<section>
+<h2>技術ノート</h2>
+<p>業務で調べたことを後から読み直せるように、分野別に整理している学習ノートです。
+「作成された資料はすべて自分で読み、不明点は復習用の文書に整理する」という習慣の実物にあたります。</p>
+<p class="note">社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名・共有フォルダのパス）は含めていません。
+個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+</section>
+<section>
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-value">58</div><div class="stat-label">整理済みノート</div></div>
+<div class="stat-card"><div class="stat-value">9</div><div class="stat-label">分野</div></div>
+<div class="stat-card"><div class="stat-value">156</div><div class="stat-label">一問一答（復習用）</div></div>
+<div class="stat-card"><div class="stat-value">4</div><div class="stat-label">全文公開中</div></div>
+</div>
+</section>
+<section>
+<h2>公開しているノート</h2>
+<p>社内固有の情報を含まず、内容を再確認できたものから全文を公開しています。</p>
+<div class="case-grid">
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">Python</span><span class="case-tag">SQL Server</span><span class="case-tag">文字コード</span><span class="case-tag">Linux移行</span></div>
+<h3>pyodbc の setencoding(cp932) が Linux で SQL と結果を壊す</h3>
+<p>Windows で動いていた DB アクセスコードが Linux コンテナで壊れた原因を、pyodbc の文字コード設定から追った記録。</p>
+<p><a href="tech-notes/note-pyodbc-setencoding.html">ノートを読む →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">Python</span><span class="case-tag">VBA</span><span class="case-tag">金額計算</span><span class="case-tag">移植</span></div>
+<h3>Python Decimal と VBA の丸め・整数化の差分</h3>
+<p>VB.NET / VBA の金額計算を Python へ移植したときに 1 円ずれる原因を、丸めと整数化のタイミングから切り分けた記録。</p>
+<p><a href="tech-notes/note-decimal-vba-rounding.html">ノートを読む →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">DB設計</span><span class="case-tag">パフォーマンス</span><span class="case-tag">SQL</span><span class="case-tag">ORM</span></div>
+<h3>N+1 クエリ問題と prefetch（バッチ取得）による解消</h3>
+<p>件数に比例して遅くなるバッチ処理の原因だった N+1 クエリを、prefetch で 40.58 秒 → 5.59 秒に改善した際の整理。</p>
+<p><a href="tech-notes/note-n-plus-1-prefetch.html">ノートを読む →</a></p>
+</div>
+<div class="case-card">
+<div class="case-tags"><span class="case-tag">Python</span><span class="case-tag">ファイルI/O</span><span class="case-tag">運用設計</span></div>
+<h3>アトミックなファイル書き込み（.tmp に書いて rename）</h3>
+<p>別プロセスが読むファイルを壊さずに更新するための、一時ファイル + rename によるアトミック書き込みの整理。</p>
+<p><a href="tech-notes/note-atomic-file-write.html">ノートを読む →</a></p>
+</div>
+</div>
+</section>
+<section>
+<h2>分野別の一覧</h2>
+<p>整理しているノートの見出し一覧です。全文公開しているものにはリンクを付けています。分野名をクリックすると展開します。</p>
+<details class="note-group">
+<summary>データベース<span class="count">9 本</span></summary>
+<p>SQL Server / SQLite、突合・名寄せ、型と NULL の扱い、権限設計</p>
+<ul><li>消費税の計算・丸めと内税/外税・軽減税率（1円差の追い方）</li><li><a href="tech-notes/note-n-plus-1-prefetch.html">N+1 クエリ問題と prefetch（バッチ取得）による解消</a> <span class="note-badge">全文公開</span></li><li>DB の NULL / 0 / 空欄は別物 — 値の読み方と大きなキーの型</li><li><a href="tech-notes/note-pyodbc-setencoding.html">pyodbc の setencoding(cp932) が Linux で SQL と結果を壊す</a> <span class="note-badge">全文公開</span></li><li>本番 DB を壊さない多層防御 — 権限層で担保する</li><li>異種データの突合・名寄せの設計（安定キー・合成キー分解・正規化・貪欲マッチの限界）</li><li>SQLite の UPSERT（ON CONFLICT）で冪等に蓄積する・PRAGMA でスキーマ調査</li><li>SQL Server にクロスプラットフォーム接続（ODBC Driver 18 / TrustServerCertificate / Linux）</li><li>VBA/ADO の conn.Execute が Recordset を返す＝SELECT の見分け方</li></ul>
+</details>
+<details class="note-group">
+<summary>プログラミング<span class="count">20 本</span></summary>
+<p>Python、文字コード、ファイル I/O、Git、正規表現、丸め処理</p>
+<ul><li>累積・差分処理の冪等性バグ（再検知の繰り返し・集約漏れ）</li><li><a href="tech-notes/note-atomic-file-write.html">アトミックなファイル書き込み（.tmp に書いて rename）</a> <span class="note-badge">全文公開</span></li><li>bisect で「基準日以前の最新」を高速に選ぶ（二分探索）</li><li>CSV を手動で編集するときの注意点（かんたん版）</li><li>CSV を手動で編集するときの落とし穴（詳細版）</li><li>CP932 と Shift_JIS の違い・日本語ファイルの文字化け対処</li><li>ファイル I/O の3パターン（直接書き / メモリ完結 / 一時ファイル必須）</li><li>改行コード（CRLF / LF）と Git の autocrlf</li><li>.gitignore の否定パターンと既ステージ問題・日本語パス表示</li><li>Python は import 済みモジュールを再読込しない — 常駐プロセスは再起動が要る</li><li><a href="tech-notes/note-decimal-vba-rounding.html">Python Decimal と VBA の丸め・整数化の差分</a> <span class="note-badge">全文公開</span></li><li>Python パッケージマネージャとキャッシュ</li><li>python-pptx でスライドを動的に生成・分割する</li><li>Python の sys.path にディレクトリを追加するとは</li><li>短いIDの照合と正規表現の落とし穴（部分一致の誤ヒット・findall の順序）</li><li>標準出力のバッファリング — バックグラウンド実行で print が出ない</li><li>subprocess と環境変数の伝播 — env を明示指定すると親を継がない</li><li>Windows の UNC パスは Linux 上の os.path で壊れる</li><li>Unicode 正規化（NFKC）で全角半角・カナの表記揺れを吸収する</li><li>xlsx/xlsm は ZIP+XML — openpyxl が画像や図形を落とす原理と回避</li></ul>
+</details>
+<details class="note-group">
+<summary>インフラ<span class="count">9 本</span></summary>
+<p>Docker、ジョブ基盤、バッチ/ETL の安全設計、Linux の障害診断</p>
+<ul><li>バッチ / ETL の安全設計 — 中間ファイル退避・洗い替え・多重起動防止</li><li>コンテナからホスト/別コンテナの処理を呼ぶ手段の分類</li><li>Docker のマウント3種（bind / volume / CIFS）とコードを焼き込まない設計</li><li>Excel → PDF 変換を OS で切り替える（win32com / LibreOffice headless）</li><li>ファイルドロップ型トリガー（watcher）で疎結合にジョブを起動する</li><li>ジョブのリトライ設計 — 一時エラーと恒久エラーを分ける</li><li>ジョブ基盤の scheduler と worker の分離 — 「予定は作られるが実行されない」の切り分け</li><li>Linux の「詰まり」診断 — D state / iowait / swap による I/O 飽和</li><li>ゾンビ化したジョブ実行を止める二重ガード（実行側 timeout ＋ 監視側 automation）</li></ul>
+</details>
+<details class="note-group">
+<summary>Web技術<span class="count">6 本</span></summary>
+<p>Playwright、ブラウザキャッシュ、DevTools、検索UIの整合性</p>
+<ul><li>ブラウザキャッシュと no-store / ハードリロード — 「直したのに反映されない」</li><li>クライアント側フィルタ vs サーバ側フィルタの判断</li><li>DevTools の Network タブで「本命のリクエスト」を特定する</li><li>ファセット検索の整合性 — 「選択肢にあるのに選ぶと0件」を防ぐ</li><li>言語とフレームワークの関係</li><li>Playwright ブラウザ自動化 — codegen の限界・壊れにくいセレクタ・iframe・ダウンロード</li></ul>
+</details>
+<details class="note-group">
+<summary>Windows管理<span class="count">5 本</span></summary>
+<p>文字コードと BOM、Office COM 自動化、プロセスとトラブル対応</p>
+<ul><li>.bat / .ps1 の文字コード・BOM・改行の罠</li><li>「文字化け」は表示の問題か実データの問題か切り分ける</li><li>Office COM 自動化の鉄則 — Application.Quit() でユーザーの Office ごと閉じない</li><li>Windows Update トラブルシューティング</li><li>wscript プロセスがたまるとは</li></ul>
+</details>
+<details class="note-group">
+<summary>ネットワーク<span class="count">3 本</span></summary>
+<p>IMAP、RDP / RemoteApp、SMB / CIFS 共有アクセス</p>
+<ul><li>IMAP の仕組み — UID / UIDVALIDITY・readonly 接続・ポート</li><li>RDPとRemoteAppの認証情報・負荷分散の仕組み</li><li>SMB / CIFS / UNC 共有アクセス — smbprotocol 直叩き vs OS マウント</li></ul>
+</details>
+<details class="note-group">
+<summary>セキュリティ<span class="count">3 本</span></summary>
+<p>公開鍵暗号と署名、認証情報の扱い、改ざん検知</p>
+<ul><li>認証情報の扱いと改ざん検知 — Secret / 環境変数注入 / sha256 マニフェスト</li><li>公開鍵暗号とデジタル署名</li><li>SSH 鍵の形式（PuTTY .ppk と OpenSSH）と変換・エージェント</li></ul>
+</details>
+<details class="note-group">
+<summary>ハードウェア<span class="count">2 本</span></summary>
+<p>小型カメラモジュールの機構、自作デバイスの検討</p>
+<ul><li>自作プロジェクト計画: クリップ式ウェアラブルカメラ</li><li>薄型小型カメラの機構 — 「きしめんケーブルの先にレンズ」の正体</li></ul>
+</details>
+<details class="note-group">
+<summary>用語集<span class="count">1 本</span></summary>
+<p>疎結合・凝集度・SOLID などの設計原則を自分の言葉で整理</p>
+<ul><li>設計原則・アーキテクチャ用語</li></ul>
+</details>
+</section>
+<section>
+<h2>復習のしかた</h2>
+<p>読んだだけで終わらせないために、ノートとは別に一問一答（計156問）を作成し、間隔反復のルールで見直しています。</p>
+<ul class="skill-list">
+<li><strong>アクティブリコール</strong> — ノートを読み返すのではなく、問いに答える形で思い出す。</li>
+<li><strong>間隔反復</strong> — 初回学習の翌日、7日後、14日後、30日後に復習する。</li>
+<li><strong>取り込み用データ</strong> — 一問一答は暗記アプリへ取り込める TSV 形式でも管理。</li>
+</ul>
+<p>ノートの多くは、実際に業務で詰まった箇所から生まれています。
+背景となった案件は <a href="business-cases.html">業務改善実績</a> に掲載しています。</p>
+</section>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

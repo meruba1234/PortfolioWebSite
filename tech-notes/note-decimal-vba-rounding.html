@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>Python Decimal と VBA の丸め・整数化の差分 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="VB.NET / VBA の金額計算を Python へ移植したときに 1 円ずれる原因を、丸めと整数化のタイミングから切り分けた記録。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="Python Decimal と VBA の丸め・整数化の差分 — SkillShowcase" property="og:title"/>
+<meta content="VB.NET / VBA の金額計算を Python へ移植したときに 1 円ずれる原因を、丸めと整数化のタイミングから切り分けた記録。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Python</span><span class="case-tag">VBA</span><span class="case-tag">金額計算</span><span class="case-tag">移植</span></div>
+<h2>Python Decimal と VBA の丸め・整数化の差分</h2>
+<h3>何を学んだか</h3>
+<p>販売管理の金額計算を Python に移植するとき、計算式が同じに見えても、丸め処理と整数化のタイミングが違うだけで 1 円単位の差が出ることがある。</p>
+<p>特に注意する点は次の3つ。</p>
+<ul class="note-list"><li><code>RoundEX</code> のような丸め関数の戻り値が、本当に小数部のない <code>Decimal</code> になっているか。</li><li>VBA の暗黙的な <code>Integer</code> 変換と Python の <code>int()</code> は、同じ丸め規則ではない。</li><li>金額同士の差分を出す場合は、VBA と同じ段階で整数化してから減算する必要がある。</li></ul>
+<h3>今回の論点</h3>
+<p>VBA 側では、概念的には次の順序で計算していた。</p>
+<pre><code data-lang="vb">' Step 1: Decimal 型で計算
+genKin = mfFull9(原価 * 総数量)
+
+' Step 2: RoundEX で丸めてから mf9 で整数化
+原価金額 = mf9(RoundEX(genKin, wMaru, 0))
+
+' Step 3: Decimal 型で計算
+kin = mfFull9(単価 * 総数量)
+
+' Step 4: RoundEX で丸めてから mf9 で整数化
+金額 = mf9(RoundEX(kin, wMaru, 0))
+
+' Step 5: 整数同士を減算して Decimal 型に
+arrKin = mfFull9(金額 - 原価金額)
+
+' Step 6: mf9 で整数化
+粗利金額 = mf9(arrKin)</code></pre>
+<p>Python 側では、次のような処理になっていた。</p>
+<pre><code data-lang="python">genka_kingaku = self.round_ex(detail.genka * detail.qty, maru_kbn, 0)
+genka_kingaku_int = int(genka_kingaku)
+
+uriage_kingaku = self.round_ex(detail.tanka * detail.qty, maru_kbn, 0)
+uriage_kingaku_int = int(uriage_kingaku)
+
+arari_kingaku = uriage_kingaku_int - genka_kingaku_int</code></pre>
+<p>見た目は近いが、<code>mf9()</code> に渡す時点の VBA 暗黙型変換と、Python の <code>int()</code> の意味を分けて考える必要がある。</p>
+<h3>VBA と Python の整数化の違い</h3>
+<h4>Python の <code>int()</code></h4>
+<p>Python の <code>int(Decimal)</code> は、小数部を 0 方向に捨てる。</p>
+<pre><code data-lang="python">int(Decimal("12.9"))   # 12
+int(Decimal("-12.9"))  # -12</code></pre>
+<p>これは四捨五入ではない。</p>
+<h4>VBA / VB.NET の <code>Integer</code> 変換</h4>
+<p>VBA / VB.NET で小数を <code>Integer</code> に暗黙変換すると、銀行丸め、つまり偶数丸めになるケースがある。</p>
+<p>例:</p>
+<pre><code data-lang="vb">CInt(12.5) ' 12
+CInt(13.5) ' 14</code></pre>
+<p>そのため、<code>12.5</code> や <code>13.5</code> のような値が整数化時点で残っている場合、Python の <code>int()</code> とは結果が変わる。</p>
+<h3>ただし、RoundEX 後なら必ず差が出るわけではない</h3>
+<p><code>RoundEX(value, wMaru, 0)</code> が正しく小数第0位へ丸めていて、戻り値が <code>Decimal("12")</code> や <code>Decimal("12.0")</code> のように実質整数であれば、VBA の整数変換でも Python の <code>int()</code> でも結果は同じになる。</p>
+<pre><code data-lang="python">int(Decimal("12.0"))  # 12</code></pre>
+<p>したがって、ズレが出た場合は次を確認する。</p>
+<ul class="note-list"><li><code>round_ex(..., keta=0)</code> の戻り値に小数部が残っていないか。</li><li><code>Decimal("12.000000001")</code> のような微小な誤差が入り込んでいないか。</li><li><code>detail.genka</code>、<code>detail.tanka</code>、<code>detail.qty</code> が <code>float</code> 由来で <code>Decimal</code> 化されていないか。</li><li>VBA と Python で「丸めてから整数化」「整数化してから減算」の順序が一致しているか。</li></ul>
+<h3>Decimal で注意すること</h3>
+<p><code>Decimal</code> を使っていても、元データが <code>float</code> から来ていると、すでに浮動小数点誤差を含んだ値を Decimal 化してしまうことがある。</p>
+<p>避けたい例:</p>
+<pre><code data-lang="python">Decimal(0.1)</code></pre>
+<p>望ましい例:</p>
+<pre><code data-lang="python">Decimal("0.1")</code></pre>
+<p>CSV や DB から読む金額・数量は、可能な限り文字列から <code>Decimal</code> に変換する。</p>
+<h3>切り分け手順</h3>
+<p>金額が 1 円ずれるときは、最終結果だけを比べず、VBA と Python の中間値を同じステップで比較する。</p>
+<ol class="note-list"><li><code>原価 * 総数量</code> の結果を比較する。</li><li><code>RoundEX(..., wMaru, 0)</code> の結果を比較する。</li><li><code>mf9()</code> または <code>int()</code> 後の原価金額を比較する。</li><li>売上金額も同じ手順で比較する。</li><li>粗利金額は、丸め前 Decimal 同士ではなく、VBA と同じく整数化後の金額同士で減算しているか確認する。</li></ol>
+<p>比較ログでは、表示用の文字列だけでなく <code>repr()</code> や <code>as_tuple()</code> 相当の内部表現も見るとよい。</p>
+<pre><code data-lang="python">print(value, repr(value), value.as_tuple())</code></pre>
+<h3>実装方針</h3>
+<p>VBA の挙動に合わせる場合は、次の方針にする。</p>
+<ul class="note-list"><li>金額計算の途中値は <code>Decimal</code> で保持する。</li><li><code>round_ex(..., keta=0)</code> の直後に、小数第0位へ確定していることを保証する。</li><li>整数化のタイミングを VBA と合わせる。</li><li>粗利は、売上金額と原価金額をそれぞれ整数化した後に減算する。</li><li>DB 保存直前だけでなく、VBA が整数化している箇所でも同じ意味の整数化を行う。</li></ul>
+<h3>覚えておく結論</h3>
+<p><code>Decimal</code> を使っているだけでは、VBA と Python の金額計算は一致しない。</p>
+<p>一致させるには、次の3点を揃える必要がある。</p>
+<ul class="note-list"><li>丸め規則</li><li>整数化規則</li><li>整数化するタイミング</li></ul>
+<p><code>int()</code> は「整数にする」関数だが、「VBA の <code>Integer</code> 変換と同じ丸めをする」関数ではない。金額計算を移植するときは、丸めと型変換を別の処理として扱う。</p>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

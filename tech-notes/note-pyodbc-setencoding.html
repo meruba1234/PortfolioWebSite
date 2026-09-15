@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>pyodbc の setencoding(cp932) が Linux で SQL と結果を壊す — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="Windows で動いていた DB アクセスコードが Linux コンテナで壊れた原因を、pyodbc の文字コード設定から追った記録。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="pyodbc の setencoding(cp932) が Linux で SQL と結果を壊す — SkillShowcase" property="og:title"/>
+<meta content="Windows で動いていた DB アクセスコードが Linux コンテナで壊れた原因を、pyodbc の文字コード設定から追った記録。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Python</span><span class="case-tag">SQL Server</span><span class="case-tag">文字コード</span><span class="case-tag">Linux移行</span></div>
+<h2>pyodbc の setencoding(cp932) が Linux で SQL と結果を壊す</h2>
+<h3>背景</h3>
+<p>Windows 上で問題なく動いていた pyodbc の DB アクセスコードを、そのまま Linux コンテナ（ODBC Driver 18 for SQL Server）へ移植したところ、クエリの実行時と結果の受け取り時の両方で謎のエラーが出るようになった。コードは一字一句同じで、変えたのは動作環境（OS とドライバ）だけ。原因を突き詰めると、日本語対応のつもりで入れていた <code>conn.setencoding(encoding="cp932")</code> が犯人だった。ここでは「なぜ壊れたのか」と「そもそも要らなかった」という 2 段構えの学びを整理しておく。</p>
+<h3>setencoding / setdecoding とは</h3>
+<p>pyodbc では、Python の文字列（Unicode）と DB とのやり取りで使う文字コードを、接続オブジェクトに対して明示的に設定できる。</p>
+<pre><code data-lang="python">import pyodbc
+
+conn = pyodbc.connect(conn_str)
+
+# Python str → DB へ送るときのエンコード
+conn.setencoding(encoding="cp932")
+
+# DB → Python str へ戻すときのデコード（型系統ごとに指定）
+conn.setdecoding(pyodbc.SQL_CHAR, encoding="cp932")   # VARCHAR 系
+conn.setdecoding(pyodbc.SQL_WCHAR, encoding="utf-16le")  # NVARCHAR 系</code></pre>
+<p>日本語を扱うのだから cp932（Shift_JIS 系）を指定しておけば安全、という発想でこう書きがちだ。ところがこの <code>setencoding</code> は「SQL 文字列そのもの」にも効いてしまう。ここが罠になる。</p>
+<h3>症状1: パラメータマーカーが消える</h3>
+<p><code>setencoding(encoding="cp932")</code> を設定すると、pyodbc はドライバへ渡す SQL クエリ文字列（Unicode）を cp932 バイト列にエンコードしてから送る。問題は、cp932 のような可変長マルチバイト符号化では、ある全角文字の「先頭バイト（リードバイト）」に続く「2 バイト目」として、ASCII 範囲と重なる値が現れうること。</p>
+<p>パラメータマーカーの <code>?</code> は ASCII の <code>0x3F</code>。もしクエリ内の全角文字のバイト列に <code>0x3F</code> が含まれると、ドライバはそれを「マルチバイト文字の一部」と解釈してしまい、本来のプレースホルダである <code>?</code> を <code>?</code> として認識できなくなる。結果、</p>
+<pre><code data-lang="">('The SQL contains 0 parameter markers, but 1 parameters were supplied', 'HY000')</code></pre>
+<p>のような「パラメータマーカーが 0 個しか見つからない」系のエラーが出る。SQL のバインド構文は正しいのに、文字コード設定のせいでマーカーが埋もれて消えているわけだ。Windows のドライバでは内部の扱いが違って表面化していなかったが、Linux + Driver 18 で顕在化した。</p>
+<h3>症状2: 結果デコードで UnicodeDecodeError</h3>
+<p>送信側だけでなく受信側も壊れる。<code>setdecoding(SQL_CHAR, encoding="cp932")</code> を設定していると、DB から返ってきたバイト列を cp932 としてデコードしようとする。ところが実データの中に cp932 では未定義のバイト（例: <code>0x86</code> など）が混じっていると、</p>
+<pre><code data-lang="">UnicodeDecodeError: 'cp932' codec can't decode byte 0x86 ...</code></pre>
+<p>で落ちる。厄介なのは、pyodbc の <code>setdecoding</code> には Python の <code>bytes.decode()</code> にあるような <code>errors="replace"</code> / <code>errors="ignore"</code> 相当の引数が無いこと。つまり「壊れた文字は置換して読み飛ばす」といった逃げが、pyodbc の API レベルでは打てない。codec レベルで握りたくても握れないのだ。</p>
+<h3>本質: NVARCHAR 主体なら codec 設定は不要</h3>
+<p>ここで一歩引いて考える。対象の DB が <code>NVARCHAR</code>（列名やリテラルに <code>N</code> プレフィックスが付く Unicode 型）主体なら、そもそも cp932 を設定する理由が無い。Unicode 型は DB 内部で UTF-16 として保持されており、pyodbc も既定で Unicode として素直にやり取りできる。cp932 を割り込ませることは、「わざわざ Unicode を一度 Shift_JIS に落とす」余計な変換を挟むだけで、上記 2 つの事故を自ら招いている。</p>
+<p>安全策はシンプルで、<strong>codec を一切セットしない</strong>（pyodbc の既定に任せる）か、必要なら utf-8 / utf-16 に揃えること。</p>
+<pre><code data-lang="python">conn = pyodbc.connect(conn_str)
+# 何も setencoding / setdecoding しない ← NVARCHAR 主体ならこれで十分動く</code></pre>
+<h3>VARCHAR と NVARCHAR は別系統でデコードされる</h3>
+<p>もう一つ押さえておきたいのが、pyodbc のデコード設定が「型の系統ごと」に分かれている点。</p>
+<table class="impact-table"><thead><tr><th scope="col">SQL 型</th><th scope="col">pyodbc の系統</th><th scope="col">setdecoding で指定する定数</th></tr></thead><tbody><tr><td><code>VARCHAR</code> / <code>CHAR</code></td><td>非 Unicode（バイト系）</td><td><code>SQL_CHAR</code></td></tr><tr><td><code>NVARCHAR</code> / <code>NCHAR</code></td><td>Unicode</td><td><code>SQL_WCHAR</code></td></tr></tbody></table>
+<p><code>VARCHAR</code> を使う DB なら <code>SQL_CHAR</code> 側のエンコーディングが効き、<code>NVARCHAR</code> を使う DB なら <code>SQL_WCHAR</code> 側が効く。だから「どちらの型を主に使う DB か」で、そもそも設定すべき対象も内容も変わる。両方を混在させている場合は、それぞれの系統に正しいコーデックを当てる必要がある。自分の触る DB がどちらなのかを知らずに、片方の設定だけ入れて満足すると足をすくわれる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><code>setencoding</code> は「送信する SQL 文字列そのもの」にも効く。cp932 にすると <code>?</code>（0x3F）が全角文字のバイトに埋もれ、「パラメータマーカーが 0 個」エラーになりうる。</li><li><code>setdecoding(SQL_CHAR, cp932)</code> は未定義バイトで <code>UnicodeDecodeError</code> を起こし、pyodbc には <code>errors</code> 引数が無いので Python の codec レベルでは救えない。</li><li>NVARCHAR（Unicode）主体の DB なら、cp932 設定はそもそも不要。codec を触らないか utf-8 / utf-16 に任せるのが安全。</li><li>VARCHAR は <code>SQL_CHAR</code>、NVARCHAR は <code>SQL_WCHAR</code> と別系統。DB がどちらを使うかで設定が変わる。</li><li>「Windows で動いた」は「Linux で同じ結果」を保証しない。文字コード設定は OS・ドライバで挙動が変わるので、環境を跨いだら必ず実行して確かめること。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

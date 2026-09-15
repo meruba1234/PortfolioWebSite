@@ -154,6 +154,24 @@ code {
 }
 html[data-theme="dark"] code { color: var(--primary); }
 
+pre {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin: 1em 0 1.5em;
+    overflow-x: auto;
+    line-height: 1.6;
+}
+pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    color: var(--text);
+    font-size: 0.86rem;
+    white-space: pre;
+}
+
 /* ==== 4. Layout ========================================================== */
 
 .container {
@@ -334,6 +352,34 @@ html[data-theme="dark"] .hero {
 }
 
 .hero > * { position: relative; z-index: 1; }
+
+.hero-kicker {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--primary);
+    margin: 0 0 0.6em;
+}
+
+.flow-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin: 1.2em 0;
+    padding: 14px 16px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.5;
+}
+.flow-steps span {
+    color: var(--primary);
+    font-weight: 700;
+}
 
 .hero h2 {
     color: #ffffff;
@@ -524,6 +570,13 @@ html[data-theme="dark"] .stat-value { color: var(--primary); }
 }
 .case-card a:hover { color: var(--primary-dark); }
 
+.case-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 4px;
+}
+
 .case-tag {
     display: inline-block;
     background: var(--primary-light);
@@ -531,9 +584,8 @@ html[data-theme="dark"] .stat-value { color: var(--primary); }
     padding: 3px 10px;
     border-radius: 12px;
     font-size: 0.75rem;
-    margin-right: 4px;
-    margin-bottom: 4px;
     font-weight: 600;
+    align-self: flex-start;
 }
 html[data-theme="dark"] .case-tag { color: var(--primary); }
 
@@ -779,6 +831,67 @@ footer {
     display: block;
 }
 
+/* ==== 16b. 技術ノート ==================================================== */
+
+.note-group {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin-bottom: 10px;
+}
+.note-group summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--text);
+    list-style-position: outside;
+}
+.note-group summary:hover { color: var(--primary); }
+.note-group summary .count {
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.88rem;
+    margin-left: 10px;
+}
+.note-group > p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 10px 0 0;
+}
+.note-group ul {
+    margin: 10px 0 2px;
+    padding-left: 1.25em;
+}
+.note-group li {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    margin: 7px 0;
+    line-height: 1.5;
+}
+.note-list {
+    margin: 0.5em 0 1.4em;
+    padding-left: 1.35em;
+}
+.note-list li {
+    margin: 7px 0;
+    color: var(--text);
+    line-height: 1.75;
+}
+.note-list li::marker { color: var(--primary); }
+
+.note-badge {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 999px;
+    margin-left: 6px;
+    vertical-align: 1px;
+}
+html[data-theme="dark"] .note-badge { color: var(--primary); }
+
 /* ==== 17. Responsive ==================================================== */
 
 @media (max-width: 900px) {
@@ -788,9 +901,8 @@ footer {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .case-meta dl { grid-template-columns: 1fr; }
     .case-meta dt { margin-top: 6px; font-size: 0.85rem; }
-}
 
-@media (max-width: 720px) {
+    /* ナビ項目が増えたため、900px 以下はハンバーガーへ切替 */
     .nav-toggle { display: inline-flex; }
     nav ul {
         position: fixed;
@@ -818,6 +930,9 @@ footer {
         padding: 12px 14px;
         border-radius: var(--radius-sm);
     }
+}
+
+@media (max-width: 720px) {
     header h1 { font-size: 1rem; }
     .hero { padding: 28px 18px; }
     .stat-value { font-size: 1.6rem; }

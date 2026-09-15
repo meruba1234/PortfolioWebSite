@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>アトミックなファイル書き込み（.tmp に書いて rename） — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="別プロセスが読むファイルを壊さずに更新するための、一時ファイル + rename によるアトミック書き込みの整理。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="アトミックなファイル書き込み（.tmp に書いて rename） — SkillShowcase" property="og:title"/>
+<meta content="別プロセスが読むファイルを壊さずに更新するための、一時ファイル + rename によるアトミック書き込みの整理。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Python</span><span class="case-tag">ファイルI/O</span><span class="case-tag">運用設計</span></div>
+<h2>アトミックなファイル書き込み（.tmp に書いて rename）</h2>
+<h3>背景</h3>
+<p>あるファイルを、書き手のプロセスとは別のプロセスが定期的に読んでいる、という構成はよくある。たとえば片方が状態ファイル（<code>state.json</code> など）を更新し、もう片方がそれをポーリングして表示する、といったケースだ。</p>
+<p>このとき、書き手が <strong>本番のファイルを直接開いて上書き</strong> すると困ったことが起きる。書き込みは一瞬では終わらない。途中まで書いたところで読み手がファイルを開くと、「前半だけ新しく、後半は古い（あるいは空）」という <strong>中途半端な内容</strong> を掴んでしまう。 JSON なら途中で切れた壊れたテキストになり、パースエラーになる。</p>
+<p>この破損を避けるための定石が「一時ファイルに書き切ってから rename する」という手法だ。</p>
+<h3>なぜ直接書くと危険か</h3>
+<p>直接上書きが危険なのは、書き込みが「複数の細かい操作の集まり」だからだ。ファイルを truncate（空にする）してから、少しずつバイトを書いていく。この途中の一瞬でも、読み手は同じファイルを開ける。</p>
+<pre><code data-lang="python"># 危険な例：本番ファイルを直接書き換える
+with open("state.json", "w", encoding="utf-8") as f:
+    json.dump(data, f)   # この最中に別プロセスが読むと壊れた内容を掴む</code></pre>
+<p>読み手から見ると、ファイルの中身が「完全な状態」から「完全な状態」へ一瞬で切り替わってほしい。ところが直接書きだと、その間に「壊れた状態」という第三の状態が挟まってしまう。</p>
+<h3>.tmp に書いて rename する</h3>
+<p>そこで、次の順番にする。</p>
+<ol class="note-list"><li>本番ファイルとは別名の一時ファイル（<code>.tmp</code>）に、内容を <strong>最後まで書き切る</strong></li><li>書き終わってから、一時ファイルを本番名に <strong>rename（改名）</strong> する</li></ol>
+<pre><code data-lang="python">import os, json
+
+def atomic_write_json(path, data):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    os.replace(tmp, path)   # ここが原子的な切り替え</code></pre>
+<p>ポイントは rename が <strong>原子的（atomic）</strong> な操作だということ。同一ボリューム（同じファイルシステム）内の rename は、OS が「一瞬で名前を差し替える」操作として扱う。途中経過がない。だから読み手は、</p>
+<ul class="note-list"><li>rename 前 → 「古い完全な内容」</li><li>rename 後 → 「新しい完全な内容」</li></ul>
+<p>のどちらかしか見ない。壊れた中間状態は原理的に観測できない。</p>
+<h3>os.replace と os.rename の違い</h3>
+<p>Python で上書きを含む rename をするなら <code>os.replace(src, dst)</code> を使う。これは宛先が既存でも上書きし、Windows / POSIX の両方で原子的に動く。</p>
+<p><code>os.rename</code> は少し挙動が違い、<strong>Windows では宛先が既に存在すると失敗する</strong>（POSIX では上書きできる）。プラットフォームで挙動が割れるので、上書き前提なら <code>os.replace</code> を選ぶのが安全だ。</p>
+<pre><code data-lang="python">os.replace(tmp, path)   # 上書きOK・両OSで原子的 → こちらを使う
+os.rename(tmp, path)    # Windowsだと既存宛先で失敗する</code></pre>
+<h3>一時ファイルは「宛先と同じディレクトリ」に作る</h3>
+<p>原子的なのは <strong>同一ファイルシステム内の rename に限る</strong> という点に注意する。別のドライブや別のマウント（別ファイルシステム）へ移動しようとすると、 OS は内部で「コピーしてから元を削除」に切り替える。これはもう原子的ではなく、途中経過が見える。</p>
+<p>だから一時ファイルは、<code>/tmp</code> のような別の場所ではなく、 <strong>本番ファイルと同じディレクトリ</strong> に作るのが鉄則だ。同じディレクトリなら同一ファイルシステムであることが保証されやすい。</p>
+<pre><code data-lang="python">tmp = path + ".tmp"          # 宛先と同じフォルダに作る（推奨）
+# tmp = "/tmp/state.json.tmp"  # 別FSだと rename が非原子的になりうる</code></pre>
+<h3>電源断まで守るなら fsync</h3>
+<p>rename が原子的でも、それは「OS から見た論理的な切り替え」の話だ。書いた内容がまだ OS のキャッシュに乗っているだけで、物理ディスクに届いていない可能性はある。電源断やクラッシュまで耐えたいなら、rename の前にディスクへ書き切らせる。</p>
+<pre><code data-lang="python">with open(tmp, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False)
+    f.flush()          # Python内部バッファ → OSへ
+    os.fsync(f.fileno())   # OSキャッシュ → 物理ディスクへ
+os.replace(tmp, path)</code></pre>
+<p><code>flush()</code> はアプリのバッファを OS に渡すだけで、まだディスクには届いていない。 <code>os.fsync()</code> を呼んで初めて、ディスクまで書き切ったことが保証される。</p>
+<h3>「成功してから記録する」順序にする</h3>
+<p>もう一つ、破損に強くする設計上のコツがある。処理の順番を <strong>「保存が成功してから、処理済みを記録する」</strong> にすることだ。</p>
+<p>たとえば「データを保存する → 処理済みリストに印をつける」という順にしておくと、保存の途中で落ちても、まだ処理済みの印はついていない。次回の実行で「まだ処理していない」とみなされ、もう一度救済される。</p>
+<p>逆に「先に処理済みと記録 → 後で保存」だと、保存前に落ちたときに「処理済みなのに実体がない」という穴が空く。リトライで拾えなくなる。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li>別プロセスが読むかもしれない共有ファイルは、<strong>直接上書きしない</strong>。書き込み途中の壊れた内容を読まれる。</li><li><strong><code>.tmp</code> に書き切ってから rename</strong> すれば、読み手は「古い完全」か「新しい完全」のどちらかしか見ない。</li><li>Python では上書きも原子的な <strong><code>os.replace</code></strong> を使う。<code>os.rename</code> は Windows で既存宛先だと失敗する。</li><li>一時ファイルは <strong>宛先と同じディレクトリ</strong> に作る。別ファイルシステムへの move は原子的でない。</li><li>電源断まで守るなら rename 前に <strong><code>flush()</code> + <code>os.fsync()</code></strong>。</li><li><strong>「保存成功 → 処理済み記録」の順序</strong> にすると、途中で失敗しても次回リトライで救える。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>

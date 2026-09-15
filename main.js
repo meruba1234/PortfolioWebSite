@@ -83,6 +83,10 @@
             if (currentPath.startsWith('case-') && linkPath === 'business-cases.html') {
                 a.setAttribute('aria-current', 'page');
             }
+            // For note-XX.html pages, highlight "技術ノート"
+            if (currentPath.startsWith('note-') && linkPath === 'tech-notes.html') {
+                a.setAttribute('aria-current', 'page');
+            }
         });
 
         // Scroll to top button

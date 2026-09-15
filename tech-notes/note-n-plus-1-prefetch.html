@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>N+1 クエリ問題と prefetch（バッチ取得）による解消 — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<meta content="件数に比例して遅くなるバッチ処理の原因だった N+1 クエリを、prefetch で 40.58 秒 → 5.59 秒に改善した際の整理。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="N+1 クエリ問題と prefetch（バッチ取得）による解消 — SkillShowcase" property="og:title"/>
+<meta content="件数に比例して遅くなるバッチ処理の原因だった N+1 クエリを、prefetch で 40.58 秒 → 5.59 秒に改善した際の整理。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary" name="twitter:card"/>
+<meta content="#0b84d8" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../android-app.html">アプリ紹介</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">DB設計</span><span class="case-tag">パフォーマンス</span><span class="case-tag">SQL</span><span class="case-tag">ORM</span></div>
+<h2>N+1 クエリ問題と prefetch（バッチ取得）による解消</h2>
+<h3>背景</h3>
+<p>一覧を表示する画面や帳票を作ると、最初は速いのに、データが増えるにつれて「なんだか表示が遅くなってきた」という現象によく出会う。件数が 10 件のときは一瞬なのに、1000 件になると数十秒待たされる、というやつ。</p>
+<p>その多くは、コードのロジックが悪いのではなく <strong>DB への問い合わせ（クエリ）の投げ方</strong> が原因になっている。代表格が <strong>N+1 クエリ問題</strong>。</p>
+<p>このノートは、N+1 とは何か、なぜ遅くなるのか、そして <strong>prefetch（先にまとめて取る）</strong> でどう解消するかを整理しておくもの。</p>
+<h3>N+1 クエリ問題とは</h3>
+<p>まず「クエリ」とは、DB に対して「このデータをちょうだい」とお願いする 1 回の問い合わせのこと。 DB は別の場所（別プロセスやネットワークの向こう）にいるので、この問い合わせ 1 回ごとに <strong>往復の待ち時間</strong> がかかる。1 回あたりは数ミリ秒でも、回数が積もると効いてくる。</p>
+<p>N+1 問題は、次のような書き方で起きる。</p>
+<pre><code data-lang="">1) 一覧をまとめて取る          ← ここで 1 回
+   例: 「今日の受注一覧」を取得（100 件返ってきた）
+
+2) その 100 件を 1 件ずつループして、
+   行ごとに関連データを 1 回ずつ取りに行く   ← ここで 100 回
+   例: 各受注の「得意先名」を得意先マスタから引く</code></pre>
+<p>擬似コードで書くとこうなる。</p>
+<pre><code data-lang="python">orders = db.query("SELECT * FROM 受注 WHERE 日付 = ?", today)   # ← 1 回
+
+for order in orders:                     # 100 件ぶんループ
+    customer = db.query(                  # ← ループのたびに 1 回ずつ！
+        "SELECT 名前 FROM 得意先 WHERE 得意先CD = ?",
+        order.得意先CD,
+    )
+    print(order.番号, customer.名前)</code></pre>
+<p>最初の一覧取得で <strong>1 回</strong>、そのあと行数（N 件）ぶんだけループ内で <strong>N 回</strong>。合わせて <strong>N + 1 回</strong> のクエリが飛ぶ。だから「N+1 問題」と呼ばれる。</p>
+<p>100 件なら 101 回、1000 件なら 1001 回。<strong>件数に比例してクエリ回数が増える</strong> のがポイント。</p>
+<h3>なぜ遅いのか</h3>
+<p>1 回のクエリ自体はごく軽い。問題は <strong>回数</strong> と、1 回ごとの <strong>往復待ち時間</strong>。</p>
+<p>DB は手元のメモリにあるわけではなく、問い合わせるたびに「お願いを送る → DB が処理する → 結果が返ってくる」の往復が発生する。この往復が 1000 回積み重なると、1 回あたりが数ミリ秒でも合計で数十秒に膨らむ。</p>
+<p>実際に、あるバッチ処理でこの N+1 を解消したところ</p>
+<ul class="note-list"><li>解消前: <strong>40.58 秒</strong></li><li>解消後: <strong>5.59 秒</strong>（約 <strong>7.3 倍</strong> 高速化）</li></ul>
+<p>という改善が出た。処理内容（計算ロジック）は一切変えず、 <strong>クエリの投げ方を変えただけ</strong> でこれだけ差が出る。</p>
+<p>ループの中で毎回 DB を叩いていないか、というのは真っ先に疑うべきポイント。</p>
+<h3>解消: prefetch（先にまとめて取る）</h3>
+<p>考え方はシンプル。<strong>ループに入る前に、必要なデータを 1〜2 回のクエリでまとめて取ってしまう</strong>。そしてメモリ上の辞書（キーで一発で引ける表）に load しておき、ループの中では DB ではなく <strong>その辞書を引く</strong> ようにする。</p>
+<p>手順は 3 段階。</p>
+<ol class="note-list"><li>まず一覧を取り、<strong>必要なキーの集合</strong> を集める（例: 出てきた得意先CD を全部）</li><li>そのキーをまとめて <code>WHERE key IN (?, ?, ...)</code> で <strong>1 回のクエリ</strong> で取得する</li><li>結果を辞書に load し、ループ内では辞書から引く（もう DB は叩かない）</li></ol>
+<pre><code data-lang="python">orders = db.query("SELECT * FROM 受注 WHERE 日付 = ?", today)   # ← 1 回
+
+# 1) 必要なキー（得意先CD）を重複なく集める
+cd_list = {order.得意先CD for order in orders}
+
+# 2) まとめて 1 回で取得する（IN でキーを列挙）
+rows = db.query(
+    "SELECT 得意先CD, 名前 FROM 得意先 WHERE 得意先CD IN (?, ?, ...)",
+    cd_list,
+)
+
+# 3) キーで一発で引ける辞書にしておく
+customer_map = {row.得意先CD: row.名前 for row in rows}
+
+for order in orders:                       # ループ内は DB を叩かない
+    名前 = customer_map[order.得意先CD]     # ← メモリ上の辞書を引くだけ
+    print(order.番号, 名前)</code></pre>
+<p>これで、クエリ回数は <strong>N+1 回 → 2 回</strong>（一覧 1 回 + まとめ取り 1 回）に激減する。件数が 100 でも 1000 でも、クエリ回数は 2 回のまま変わらない。ここが効く。</p>
+<p><code>IN (?, ?, ...)</code> は「このリストのどれかに一致する行を全部ちょうだい」という書き方。往復 1 回で必要な分をごっそり取ってこられる。</p>
+<p class="note">メモ: <code>IN</code> に渡すキーが極端に多い場合（数千〜）は、DB 側の上限に当たることがある。そのときは 1000 件ずつなど、適度なまとまりに分割して数回に分ければよい。それでも「件数ぶん」ではなく「まとまりの数ぶん」なので、N+1 よりはるかに少ない。</p>
+<h3>2 段引きも 1 回に統合できる</h3>
+<p>「あるキーで引いて、その結果を使ってさらに引く」という <strong>2 段引き</strong> も N+1 の一種。これも <code>IN</code> を使えば 1 回にまとめられることが多い。</p>
+<p>さらに、「指定した順番どおりに並べて返してほしい」場合は、 <code>ORDER BY CASE</code> で並び順を指定すると、並べ替えのためにもう一度アプリ側で回す手間も省ける。</p>
+<pre><code data-lang="sql">SELECT 商品CD, 名前
+FROM   商品
+WHERE  商品CD IN (?, ?, ?)
+ORDER BY CASE 商品CD           -- 渡した順に並べて返す
+           WHEN ? THEN 1
+           WHEN ? THEN 2
+           WHEN ? THEN 3
+         END</code></pre>
+<p>「1 件ずつ順番に引いていた」処理を、<code>IN</code> + <code>ORDER BY CASE</code> の <strong>1 クエリ</strong> に畳み込むイメージ。</p>
+<h3>ORM でも同じ問題が起きる</h3>
+<p>SQL を直接書かず、<strong>ORM</strong>（オブジェクトとテーブルを対応づけて、コードから DB を扱う仕組み）を使っていても、N+1 は同じように起きる。むしろ ORM だと「関連データにアクセスした瞬間、裏で自動的にクエリが飛ぶ」ため、 <strong>ループ内でうっかり N+1 を踏んでいることに気づきにくい</strong>。</p>
+<pre><code data-lang="python">for order in orders:
+    print(order.customer.name)   # ← .customer に触れた瞬間、裏でクエリが 1 回飛ぶ</code></pre>
+<p>これを避けるための仕組みが、たいていの ORM に用意されている（呼び方はフレームワークごとに違う）。</p>
+<ul class="note-list"><li><strong>JOIN でまとめて取る系</strong>（例: Django の <code>select_related</code>） … 一覧と関連データを 1 回のクエリで JOIN して取ってくる</li><li><strong>別クエリでまとめ取りする系</strong>（例: Django の <code>prefetch_related</code>、Laravel の <code>with()</code>） … 関連データを <code>IN</code> を使った別の 1 回のクエリでまとめて取り、ORM が対応づけてくれる</li></ul>
+<p>やっていることは、さっきの手作業の prefetch と本質的に同じ。 <strong>「ループ前にまとめて取る」を ORM がやってくれる</strong> だけ。</p>
+<h3>見分け方</h3>
+<p>N+1 は「なんとなく遅い」で片付けず、<strong>SQL ログを見れば一発で分かる</strong>。</p>
+<p>多くの DB クライアントや ORM には、実際に発行したクエリを出力する機能がある。それを眺めて、</p>
+<pre><code data-lang="">SELECT 名前 FROM 得意先 WHERE 得意先CD = 101
+SELECT 名前 FROM 得意先 WHERE 得意先CD = 102
+SELECT 名前 FROM 得意先 WHERE 得意先CD = 103
+...（延々と件数ぶん続く）...</code></pre>
+<p>のように、<strong>ほぼ同じ形のクエリが件数ぶん連続して並んでいたら N+1 を疑う</strong>。値（<code>101</code>, <code>102</code>, ...）だけが違って、形は全部同じ、というのが典型的なサイン。</p>
+<p>「表示が件数に比例して遅くなる」現象とセットで、まずここを確認するとよい。</p>
+<h3>まとめ</h3>
+<ul class="note-list"><li><strong>N+1 クエリ問題</strong> = 一覧を 1 回引いたあと、行ごとに関連データを 1 クエリずつ引くと、合計 <strong>N + 1 回</strong> のクエリが飛ぶアンチパターン。件数に比例して遅くなる。</li><li>遅い原因はロジックではなく <strong>DB 往復の回数</strong>。実測で <strong>40.58 秒 → 5.59 秒（約 7.3 倍）</strong> の改善例もある。</li><li>解消は <strong>prefetch（先にまとめて取る）</strong>。必要なキーを集めて <code>WHERE key IN (?, ...)</code> で 1〜2 回のクエリで一括取得し、<strong>メモリ上の辞書</strong> に load してループ内はそこを引く。</li><li><strong>2 段引き</strong> も <code>IN (?, ...)</code> + <code>ORDER BY CASE</code> で 1 クエリに統合できることが多い。</li><li><strong>ORM でも同じ問題が起きる</strong>。<code>select_related</code>（JOIN）/ <code>prefetch_related</code>・<code>with()</code>（別クエリでまとめ取得）等の仕組みで回避する（呼び方はフレームワークごとに違う）。</li><li><strong>見分け方</strong>: SQL ログにほぼ同じクエリが件数分連続して並んでいたら N+1 を疑う。</li></ul>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>
