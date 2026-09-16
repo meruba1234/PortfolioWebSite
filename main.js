@@ -89,6 +89,18 @@
             }
         });
 
+        // Contact email link (assembled at runtime to avoid plain-text harvesting)
+        const emailLink = document.querySelector('#contact-email-link');
+        if (emailLink) {
+            const user = ['meruba', '1234'].join('');
+            const domain = ['gmail', 'com'].join('.');
+            const address = user + String.fromCharCode(64) + domain;
+            emailLink.setAttribute('href', 'mailto:' + address);
+            document.querySelectorAll('.email-address').forEach(function (el) {
+                el.textContent = address;
+            });
+        }
+
         // Scroll to top button
         const toTop = document.querySelector('.to-top');
         if (toTop) {
