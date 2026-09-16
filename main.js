@@ -120,6 +120,8 @@
         if ('IntersectionObserver' in window) {
             const targets = document.querySelectorAll('section, .case-card, .stat-card, .timeline-item');
             targets.forEach(function (el) { el.classList.add('reveal'); });
+            // threshold は 0。要素がビューポートより高いと交差率が上がらず、
+            // しきい値を設けると本文が表示されないままになる
             const io = new IntersectionObserver(function (entries) {
                 entries.forEach(function (entry) {
                     if (entry.isIntersecting) {
@@ -127,8 +129,19 @@
                         io.unobserve(entry.target);
                     }
                 });
-            }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
-            targets.forEach(function (el) { io.observe(el); });
+            }, { threshold: 0, rootMargin: '0px 0px -40px 0px' });
+            targets.forEach(function (el) {
+                // ビューポートより高い要素はアニメーションせず即表示する
+                if (el.getBoundingClientRect().height >= window.innerHeight) {
+                    el.classList.add('is-visible');
+                } else {
+                    io.observe(el);
+                }
+            });
+            // 保険: 何らかの理由で監視が働かなかった場合も必ず表示する
+            window.setTimeout(function () {
+                targets.forEach(function (el) { el.classList.add('is-visible'); });
+            }, 3000);
         }
     });
 })();
