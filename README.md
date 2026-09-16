@@ -17,7 +17,6 @@
 | [経歴](https://meruba1234.github.io/PortfolioWebSite/timeline.html) | 職業訓練から社内SEの実務まで |
 | [ITスキル](https://meruba1234.github.io/PortfolioWebSite/itskills.html) | 扱った技術と、スキル記載の基準 |
 | [技術ノート](https://meruba1234.github.io/PortfolioWebSite/tech-notes.html) | 業務で調べた内容を分野別に整理した学習ノート 59本 |
-| [アプリ紹介](https://meruba1234.github.io/PortfolioWebSite/android-app.html) | 学習時に制作した Android アプリ QuizVoyage |
 | [お問い合わせ](https://meruba1234.github.io/PortfolioWebSite/contact.html) | 連絡先 |
 
 ---
@@ -65,7 +64,7 @@ sitemap.xml / robots.txt
 
 ## 配布ファイルについて
 
-学習時に制作した Android アプリの APK を同梱しています。
+職業訓練で制作した Android アプリ（学習成果物・未完成）の APK を同梱しています。
 ダウンロード後は [`SHA256SUMS.txt`](SHA256SUMS.txt) と照合して、
 ファイルが改ざんされていないことを確認してください。
 
