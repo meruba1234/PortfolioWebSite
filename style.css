@@ -53,6 +53,8 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
     --primary: #0b84d8;
     --primary-dark: #0865a6;
     --primary-light: #dbeafe;
+    /* --primary を背景にしたときの文字色 */
+    --on-primary: #ffffff;
     --accent: #f59e0b;
     --accent-light: #fef3c7;
     --success: #10b981;
@@ -92,6 +94,8 @@ html[data-theme="dark"] {
     --primary: #38bdf8;
     --primary-dark: #0ea5e9;
     --primary-light: rgba(56, 189, 248, 0.15);
+    /* 明るい青の上では白文字がコントラスト不足になるため濃紺にする */
+    --on-primary: #082f49;
     --accent: #fbbf24;
     --accent-light: rgba(251, 191, 36, 0.15);
     --success: #34d399;
@@ -120,6 +124,7 @@ html[data-theme="dark"] {
         --primary: #38bdf8;
         --primary-dark: #0ea5e9;
         --primary-light: rgba(56, 189, 248, 0.15);
+        --on-primary: #082f49;
         --accent: #fbbf24;
         --accent-light: rgba(251, 191, 36, 0.15);
         --success: #34d399;
@@ -457,7 +462,7 @@ html[data-theme="dark"] .stat-value { color: var(--primary); }
     align-items: center;
     gap: 8px;
     background: var(--primary);
-    color: #ffffff !important;
+    color: var(--on-primary) !important;
     padding: 12px 22px;
     border-radius: var(--radius);
     font-weight: 600;
@@ -470,7 +475,7 @@ html[data-theme="dark"] .stat-value { color: var(--primary); }
     background: var(--primary-dark);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
-    color: #ffffff !important;
+    color: var(--on-primary) !important;
 }
 .cta-link::after {
     content: "→";
@@ -762,7 +767,7 @@ footer {
     width: 44px;
     height: 44px;
     background: var(--primary);
-    color: #fff;
+    color: var(--on-primary);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -783,7 +788,7 @@ footer {
 }
 .to-top:hover {
     background: var(--primary-dark);
-    color: #fff;
+    color: var(--on-primary);
     transform: translateY(-3px);
     box-shadow: var(--shadow-xl);
 }
