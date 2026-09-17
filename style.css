@@ -971,3 +971,76 @@ html[data-theme="dark"] .note-badge { color: var(--primary); }
     html { scroll-behavior: auto; }
     .hero::before, .hero::after, header h1::before { animation: none !important; }
 }
+
+/* ==== 印刷 =============================================================== */
+/* 職務経歴などを PDF 化して応募書類に添えるケースを想定した調整。
+   ブラウザは既定で背景を印刷しないため、背景ありきの白文字は紙の上で
+   消えてしまう。印刷時は配色を紙向けに組み直す。 */
+
+@media print {
+    /* 画面固定のヘッダーは各ページに重なって出るので隠す */
+    header,
+    .nav-toggle,
+    .theme-toggle,
+    .to-top,
+    .skip-link { display: none !important; }
+
+    html, body {
+        background: #ffffff !important;
+        color: #000000;
+        font-size: 10.5pt;
+    }
+
+    .main-content {
+        max-width: none;
+        /* 固定ヘッダー用に空けていた上部の余白を詰める */
+        padding: 0;
+    }
+
+    /* 背景が出ない前提で、白文字だったヒーロー部分を黒文字に戻す */
+    .hero {
+        background: none !important;
+        color: #000000;
+        padding: 0 0 8pt;
+        box-shadow: none;
+        border-bottom: 1pt solid #999999;
+        border-radius: 0;
+    }
+    .hero::before, .hero::after { display: none; }
+    .hero h2,
+    .hero .lead,
+    .hero-kicker,
+    .flow-steps { color: #000000 !important; }
+    .flow-steps { border: 1pt solid #cccccc; background: none; }
+
+    /* 装飾は紙では不要 */
+    .case-card, .stat-card, .skill-list li, .page-list li,
+    .note, pre, .case-meta, .timeline-item {
+        box-shadow: none !important;
+    }
+
+    /* 見出しだけがページ末尾に取り残されるのを防ぐ */
+    h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
+
+    /* 表・カード・コードは途中で改ページしない */
+    .case-card, .stat-card, .case-meta, .timeline-item,
+    tr, pre, blockquote {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* ボタン型リンクは紙では下線付きテキストとして扱う */
+    .cta-link {
+        background: none !important;
+        color: #000000 !important;
+        padding: 0;
+        box-shadow: none;
+        text-decoration: underline;
+    }
+    .cta-link::after { content: ""; }
+
+    a { color: #000000; text-decoration: underline; }
+
+    section { margin: 0 0 1.2em; }
+    footer { margin-top: 1.5em; border-top: 1pt solid #999999; }
+}
