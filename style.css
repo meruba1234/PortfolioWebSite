@@ -47,11 +47,11 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
     --border: #e5e7eb;
     --border-strong: #d1d5db;
     --text: #0f172a;
-    --text-muted: #64748b;
+    --text-muted: #5c6b80;
     --text-subtle: #94a3b8;
 
-    --primary: #0b84d8;
-    --primary-dark: #0865a6;
+    --primary: #0b6cb2;
+    --primary-dark: #064f85;
     --primary-light: #dbeafe;
     /* --primary を背景にしたときの文字色 */
     --on-primary: #ffffff;
