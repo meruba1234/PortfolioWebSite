@@ -15,7 +15,7 @@
 |---|---|---|
 | `career.html` | **不可** | life-os `scripts/portfolio/gen_career.py` |
 | `tech-notes.html` | **不可** | life-os `scripts/portfolio/gen_notes.py` |
-| `tech-notes/note-*.html`（59本） | **不可** | 同上 |
+| `tech-notes/note-*.html`（57本） | **不可** | 同上 |
 | `business-cases/case-12.html` 〜 `case-15.html` | **不可** | life-os `scripts/portfolio/gen_cases.py` |
 | 上記以外の `*.html` | 可 | 手書き |
 | `style.css` `main.js` | 可 | 手書き |
@@ -39,14 +39,14 @@ achievements.html     実績データ（手書き）
 timeline.html         経歴（手書き）
 itskills.html         ITスキル（手書き）
 tech-notes.html       技術ノート一覧（生成物）
-  tech-notes/         note-*.html 59本（生成物）
+  tech-notes/         note-*.html 57本（生成物）
 contact.html          お問い合わせ（手書き）
 android-app.html      学習成果物アプリの紹介（手書き）
 style.css / main.js   全ページ共通
 og-image.png / sitemap.xml / robots.txt
 ```
 
-全85ページ。
+全84ページ。
 
 ---
 
@@ -58,7 +58,7 @@ life-os にアクセスできるなら、検査スクリプトを使う。
 
 ```bash
 PORTFOLIO_DIR=/path/to/PortfolioWebSite python3 /path/to/life-os/scripts/portfolio/check_site.py
-# → 「検査対象: 85 ページ / 問題なし」になること
+# → 「検査対象: 84 ページ / 問題なし」になること
 ```
 
 検査項目: 社内固有名の残存、リンク切れ、タグの対応、canonical/OGP/テーマ初期化の
@@ -102,7 +102,7 @@ curl -s -o /dev/null -w "%{http_code}\n" https://meruba1234.github.io/PortfolioW
 ## 現在の状態
 
 サイトは最新の内容が公開済み（2026-09-22 時点）。
-ケーススタディ15件、技術ノート59本、職務経歴ページあり。
+ケーススタディ15件、技術ノート57本、職務経歴ページあり。
 
 ## 残っている作業
 

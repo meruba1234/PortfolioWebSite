@@ -16,7 +16,7 @@
 | [実績データ](https://meruba1234.github.io/PortfolioWebSite/achievements.html) | コミット記録、案件ごとの投入工数、Git 導入前の開発記録 |
 | [経歴](https://meruba1234.github.io/PortfolioWebSite/timeline.html) | 職業訓練から社内SEの実務まで |
 | [ITスキル](https://meruba1234.github.io/PortfolioWebSite/itskills.html) | 扱った技術と、スキル記載の基準 |
-| [技術ノート](https://meruba1234.github.io/PortfolioWebSite/tech-notes.html) | 業務で調べた内容を分野別に整理した学習ノート 59本 |
+| [技術ノート](https://meruba1234.github.io/PortfolioWebSite/tech-notes.html) | 業務で調べた内容を分野別に整理した学習ノート 57本 |
 | [RDPドライブ共有のセキュリティ記事](https://meruba1234.github.io/PortfolioWebSite/articles/rdp-drive-redirection-security.html) | RDP、Active Directory、セッション管理を公式資料から整理した記事 |
 | [お問い合わせ](https://meruba1234.github.io/PortfolioWebSite/contact.html) | 連絡先 |
 
