@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>RDPのドライブ共有はなぜ危険か：侵害済み接続先からローカルPCを守る — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<script>(function(){try{var t=localStorage.getItem('skillshowcase-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta content="リモートデスクトップ（RDP）は画面と入力だけでなく、設定によって手元PCのドライブ、クリップボード、プリンターなども接続先と共有する。接続先が侵害されている場合、この便利な経路がローカルPCへの読み書き経路になり得る。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="RDPのドライブ共有はなぜ危険か：侵害済み接続先からローカルPCを守る — SkillShowcase" property="og:title"/>
+<meta content="リモートデスクトップ（RDP）は画面と入力だけでなく、設定によって手元PCのドライブ、クリップボード、プリンターなども接続先と共有する。接続先が侵害されている場合、この便利な経路がローカルPCへの読み書き経路になり得る。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-rdp-drive-redirection-security.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-rdp-drive-redirection-security.html" rel="canonical"/>
+<meta content="#0b6cb2" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../career.html">職務経歴</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<p class="note">業務で調べた内容を、後から読み直すために自分用にまとめた学習ノートです。社内固有の情報（サーバー名・IPアドレス・取引先名・社内システム名）は含めていません。公開にあたって内容を再確認していますが、個人の理解を整理したものであり、記述の正確性を保証するものではありません。</p>
+<section>
+<div class="case-tags"><span class="case-tag">セキュリティ</span></div>
+<h2>RDPのドライブ共有はなぜ危険か：侵害済み接続先からローカルPCを守る</h2>
+<h3>はじめに</h3>
+<p>リモートデスクトップ（RDP）は画面と入力だけでなく、設定によって手元PCのドライブ、クリップボード、プリンターなども接続先と共有する。接続先が侵害されている場合、この便利な経路がローカルPCへの読み書き経路になり得る。</p>
+<p>この記事では、2026年10月に公表された「お名前.com デスクトップクラウド」の不正アクセス事案を入口に、RDPドライブリダイレクト、Active Directory（AD）の高権限管理、セッション失効を整理する。</p>
+<h3>確認済みの事実と推測を分ける</h3>
+<p>2026年10月24日の公式発表では、次の内容が公表された。</p>
+<ul class="note-list"><li>一部の利用者サーバーに不正なプログラムが設置された</li><li>影響の可能性があるサーバーは26,739件</li><li>この数字は侵害や情報取得が確認された件数ではなく、対象となり得る件数</li><li>サーバー内の取引口座ログイン情報などが取得され、不正利用された可能性がある</li><li>個別の取得・不正利用の有無と範囲は調査中</li></ul>
+<p>顧客PCへの具体的な侵入経路は確定していない。ここでは事件原因を断定せず、RDPの一般仕様としてローカル資源が接続先から利用可能になる条件を扱う。</p>
+<h3>RDPは画面転送だけではない</h3>
+<p>RDPではローカルドライブ、クリップボード、プリンター、スマートカードなどを接続先へリダイレクトできる。Microsoftは、ドライブリダイレクトを有効にすると、リモートコンピューターがローカルドライブ上のファイルを読み書きできると説明している。</p>
+<p>接続先からは、環境によって次のような名前で見える。</p>
+<pre><code data-lang="text">\\tsclient\C</code></pre>
+<p>ローカルのCドライブをインターネット全体へ公開する仕組みではない。RDPセッション内の仮想チャンネルを通じて、接続先からローカル側へファイル操作を要求する。</p>
+<h3>危険が成立する条件</h3>
+<pre><code data-lang="text">接続先サーバーが攻撃者に操作されている
+  + 利用者がそのサーバーへRDP接続している
+  + ドライブリダイレクトが許可されている
+  + 攻撃者が利用者のRDPセッションを悪用できる
+  = ローカルドライブへ到達する経路が生じ得る</code></pre>
+<p>ドライブリダイレクトを無効化すれば、この経路を一つ閉じられる。組織ではクライアント設定だけに依存せず、グループポリシーやMDMで禁止できる。</p>
+<h3>暗号化だけでは防げない</h3>
+<p>RDP通信の暗号化は経路上の盗聴や改ざんを防ぐ。しかし、接続先自体が侵害されている場合、暗号化は接続先からの正規形式のファイル要求を止めない。</p>
+<p>したがって、通信経路の保護と、接続先の信頼性・共有範囲の最小化は別々に対策する必要がある。</p>
+<h3>Active Directoryと横展開</h3>
+<p>ADはユーザー、コンピューター、グループ、権限を一元管理する仕組みであり、利用自体が危険なのではない。問題は高権限アカウントの利用範囲が広すぎる場合である。Domain Adminsなどの資格情報を取得されると、到達性とログオン権限の範囲内で別サーバーへ侵害が広がる可能性がある。</p>
+<p>Microsoftは、特権グループのメンバーを最小限にし、管理者アカウントと通常利用アカウントを分け、管理者がサインインできる端末を制限することを推奨している。</p>
+<h3>パスワードとセッションは別物</h3>
+<p>侵害後にパスワードを変更しても、既存のログインセッションが直ちに失効するとは限らない。インシデント対応では次をセットで扱う。</p>
+<ul class="note-list"><li>パスワード・秘密鍵などの資格情報を変更する</li><li>既存セッションやトークンを失効させる</li><li>多要素認証を有効化する</li><li>ログイン履歴・取引履歴を確認する</li><li>端末とサーバーを調査する</li></ul>
+<h3>利用者側の対策</h3>
+<ul class="note-list"><li>不要なドライブ共有とクリップボード共有をオフにする</li><li>RDPファイルの接続先、発行元、共有項目を確認する</li><li>接続先用の認証情報を重要アカウントと使い回さない</li><li>侵害が疑われる場合は接続と全セッションを終了する</li><li>安全な端末から資格情報を変更し、端末をフルスキャンする</li></ul>
+<h3>管理者側の対策</h3>
+<ul class="note-list"><li>Domain Adminsなどのメンバーを最小限にする</li><li>日常利用と管理作業でアカウントを分ける</li><li>管理者のログオン先を管理端末へ限定する</li><li>顧客環境、管理環境、通常業務環境をネットワーク分離する</li><li>不要なRDPリダイレクトをグループポリシーで禁止する</li><li>管理者ログオンとサーバー間通信を監視する</li><li>資格情報変更とセッション失効をインシデント手順に含める</li></ul>
+<h3>参考資料</h3>
+<ul class="note-list"><li><a href="https://www.onamae.com/news/article/11584/" rel="noopener noreferrer" target="_blank">お名前.com：第三者による不正アクセスに関する第1報</a></li><li><a href="https://www.onamae.com/news/article/11599/" rel="noopener noreferrer" target="_blank">お名前.com：被害拡大防止のためのお客様へのお願い（第5報）</a></li><li><a href="https://www.onamae.com/news/article/11610/" rel="noopener noreferrer" target="_blank">お名前.com：現在の対応について（第7報）</a></li><li><a href="https://learn.microsoft.com/windows-server/remote/remote-desktop-services/remotepc/understanding-security-warnings" rel="noopener noreferrer" target="_blank">Microsoft Learn：Understanding security warnings when opening Remote Desktop (RDP) files</a></li><li><a href="https://learn.microsoft.com/windows/client-management/mdm/policy-csp-remotedesktopservices" rel="noopener noreferrer" target="_blank">Microsoft Learn：RemoteDesktopServices Policy CSP</a></li><li><a href="https://learn.microsoft.com/windows/security/identity-protection/access-control/active-directory-accounts" rel="noopener noreferrer" target="_blank">Microsoft Learn：Active Directory Accounts</a></li></ul>
+<p>情報は2026年10月27日時点。事案の調査状況は更新される可能性があるため、最新情報は公式発表を確認する。</p>
+</section>
+<p><a href="../tech-notes.html">← 技術ノート一覧に戻る</a></p>
+<footer>
+<p>© 2024-2026 SkillShowcase. All rights reserved.</p>
+</footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>
