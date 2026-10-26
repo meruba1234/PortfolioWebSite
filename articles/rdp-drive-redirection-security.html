@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>RDPのドライブ共有はなぜ危険か — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<script>(function(){try{var t=localStorage.getItem('skillshowcase-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta content="RDPドライブリダイレクト、高権限アカウント、セッション失効の関係を、公式資料を基に整理した技術記事。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="RDPのドライブ共有はなぜ危険か — SkillShowcase" property="og:title"/>
+<meta content="侵害済み接続先からローカルPCを守るために、RDPドライブリダイレクトとADの高権限管理を整理します。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/articles/rdp-drive-redirection-security.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/articles/rdp-drive-redirection-security.html" rel="canonical"/>
+<meta content="#0b6cb2" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+</head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav><ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../career.html">職務経歴</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul></nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<p style="margin-top:0;"><a href="../portfolio.html">← ホームに戻る</a></p>
+<p class="note">2026年10月27日時点の公式発表とMicrosoft公式資料を基にした個人学習記事です。進行中の事案について、公式確認済み事項と一般的な技術解説を分けて記載しています。</p>
+<section>
+<div class="case-tags"><span class="case-tag">Windows</span><span class="case-tag">RDP</span><span class="case-tag">セキュリティ</span></div>
+<h2>RDPのドライブ共有はなぜ危険か</h2>
+<p class="lead">侵害済み接続先からローカルPCを守るために、ドライブリダイレクト、高権限アカウント、セッション失効の関係を整理します。</p>
+
+<h3>確認済み事実と技術的仮説を分ける</h3>
+<p>2026年10月24日の「お名前.com デスクトップクラウド」公式発表では、一部の利用者サーバーへの不正プログラム設置、サーバー内の取引口座ログイン情報などが取得・不正利用された可能性、影響の可能性があるサーバー26,739件が公表されました。この件数は侵害確認件数ではなく、対象となり得る件数です。</p>
+<p>顧客PCへの具体的な侵入経路は調査中です。ここでは事件の原因を断定せず、RDPの一般仕様としてローカル資源が接続先から利用可能になる条件を扱います。</p>
+
+<h3>RDPは画面転送だけではない</h3>
+<p>RDPは、設定によってローカルドライブ、クリップボード、プリンターなどを接続先へ共有できます。Microsoftは、ドライブリダイレクトを許可すると、リモートコンピューターがローカルドライブ上のファイルを読み書きできると説明しています。</p>
+<pre><code>接続先サーバーが侵害済み
+  + 利用者がRDP接続中
+  + ドライブ共有が有効
+  + 攻撃者がそのセッションを悪用可能
+  = ローカルファイルへ到達する経路が生じ得る</code></pre>
+<p>接続先からは、環境によって<code>\\tsclient\C</code>のような名前で手元PCのドライブが見えます。Cドライブをインターネット全体へ公開する仕組みではなく、RDPセッション内の仮想チャンネルを通じてファイル操作を要求します。</p>
+
+<h3>暗号化だけでは止められない</h3>
+<p>RDP通信の暗号化は、経路上の盗聴や改ざんを防ぐために重要です。しかし、接続先そのものが侵害されている場合、暗号化は接続先からのファイル操作を止めません。</p>
+<p>「通信経路を守ること」と「接続先を信頼できる状態に保ち、共有範囲を最小化すること」は別々に必要です。</p>
+
+<h3>ADとラテラルムーブメント</h3>
+<p>Active Directoryは、組織内のユーザー、端末、グループ、権限を管理する仕組みです。問題はADそのものではなく、高権限アカウントの利用範囲が広すぎる場合です。</p>
+<pre><code>1台の侵害
+  → 高権限資格情報の取得
+  → 管理可能な別サーバーへ移動
+  → 業務・顧客環境へ被害が拡大</code></pre>
+<p>Microsoftは、Domain Adminsなどのメンバーを最小限にし、管理者アカウントと通常アカウントを分け、管理者がサインインできる端末を制限することを推奨しています。</p>
+
+<h3>パスワードとセッションは別物</h3>
+<p>パスワード変更後も、認証済みの既存セッションが直ちに失効するとは限りません。公式案内でも、パスワード変更済みの場合を含め、接続中の全セッションを切断するよう案内されています。</p>
+<ul class="note-list">
+<li>資格情報を変更する</li>
+<li>既存セッションとトークンを失効させる</li>
+<li>多要素認証を有効化する</li>
+<li>ログイン履歴・取引履歴を確認する</li>
+<li>端末とサーバーを調査する</li>
+</ul>
+
+<h3>利用者側の対策</h3>
+<ol class="note-list">
+<li>不要なドライブ共有とクリップボード共有をオフにする</li>
+<li>RDPファイルの接続先・発行元・共有項目を確認する</li>
+<li>侵害が疑われたらパスワード変更と全セッション切断を行う</li>
+<li>端末をフルスキャンし、重要データを安全な場所へバックアップする</li>
+<li>メール内リンクではなく、事業者の公式サイトから最新情報を確認する</li>
+</ol>
+
+<h3>管理者側の対策</h3>
+<ul class="note-list">
+<li>特権グループのメンバーを最小限にする</li>
+<li>日常利用と管理作業でアカウントを分ける</li>
+<li>管理者のログオン先を管理端末へ限定する</li>
+<li>顧客・管理・通常業務のネットワークを分離する</li>
+<li>不要なRDPリダイレクトをグループポリシーで禁止する</li>
+<li>管理者ログオンとサーバー間通信を監視する</li>
+</ul>
+
+<h3>今回の学び</h3>
+<ul class="note-list">
+<li>クラウドに保存したデータだけでなく、クラウドへ接続・共有した資源も保護対象になる</li>
+<li>暗号化は重要だが、侵害済みの接続先を安全には戻さない</li>
+<li>ADでは権限の広さと運用方法が被害範囲を左右する</li>
+<li>パスワード変更とセッション失効は別の作業</li>
+<li>公式確認済み事項と技術的仮説を分けて読む</li>
+</ul>
+
+<h3>参考資料</h3>
+<ul class="note-list">
+<li><a href="https://www.onamae.com/news/article/11584/" rel="noopener noreferrer" target="_blank">お名前.com：第三者による不正アクセスに関する第1報</a></li>
+<li><a href="https://www.onamae.com/news/article/11599/" rel="noopener noreferrer" target="_blank">お名前.com：被害拡大防止のためのお客様へのお願い（第5報）</a></li>
+<li><a href="https://www.onamae.com/news/article/11610/" rel="noopener noreferrer" target="_blank">お名前.com：現在の対応について（第7報）</a></li>
+<li><a href="https://learn.microsoft.com/windows-server/remote/remote-desktop-services/remotepc/understanding-security-warnings" rel="noopener noreferrer" target="_blank">Microsoft Learn：RDPファイルのセキュリティ警告</a></li>
+<li><a href="https://learn.microsoft.com/windows/security/identity-protection/access-control/active-directory-accounts" rel="noopener noreferrer" target="_blank">Microsoft Learn：Active Directory Accounts</a></li>
+</ul>
+<p><a class="cta-link" href="https://github.com/meruba1234/zenn-content/blob/main/articles/rdp-drive-redirection-security.md" rel="noopener noreferrer" target="_blank">GitHubで記事原稿を見る</a></p>
+</section>
+<p><a href="../portfolio.html">← ホームに戻る</a></p>
+<footer><p>© 2024-2026 SkillShowcase. All rights reserved.</p></footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>
