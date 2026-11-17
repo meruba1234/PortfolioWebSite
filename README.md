@@ -17,6 +17,7 @@
 | [経歴](https://meruba1234.github.io/PortfolioWebSite/timeline.html) | 職業訓練から社内SEの実務まで |
 | [ITスキル](https://meruba1234.github.io/PortfolioWebSite/itskills.html) | 扱った技術と、スキル記載の基準 |
 | [技術ノート](https://meruba1234.github.io/PortfolioWebSite/tech-notes.html) | 業務で調べた内容を分野別に整理した学習ノート 58本 |
+| [IT学習ラボ](https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-study-foundations.html) | 382テーマの学習ポイント・確認問題・メモ・学習進捗 |
 | [お問い合わせ](https://meruba1234.github.io/PortfolioWebSite/contact.html) | 連絡先 |
 
 ---

@@ -49,7 +49,9 @@ style.css / main.js   全ページ共通
 og-image.png / sitemap.xml / robots.txt
 ```
 
-全84ページ。
+全85ページ。
+
+2026-11-17更新: IT学習ラボを加え、全85ページ。`tech-notes/note-study-foundations.html`、`study-lessons.json`、`study-lab.css`、`study-lab.js` はlife-osの `scripts/portfolio/gen_notes.py` から生成する。教材の正本は `study/ict/programming/study-lab/lessons.json`。旧生成スクリプトが見つからなかったため、既存58本を保持し、一覧の既存内容はテンプレートとして保存している。変更箇所は生成元に反映する。
 
 ---
 

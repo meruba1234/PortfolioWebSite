@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<title>IT学習ラボ — SkillShowcase</title>
+<link href="../style.css" rel="stylesheet"/>
+<script>(function(){try{var t=localStorage.getItem('skillshowcase-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta content="AI、Web、データベース、開発と運用を382のテーマで学ぶ。検索、確認問題、メモ、学習進捗に対応。" name="description"/>
+<meta content="article" property="og:type"/>
+<meta content="IT学習ラボ — SkillShowcase" property="og:title"/>
+<meta content="AI、Web、データベース、開発と運用を382のテーマで学ぶ。検索、確認問題、メモ、学習進捗に対応。" property="og:description"/>
+<meta content="SkillShowcase" property="og:site_name"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/og-image.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-study-foundations.html" property="og:url"/>
+<link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-study-foundations.html" rel="canonical"/>
+<meta content="#0b6cb2" name="theme-color"/>
+<script defer="" src="../main.js"></script>
+<link href="study-lab.css" rel="stylesheet"/><script defer="" src="study-lab.js"></script></head>
+<body>
+<header>
+<h1>SkillShowcase</h1>
+<button aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+<nav>
+<ul>
+<li><a href="../portfolio.html">ホーム</a></li>
+<li><a href="../career.html">職務経歴</a></li>
+<li><a href="../business-cases.html">業務改善実績</a></li>
+<li><a href="../achievements.html">実績データ</a></li>
+<li><a href="../timeline.html">経歴</a></li>
+<li><a href="../itskills.html">ITスキル</a></li>
+<li><a href="../tech-notes.html">技術ノート</a></li>
+<li><a href="../contact.html">お問い合わせ</a></li>
+</ul>
+</nav>
+<button aria-label="ダークモード切替" class="theme-toggle" type="button"><svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><svg class="icon-sun" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg></button>
+</header>
+<main class="main-content">
+<section class="study-hero">
+<div><p class="study-kicker">STUDY / PRACTICE / REVIEW</p><h2>IT学習ラボ</h2><p class="lead">仕組みを読む。自分の言葉で説明する。<br/>AI、Web、データベース、開発と運用を、382の小さなテーマから学びます。</p><div class="study-actions"><a class="study-button" href="../tech-notes.html">技術ノートの一覧へ</a><button class="study-button" id="random-lesson" type="button">テーマをおまかせ</button></div></div>
+<div class="study-progress"><span class="study-hint">YOUR PROGRESS</span><div><strong id="completed-count">0</strong><span> / <span id="total-count">382</span></span></div><p id="progress-label">学習済みのテーマ</p><progress aria-label="学習済みのテーマ数" id="study-progress" max="382" value="0"></progress></div>
+</section>
+<p class="study-message" hidden="" id="study-message" role="status"></p><p id="study-loading" role="status">教材を読み込んでいます…</p>
+<noscript><p>検索・復習・進捗の保存にはJavaScriptを有効にしてください。通常の技術ノートは、一覧から読むことができます。</p></noscript>
+<div hidden="" id="study-app">
+<div class="study-toolbar">
+<div class="study-control search"><label for="study-search">キーワードで探す</label><input autocomplete="off" id="study-search" placeholder="例：Python、RAG、インデックス" type="search"/></div>
+<div class="study-control"><label for="study-category">分野</label><select id="study-category"><option value="">すべての分野</option></select></div>
+<div class="study-control"><label for="study-status">学習状況</label><select id="study-status"><option value="">すべて</option><option value="unfinished">未学習</option><option value="completed">学習済み</option><option value="bookmarked">あとで復習</option></select></div>
+</div>
+<div class="study-workspace">
+<aside aria-label="学習テーマの一覧" class="study-catalog"><div class="study-catalog-heading"><h3>学習テーマ</h3><span aria-live="polite" class="study-count" id="result-count"></span></div><ul class="study-list" id="study-list"></ul><div class="study-pagination"><button aria-label="一覧の前のページ" class="study-button" id="catalog-prev" type="button">←</button><span class="study-count" id="page-count"></span><button aria-label="一覧の次のページ" class="study-button" id="catalog-next" type="button">→</button></div></aside>
+<article aria-labelledby="lesson-title" class="study-reader" id="study-reader">
+<div class="study-meta"><span id="lesson-position"></span><span> / </span><span id="lesson-category"></span></div><h3 id="lesson-title" tabindex="-1"></h3>
+<div class="study-actions"><button aria-pressed="false" class="study-button primary" id="complete-lesson" type="button">学習済みにする</button><button aria-pressed="false" class="study-button" id="bookmark-lesson" type="button">あとで復習</button></div>
+<div aria-label="学習方法" class="study-tabs" role="tablist"><button aria-controls="panel-learn" aria-selected="true" id="tab-learn" role="tab" type="button">学ぶ</button><button aria-controls="panel-recall" aria-selected="false" id="tab-recall" role="tab" tabindex="-1" type="button">思い出す</button><button aria-controls="panel-memo" aria-selected="false" id="tab-memo" role="tab" tabindex="-1" type="button">自分のメモ</button></div>
+<div aria-labelledby="tab-learn" id="panel-learn" role="tabpanel"><ul class="study-points" id="lesson-points"></ul><div class="study-practice"><h4>考えてみる</h4><p id="lesson-exercise"></p></div><div id="reference-section"><h4>参考資料</h4><ul class="study-references" id="lesson-references"></ul></div><p class="study-hint">整理日：2026年11月17日。製品の仕様や設定値は、利用するバージョンの資料で確認してください。学習テーマには技術史や仕事の振り返りも含みます。</p></div>
+<div aria-labelledby="tab-recall" hidden="" id="panel-recall" role="tabpanel"><p class="study-hint">本文を見ずに、理由と具体例を声に出すか、メモに書いてみましょう。</p><p class="study-question" id="recall-question"></p><button aria-controls="recall-answer" aria-expanded="false" class="study-button primary" id="reveal-answer" type="button">答えを確認する</button><div class="study-answer" hidden="" id="recall-answer"><h4>答え合わせのポイント</h4><ul class="study-points" id="recall-points"></ul><p class="study-hint">言葉を暗記するだけでなく、前提や例外も説明できるか確かめましょう。</p></div></div>
+<div aria-labelledby="tab-memo" hidden="" id="panel-memo" role="tabpanel"><label class="study-hint" for="lesson-memo">分かったこと、試した結果、残った疑問</label><textarea class="study-memo" id="lesson-memo" maxlength="12000" placeholder="自分の言葉で説明すると…
+
+試したこと・結果…
+
+まだ分からないこと…"></textarea><p aria-live="polite" class="study-save-status" id="memo-status"></p><p class="study-hint">メモはこのブラウザだけに保存します。サイトの管理者へ送信されません。大切な記録は下のバックアップで残せます。</p></div>
+<div class="study-bottom-nav"><button class="study-button" id="lesson-prev" type="button">← 前のテーマ</button><button class="study-button" id="lesson-next" type="button">次のテーマ →</button></div>
+</article>
+</div>
+<section class="study-storage-actions"><h3>学習の続きを残す</h3><p class="study-hint">進捗・復習リスト・自分のメモはこのブラウザに保存されます。バックアップを保存しておくと、別のブラウザでも続きを始められます。</p><div class="study-actions"><button class="study-button" id="export-progress" type="button">バックアップを書き出す</button><button class="study-button" id="import-progress" type="button">バックアップを取り込む</button><input accept=".json,application/json" hidden="" id="import-file" type="file"/></div></section>
+</div>
+<footer><p>© 2024-2026 SkillShowcase. All rights reserved.</p></footer>
+</main>
+<a aria-label="トップへ戻る" class="to-top" href="#">↑</a>
+</body>
+</html>
