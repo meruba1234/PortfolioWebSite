@@ -90,6 +90,39 @@
     target.replaceChildren();
     for (const point of points) { const li = document.createElement('li'); li.textContent = point; target.append(li); }
   }
+  function renderGuide(guide) {
+    const target = $('teaching-guide'); target.replaceChildren();
+    if (!guide) return;
+    function element(tag, text, className) { const node = document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node; }
+    target.append(element('h4', 'まず、何の話か'), element('p', guide.intro, 'guide-intro'));
+    target.append(element('h4', '先に知っておく言葉'));
+    const terms = element('dl', '', 'guide-terms');
+    for (const term of guide.terms) { const row = element('div', '', 'guide-term'); row.append(element('dt', term.word), element('dd', term.meaning)); terms.append(row); }
+    target.append(terms, element('h4', '仕組みを順に考える'));
+    const steps = element('ol', '', 'guide-steps'); for (const step of guide.steps) steps.append(element('li', step)); target.append(steps);
+    if (guide.diagram) {
+      const figure = element('figure', '', 'guide-figure'); const flow = element('ol', '', 'guide-flow');
+      for (const label of guide.diagram.nodes) flow.append(element('li', label));
+      figure.append(flow, element('figcaption', guide.diagram.caption));
+      if (guide.id === 'file-storage') {
+        const allocation = element('div', '', 'guide-allocation');
+        for (const [label, used, free] of [['区画1', 4, 0], ['区画2', 1, 3]]) {
+          const block = element('div', '', 'guide-block'); block.append(element('strong', label + '（4KiB）'));
+          const bar = element('div', '', 'guide-block-bar'); const occupied = element('span', '使用 ' + used + 'KiB', 'guide-used'); occupied.style.flexGrow = used; bar.append(occupied);
+          if (free) { const empty = element('span', '空き ' + free + 'KiB', 'guide-free'); empty.style.flexGrow = free; bar.append(empty); }
+          block.append(bar); allocation.append(block);
+        }
+        figure.append(allocation);
+      }
+      target.append(figure);
+    }
+    target.append(element('h4', '具体例で確かめる'));
+    const example = element('div', '', 'guide-example'); example.append(element('p', guide.example.scenario));
+    const exampleSteps = element('ol', '', 'guide-steps'); for (const step of guide.example.steps) exampleSteps.append(element('li', step));
+    example.append(exampleSteps, element('p', guide.example.result, 'guide-result')); target.append(example);
+    target.append(element('h4', '間違えやすいところ'));
+    const pitfalls = element('ul', '', 'guide-pitfalls'); for (const text of guide.pitfalls) pitfalls.append(element('li', text)); target.append(pitfalls);
+  }
   function setTab(next) {
     tab = next;
     for (const name of ['learn', 'recall', 'memo']) {
@@ -105,9 +138,10 @@
     $('lesson-category').textContent = current.categoryLabel;
     $('lesson-position').textContent = 'THEME ' + String(lessons.indexOf(current) + 1).padStart(3, '0');
     pointsInto($('lesson-points'), current.points);
-    pointsInto($('recall-points'), current.points);
+    renderGuide(current.teaching);
+    pointsInto($('recall-points'), current.teaching ? [current.teaching.answer] : current.points);
     $('lesson-exercise').textContent = current.exercise;
-    $('recall-question').textContent = current.question;
+    $('recall-question').textContent = current.teaching ? current.teaching.question : current.question;
     $('recall-answer').hidden = true;
     $('reveal-answer').textContent = '答えを確認する';
     $('reveal-answer').setAttribute('aria-expanded', 'false');
