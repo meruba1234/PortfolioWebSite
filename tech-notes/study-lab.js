@@ -197,7 +197,7 @@
   }
   async function init() {
     try {
-      const response = await fetch('study-lessons.json?v=20261117-guide2', { cache: 'no-cache' });
+      const response = await fetch('study-lessons.json?v=20261117-guide3', { cache: 'no-cache' });
       if (!response.ok) throw Error('教材データを取得できませんでした。');
       const data = await response.json();
       if (!Array.isArray(data.lessons) || !data.lessons.length) throw Error('教材データが空です。');
