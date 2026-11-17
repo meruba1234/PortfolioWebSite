@@ -22,7 +22,7 @@
 <link href="https://meruba1234.github.io/PortfolioWebSite/tech-notes/note-study-foundations.html" rel="canonical"/>
 <meta content="#0b6cb2" name="theme-color"/>
 <script defer="" src="../main.js"></script>
-<link href="study-lab.css" rel="stylesheet"/><script defer="" src="study-lab.js"></script></head>
+<link href="study-lab.css?v=20261117-guide2" rel="stylesheet"/><script defer="" src="study-lab.js?v=20261117-guide2"></script></head>
 <body>
 <header>
 <h1>SkillShowcase</h1>
@@ -43,7 +43,7 @@
 </header>
 <main class="main-content">
 <section class="study-hero">
-<div><p class="study-kicker">STUDY / PRACTICE / REVIEW</p><h2>IT学習ラボ</h2><p class="lead">仕組みを読む。自分の言葉で説明する。<br/>AI、Web、データベース、開発と運用を、382の小さなテーマから学びます。</p><div class="study-actions"><a class="study-button" href="../tech-notes.html">技術ノートの一覧へ</a><button class="study-button" id="random-lesson" type="button">テーマをおまかせ</button></div></div>
+<div><p class="study-kicker">STUDY / PRACTICE / REVIEW</p><h2>IT学習ラボ</h2><p class="lead">用語の意味から、仕組みの図と具体例へ。一つずつ理解してから、問題に答えて確かめます。AI、Web、データベース、開発と運用の382テーマを収録しています。</p><div class="study-actions"><a class="study-button" href="../tech-notes.html">技術ノートの一覧へ</a><button class="study-button" id="random-lesson" type="button">テーマをおまかせ</button></div></div>
 <div class="study-progress"><span class="study-hint">YOUR PROGRESS</span><div><strong id="completed-count">0</strong><span> / <span id="total-count">382</span></span></div><p id="progress-label">学習済みのテーマ</p><progress aria-label="学習済みのテーマ数" id="study-progress" max="382" value="0"></progress></div>
 </section>
 <p class="study-message" hidden="" id="study-message" role="status"></p><p id="study-loading" role="status">教材を読み込んでいます…</p>
@@ -60,8 +60,8 @@
 <div class="study-meta"><span id="lesson-position"></span><span> / </span><span id="lesson-category"></span></div><h3 id="lesson-title" tabindex="-1"></h3>
 <div class="study-actions"><button aria-pressed="false" class="study-button primary" id="complete-lesson" type="button">学習済みにする</button><button aria-pressed="false" class="study-button" id="bookmark-lesson" type="button">あとで復習</button></div>
 <div aria-label="学習方法" class="study-tabs" role="tablist"><button aria-controls="panel-learn" aria-selected="true" id="tab-learn" role="tab" type="button">学ぶ</button><button aria-controls="panel-recall" aria-selected="false" id="tab-recall" role="tab" tabindex="-1" type="button">思い出す</button><button aria-controls="panel-memo" aria-selected="false" id="tab-memo" role="tab" tabindex="-1" type="button">自分のメモ</button></div>
-<div aria-labelledby="tab-learn" id="panel-learn" role="tabpanel"><div id="teaching-guide"></div><h4>このテーマの要点</h4><ul class="study-points" id="lesson-points"></ul><div class="study-practice"><h4>考えてみる</h4><p id="lesson-exercise"></p></div><div id="reference-section"><h4>参考資料</h4><ul class="study-references" id="lesson-references"></ul></div><p class="study-hint">整理日：2026年11月17日。製品の仕様や設定値は、利用するバージョンの資料で確認してください。学習テーマには技術史や仕事の振り返りも含みます。</p></div>
-<div aria-labelledby="tab-recall" hidden="" id="panel-recall" role="tabpanel"><p class="study-hint">本文を見ずに、理由と具体例を声に出すか、メモに書いてみましょう。</p><p class="study-question" id="recall-question"></p><button aria-controls="recall-answer" aria-expanded="false" class="study-button primary" id="reveal-answer" type="button">答えを確認する</button><div class="study-answer" hidden="" id="recall-answer"><h4>答え合わせのポイント</h4><ul class="study-points" id="recall-points"></ul><p class="study-hint">言葉を暗記するだけでなく、前提や例外も説明できるか確かめましょう。</p></div></div>
+<div aria-labelledby="tab-learn" id="panel-learn" role="tabpanel"><div id="teaching-guide"></div><div id="topic-terms"></div><h4>このテーマの要点</h4><ul class="study-points" id="lesson-points"></ul><div class="study-practice"><h4>考えてみる</h4><p id="lesson-exercise"></p></div><div id="reference-section"><h4>参考資料</h4><ul class="study-references" id="lesson-references"></ul></div><p class="study-hint">整理日：2026年11月17日。製品の仕様や設定値は、利用するバージョンの資料で確認してください。学習テーマには技術史や仕事の振り返りも含みます。</p></div>
+<div aria-labelledby="tab-recall" hidden="" id="panel-recall" role="tabpanel"><h4>基礎の確認問題</h4><p class="study-hint">本文を見ずに、理由と具体例を声に出すか、メモに書いてみましょう。</p><p class="study-question" id="recall-question"></p><button aria-controls="recall-answer" aria-expanded="false" class="study-button primary" id="reveal-answer" type="button">答えを確認する</button><div class="study-answer" hidden="" id="recall-answer"><h4>答え合わせのポイント</h4><ul class="study-points" id="recall-points"></ul><p class="study-hint">言葉を暗記するだけでなく、前提や例外も説明できるか確かめましょう。</p></div><h4>このテーマを自分の言葉で説明する</h4><p class="study-question" id="topic-recall-question"></p><details><summary>このテーマの要点を確認する</summary><ul class="study-points" id="topic-recall-points"></ul></details></div>
 <div aria-labelledby="tab-memo" hidden="" id="panel-memo" role="tabpanel"><label class="study-hint" for="lesson-memo">分かったこと、試した結果、残った疑問</label><textarea class="study-memo" id="lesson-memo" maxlength="12000" placeholder="自分の言葉で説明すると…
 
 試したこと・結果…

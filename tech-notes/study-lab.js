@@ -94,7 +94,7 @@
     const target = $('teaching-guide'); target.replaceChildren();
     if (!guide) return;
     function element(tag, text, className) { const node = document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node; }
-    target.append(element('h4', 'まず、何の話か'), element('p', guide.intro, 'guide-intro'));
+    target.append(element('h4', '土台から理解する：' + guide.title), element('p', guide.intro, 'guide-intro'));
     target.append(element('h4', '先に知っておく言葉'));
     const terms = element('dl', '', 'guide-terms');
     for (const term of guide.terms) { const row = element('div', '', 'guide-term'); row.append(element('dt', term.word), element('dd', term.meaning)); terms.append(row); }
@@ -123,6 +123,15 @@
     target.append(element('h4', '間違えやすいところ'));
     const pitfalls = element('ul', '', 'guide-pitfalls'); for (const text of guide.pitfalls) pitfalls.append(element('li', text)); target.append(pitfalls);
   }
+  function renderTopicTerms(lesson) {
+    const target = $('topic-terms'); target.replaceChildren();
+    const relevant = (lesson.terms || []).filter(term => !lesson.teaching || !lesson.teaching.terms.some(base => base.word.toLowerCase().includes(term.word.toLowerCase())));
+    if (!relevant.length) return;
+    const heading = document.createElement('h4'); heading.textContent = 'このテーマに出てくる言葉'; target.append(heading);
+    const list = document.createElement('dl'); list.className = 'guide-terms';
+    for (const term of relevant) { const row = document.createElement('div'); row.className = 'guide-term'; const word = document.createElement('dt'); word.textContent = term.word; const meaning = document.createElement('dd'); meaning.textContent = term.meaning; row.append(word,meaning); list.append(row); }
+    target.append(list);
+  }
   function setTab(next) {
     tab = next;
     for (const name of ['learn', 'recall', 'memo']) {
@@ -138,10 +147,22 @@
     $('lesson-category').textContent = current.categoryLabel;
     $('lesson-position').textContent = 'THEME ' + String(lessons.indexOf(current) + 1).padStart(3, '0');
     pointsInto($('lesson-points'), current.points);
+    let topicFlow = $('topic-flow');
+    if (!topicFlow) { topicFlow = document.createElement('figure'); topicFlow.id = 'topic-flow'; topicFlow.className = 'guide-figure'; $('lesson-points').after(topicFlow); }
+    topicFlow.replaceChildren(); topicFlow.hidden = !current.flow;
+    if (current.flow) {
+      const flow = document.createElement('ol'); flow.className = 'guide-flow';
+      for (const label of current.flow.nodes) { const node = document.createElement('li'); node.textContent = label; flow.append(node); }
+      const caption = document.createElement('figcaption'); caption.textContent = current.flow.caption;
+      topicFlow.append(flow, caption);
+    }
     renderGuide(current.teaching);
+    renderTopicTerms(current);
     pointsInto($('recall-points'), current.teaching ? [current.teaching.answer] : current.points);
     $('lesson-exercise').textContent = current.exercise;
     $('recall-question').textContent = current.teaching ? current.teaching.question : current.question;
+    $('topic-recall-question').textContent = current.question;
+    pointsInto($('topic-recall-points'), current.points);
     $('recall-answer').hidden = true;
     $('reveal-answer').textContent = '答えを確認する';
     $('reveal-answer').setAttribute('aria-expanded', 'false');
@@ -176,11 +197,11 @@
   }
   async function init() {
     try {
-      const response = await fetch('study-lessons.json', { cache: 'no-cache' });
+      const response = await fetch('study-lessons.json?v=20261117-guide2', { cache: 'no-cache' });
       if (!response.ok) throw Error('教材データを取得できませんでした。');
       const data = await response.json();
       if (!Array.isArray(data.lessons) || !data.lessons.length) throw Error('教材データが空です。');
-      lessons = data.lessons.map(l => ({ ...l, searchText: normalize([l.title, l.categoryLabel, ...l.tags, ...l.points].join(' ')) }));
+      lessons = data.lessons.map(l => ({ ...l, teaching: data.guides?.[l.teachingId], searchText: normalize([l.title, l.categoryLabel, ...l.tags, ...l.points, ...(l.terms || []).map(t => t.word)].join(' ')) }));
       try { const saved = localStorage.getItem(KEY); if (saved) state = validate(JSON.parse(saved)); }
       catch (_) { message('保存済みデータを読み込めませんでした。バックアップがあれば取り込んでください。', true); }
       const categories = new Map(lessons.map(l => [l.category, l.categoryLabel]));
